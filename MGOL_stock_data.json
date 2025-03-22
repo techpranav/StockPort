@@ -1,0 +1,469 @@
+{
+    "info": {
+        "address1": "1515 SE 17th Street",
+        "address2": "Suite 121/#460596",
+        "city": "Fort Lauderdale",
+        "state": "FL",
+        "zip": "33346",
+        "country": "United States",
+        "phone": "347 913 3316",
+        "website": "https://www.mgoglobalinc.com",
+        "industry": "Advertising Agencies",
+        "industryKey": "advertising-agencies",
+        "industryDisp": "Advertising Agencies",
+        "sector": "Communication Services",
+        "sectorKey": "communication-services",
+        "sectorDisp": "Communication Services",
+        "longBusinessSummary": "MGO Global, Inc. operates as a lifestyle brand portfolio company. The company is involved in the fashion design, brand development and management, sourcing and manufacturing, licensing, IP protection, corporate finance, consumer engagement and experience, ecommerce, and retail sales and marketing activities related to the Messi brand. MGO Global, Inc. was founded in 2018 and is headquartered in Fort Lauderdale, Florida.",
+        "fullTimeEmployees": 7,
+        "companyOfficers": [
+            {
+                "maxAge": 1,
+                "name": "Mr. Maximiliano  Ojeda",
+                "age": 46,
+                "title": "Co-Founder, Chairman & CEO",
+                "yearBorn": 1978,
+                "fiscalYear": 2023,
+                "totalPay": 316307,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Ms. Virginia  Hilfiger",
+                "age": 60,
+                "title": "Co-Founder, Chief Brand Officer, Chief Design Officer & Director",
+                "yearBorn": 1964,
+                "fiscalYear": 2023,
+                "totalPay": 252000,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Mr. Julian  Groves",
+                "age": 51,
+                "title": "COO & Director",
+                "yearBorn": 1973,
+                "fiscalYear": 2023,
+                "totalPay": 222088,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Ms. Dana Eschenburg Perez CPA",
+                "age": 46,
+                "title": "Chief Financial Officer",
+                "yearBorn": 1978,
+                "fiscalYear": 2023,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Ms. Dodi  Handy",
+                "title": "Director of Communications",
+                "fiscalYear": 2023,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            }
+        ],
+        "compensationAsOfEpochDate": 1703980800,
+        "executiveTeam": [],
+        "maxAge": 86400,
+        "priceHint": 4,
+        "previousClose": 0.465,
+        "open": 0.4001,
+        "dayLow": 0.33,
+        "dayHigh": 0.4599,
+        "regularMarketPreviousClose": 0.465,
+        "regularMarketOpen": 0.4001,
+        "regularMarketDayLow": 0.33,
+        "regularMarketDayHigh": 0.4599,
+        "payoutRatio": 0.0,
+        "beta": 7.266,
+        "volume": 102365644,
+        "regularMarketVolume": 102365644,
+        "averageVolume": 69267996,
+        "averageVolume10days": 339144080,
+        "averageDailyVolume10Day": 339144080,
+        "bid": 0.0,
+        "ask": 0.0,
+        "bidSize": 0,
+        "askSize": 0,
+        "marketCap": 3411030,
+        "fiftyTwoWeekLow": 0.1,
+        "fiftyTwoWeekHigh": 18.3,
+        "priceToSalesTrailing12Months": 0.65627944,
+        "fiftyDayAverage": 0.81786,
+        "twoHundredDayAverage": 2.936215,
+        "trailingAnnualDividendRate": 0.0,
+        "trailingAnnualDividendYield": 0.0,
+        "currency": "USD",
+        "tradeable": false,
+        "enterpriseValue": -692389,
+        "profitMargins": -1.17414,
+        "floatShares": 626277,
+        "sharesOutstanding": 9219000,
+        "sharesShort": 1034511,
+        "sharesShortPriorMonth": 1920943,
+        "sharesShortPreviousMonthDate": 1735603200,
+        "dateShortInterest": 1738281600,
+        "sharesPercentSharesOut": 0.1122,
+        "heldPercentInsiders": 0.03961,
+        "heldPercentInstitutions": 0.01048,
+        "shortRatio": 0.05,
+        "shortPercentOfFloat": 0.12979999,
+        "impliedSharesOutstanding": 10855700,
+        "bookValue": 1.03,
+        "priceToBook": 0.3592233,
+        "lastFiscalYearEnd": 1703980800,
+        "nextFiscalYearEnd": 1735603200,
+        "mostRecentQuarter": 1727654400,
+        "netIncomeToCommon": -9614721,
+        "trailingEps": -5.56,
+        "lastSplitFactor": "1:10",
+        "lastSplitDate": 1721260800,
+        "enterpriseToRevenue": -0.133,
+        "enterpriseToEbitda": 0.074,
+        "52WeekChange": -0.91294116,
+        "SandP52WeekChange": 0.1861316,
+        "quoteType": "EQUITY",
+        "currentPrice": 0.37,
+        "recommendationKey": "none",
+        "totalCash": 1435288,
+        "totalCashPerShare": 0.494,
+        "ebitda": -9370364,
+        "totalDebt": 27788,
+        "quickRatio": 7.963,
+        "currentRatio": 14.131,
+        "totalRevenue": 5197527,
+        "debtToEquity": 1.056,
+        "revenuePerShare": 2.854,
+        "returnOnAssets": -1.9111199,
+        "returnOnEquity": -3.58285,
+        "grossProfits": 2089847,
+        "freeCashflow": -3745409,
+        "operatingCashflow": -5297700,
+        "revenueGrowth": -0.464,
+        "grossMargins": 0.40208,
+        "ebitdaMargins": -1.80285,
+        "operatingMargins": -2.40136,
+        "financialCurrency": "USD",
+        "symbol": "MGOL",
+        "language": "en-US",
+        "region": "US",
+        "typeDisp": "Equity",
+        "quoteSourceName": "Nasdaq Real Time Price",
+        "triggerable": true,
+        "customPriceAlertConfidence": "HIGH",
+        "corporateActions": [],
+        "regularMarketTime": 1739998801,
+        "exchange": "NCM",
+        "messageBoardId": "finmb_1763348104",
+        "exchangeTimezoneName": "America/New_York",
+        "exchangeTimezoneShortName": "EST",
+        "gmtOffSetMilliseconds": -18000000,
+        "market": "us_market",
+        "esgPopulated": false,
+        "regularMarketChange": -0.095,
+        "regularMarketDayRange": "0.33 - 0.4599",
+        "fullExchangeName": "NasdaqCM",
+        "averageDailyVolume3Month": 69267996,
+        "fiftyTwoWeekLowChange": 0.27,
+        "fiftyTwoWeekLowChangePercent": 2.7,
+        "fiftyTwoWeekRange": "0.1 - 18.3",
+        "fiftyTwoWeekHighChange": -17.929998,
+        "fiftyTwoWeekHighChangePercent": -0.9797814,
+        "fiftyTwoWeekChangePercent": -91.29411,
+        "epsTrailingTwelveMonths": -5.56,
+        "fiftyDayAverageChange": -0.44786,
+        "fiftyDayAverageChangePercent": -0.54759985,
+        "twoHundredDayAverageChange": -2.566215,
+        "twoHundredDayAverageChangePercent": -0.87398744,
+        "shortName": "MGO Global Inc.",
+        "longName": "MGO Global, Inc.",
+        "sourceInterval": 15,
+        "exchangeDataDelayedBy": 0,
+        "ipoExpectedDate": "2023-01-13",
+        "cryptoTradeable": false,
+        "hasPrePostMarketData": true,
+        "firstTradeDateMilliseconds": 1673620200000,
+        "regularMarketChangePercent": -20.430107,
+        "regularMarketPrice": 0.37,
+        "marketState": "REGULAR",
+        "displayName": "MGO Global",
+        "trailingPegRatio": null
+    },
+    "stats": {
+        "Market Cap": 3411030,
+        "PE Ratio": null,
+        "EPS": -5.56,
+        "52 Week High": 18.3,
+        "52 Week Low": 0.1,
+        "Dividend Yield": null,
+        "Recommendation": "none"
+    },
+    "news": [
+        {
+            "id": "33c4fe4d-bd69-3886-a6d0-387b0b348d3a",
+            "content": {
+                "id": "33c4fe4d-bd69-3886-a6d0-387b0b348d3a",
+                "contentType": "STORY",
+                "title": "3 Penny Stocks Ready to Explode Into Dollar Signs by 2028",
+                "description": "",
+                "summary": "Some companies become penny stocks due to listing on over-the-counter markets to raise capital. Other stocks start with a higher price, but throughout their trading history will drive down to the level of penny stock. In these cases investing in the stock is slightly safer than investing in a completely new company. That’s true as long as the reason for the stock’s loss in value is reversible. By looking for opportunities like these, investors can potentially buy a stock at a significant discoun",
+                "pubDate": "2024-06-20T18:51:46Z",
+                "displayTime": "2024-06-20T18:51:46Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": {
+                    "originalUrl": "https://media.zenfs.com/en/investorplace_417/47512908a6a08aa4007aeeb45f13cc84",
+                    "originalWidth": 728,
+                    "originalHeight": 400,
+                    "caption": "a photo of someone typing on a laptop on a wooden table with computer-related images",
+                    "resolutions": [
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/eqJQWzUg6GkpU_8dpFX6Bw--~B/aD00MDA7dz03Mjg7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/investorplace_417/47512908a6a08aa4007aeeb45f13cc84",
+                            "width": 728,
+                            "height": 400,
+                            "tag": "original"
+                        },
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/AQQNvwr8GC3wq3fhg9LJjg--~B/Zmk9c3RyaW07aD0xMjg7dz0xNzA7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/investorplace_417/47512908a6a08aa4007aeeb45f13cc84",
+                            "width": 170,
+                            "height": 128,
+                            "tag": "170x128"
+                        }
+                    ]
+                },
+                "provider": {
+                    "displayName": "InvestorPlace",
+                    "url": "https://investorplace.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/3-penny-stocks-ready-explode-185146203.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/3-penny-stocks-ready-explode-185146203.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": false,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        },
+        {
+            "id": "0acdd07e-cf05-3bb7-a382-5396f86e22a2",
+            "content": {
+                "id": "0acdd07e-cf05-3bb7-a382-5396f86e22a2",
+                "contentType": "STORY",
+                "title": "Top Midday Gainers",
+                "description": "",
+                "summary": "Top Midday Gainers",
+                "pubDate": "2024-06-20T17:56:58Z",
+                "displayTime": "2024-06-20T17:56:58Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": null,
+                "provider": {
+                    "displayName": "MT Newswires",
+                    "url": "https://www.mtnewswires.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/top-midday-gainers-175658079.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/top-midday-gainers-175658079.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": true,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        },
+        {
+            "id": "ac07a260-8478-3044-aa5b-348e47642a1b",
+            "content": {
+                "id": "ac07a260-8478-3044-aa5b-348e47642a1b",
+                "contentType": "STORY",
+                "title": "MGO Global Shares Soar After Signing Business Combination Deal With Heidmar",
+                "description": "",
+                "summary": "MGO Global Shares Soar After Signing Business Combination Deal With Heidmar",
+                "pubDate": "2024-06-20T14:33:35Z",
+                "displayTime": "2024-06-20T14:33:35Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": null,
+                "provider": {
+                    "displayName": "MT Newswires",
+                    "url": "https://www.mtnewswires.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/mgo-global-shares-soar-signing-143335488.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/mgo-global-shares-soar-signing-143335488.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": true,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        },
+        {
+            "id": "f1f9a0e6-b889-365b-938b-477800533184",
+            "content": {
+                "id": "f1f9a0e6-b889-365b-938b-477800533184",
+                "contentType": "STORY",
+                "title": "3 Top Penny Stocks for 5,000% Upside in 2024 and Beyond: June Edition",
+                "description": "",
+                "summary": "Speculative penny stocks have long captured the imagination of investors seeking high-risk, high-reward opportunities. As the S&P 500 and the Nasdaq continue to climb, the small valuations of these companies make them prime candidates for delivering solid returns. With a predicted rise in broader indices and a reduction in the risk-free rate, penny stocks could thrive in the coming year. In this article, we explore three intriguing top penny stocks listed on major U.S. exchanges that have report",
+                "pubDate": "2024-06-17T10:15:00Z",
+                "displayTime": "2024-06-17T10:15:00Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": {
+                    "originalUrl": "https://media.zenfs.com/en/investorplace_417/f09e5f8fcb6479db7ad2c18e6881de67",
+                    "originalWidth": 728,
+                    "originalHeight": 400,
+                    "caption": "Motorcycle helmet with Grab logo on a motorcycle parked at the road side",
+                    "resolutions": [
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/jQNPq.bfK5ZKUd3NO.Sv8w--~B/aD00MDA7dz03Mjg7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/investorplace_417/f09e5f8fcb6479db7ad2c18e6881de67",
+                            "width": 728,
+                            "height": 400,
+                            "tag": "original"
+                        },
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/h8f5KTtIizWPEMuv5UiyHA--~B/Zmk9c3RyaW07aD0xMjg7dz0xNzA7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/investorplace_417/f09e5f8fcb6479db7ad2c18e6881de67",
+                            "width": 170,
+                            "height": 128,
+                            "tag": "170x128"
+                        }
+                    ]
+                },
+                "provider": {
+                    "displayName": "InvestorPlace",
+                    "url": "https://investorplace.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/3-top-penny-stocks-5-101500944.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/3-top-penny-stocks-5-101500944.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": false,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        },
+        {
+            "id": "53e9caf7-999f-3cbb-a6f0-0a085191bedb",
+            "content": {
+                "id": "53e9caf7-999f-3cbb-a6f0-0a085191bedb",
+                "contentType": "STORY",
+                "title": "Without Messi, the Outlook Is Messy for MGO Global Stock",
+                "description": "",
+                "summary": "Are you in the market for meme stocks and/or penny stocks? Perhaps MGO Global (NASDAQ:MGOL) caught your eye, as MGO Global is a tiny company that could grow much bigger. However, a moonshot seems improbable and MGO Global stock is too risky for sensible investors to buy and hold in 2024. Surely, it’s not a coincidence that the MGO Global share price spiked in mid-May, during the recent meme-stock short-squeeze rally. That was exciting, no doubt, but prudent investors should focus on MGO Global’s",
+                "pubDate": "2024-06-07T10:30:00Z",
+                "displayTime": "2024-06-07T10:30:00Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": null,
+                "provider": {
+                    "displayName": "InvestorPlace",
+                    "url": "https://investorplace.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/without-messi-outlook-messy-mgo-103000193.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/without-messi-outlook-messy-mgo-103000193.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": false,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        }
+    ],
+    "minInfo": {
+        "Stock Name": "MGO Global, Inc.",
+        "Market Cap": 3411030,
+        "PE Ratio": null,
+        "Dividend Yield": null,
+        "52 Week High": 18.3,
+        "52 Week Low": 0.1,
+        "EPS": -5.56,
+        "Sector": "Communication Services",
+        "Recommendation": "none"
+    }
+}

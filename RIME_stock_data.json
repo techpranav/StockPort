@@ -1,0 +1,341 @@
+{
+    "info": {
+        "address1": "6301 NW 5th Way",
+        "address2": "Suite 2900",
+        "city": "Fort Lauderdale",
+        "state": "FL",
+        "zip": "33309",
+        "country": "United States",
+        "phone": "954 596 1000",
+        "fax": "954 596 2000",
+        "website": "https://singingmachine.com",
+        "industry": "Consumer Electronics",
+        "industryKey": "consumer-electronics",
+        "industryDisp": "Consumer Electronics",
+        "sector": "Technology",
+        "sectorKey": "technology",
+        "sectorDisp": "Technology",
+        "longBusinessSummary": "Algorhythm Holdings, Inc., together with its subsidiaries, engages in the development, marketing, and sale of consumer karaoke audio equipment, accessories, and musical recordings in North America, Australia, the United Kingdom, Europe, and internationally. It offers karaoke products under the Singing Machine brand; licensed karaoke microphone products under the Carpool Karaoke brand; microphone and accessories, and portable Bluetooth microphones under the Party Machine brand; music entertainment singing machines for children under the brand Singing Machine Kids; connected vehicle karaoke devices; and karaoke music subscription services for the iOS and Android platforms, as well as a web-based download store and integrated streaming services for hardware. The company primarily sells its products to retailers, including national chains, warehouse clubs, department stores, lifestyle merchants, specialty stores, and direct mail catalogs and showrooms. The company was formerly known as The Singing Machine Company, Inc. and changed its name to Algorhythm Holdings, Inc. in September 2024. Algorhythm Holdings, Inc. was incorporated in 1982 and is headquartered in Fort Lauderdale, Florida.",
+        "fullTimeEmployees": 27,
+        "companyOfficers": [
+            {
+                "maxAge": 1,
+                "name": "Mr. Gary  Atkinson",
+                "age": 43,
+                "title": "CEO & Director",
+                "yearBorn": 1981,
+                "fiscalYear": 2023,
+                "totalPay": 224600,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Mr. Bernardo  Melo",
+                "age": 47,
+                "title": "Chief Revenue Officer & Director",
+                "yearBorn": 1977,
+                "fiscalYear": 2023,
+                "totalPay": 276981,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Mr. Alex  Andre",
+                "age": 49,
+                "title": "CFO & General Counsel",
+                "yearBorn": 1975,
+                "fiscalYear": 2023,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            },
+            {
+                "maxAge": 1,
+                "name": "Mr. Brendan  Hopkins",
+                "title": "Investor Relations Contact",
+                "fiscalYear": 2023,
+                "exercisedValue": 0,
+                "unexercisedValue": 0
+            }
+        ],
+        "compensationAsOfEpochDate": 1703980800,
+        "irWebsite": "http://singingmachine.com/press-release/",
+        "executiveTeam": [],
+        "maxAge": 86400,
+        "priceHint": 4,
+        "previousClose": 2.77,
+        "open": 2.77,
+        "dayLow": 2.4297,
+        "dayHigh": 2.77,
+        "regularMarketPreviousClose": 2.77,
+        "regularMarketOpen": 2.77,
+        "regularMarketDayLow": 2.4297,
+        "regularMarketDayHigh": 2.77,
+        "payoutRatio": 0.0,
+        "beta": 0.24,
+        "volume": 246439,
+        "regularMarketVolume": 246439,
+        "averageVolume": 690012,
+        "averageVolume10days": 871041,
+        "averageDailyVolume10Day": 871041,
+        "bid": 2.46,
+        "ask": 2.67,
+        "bidSize": 1,
+        "askSize": 1,
+        "marketCap": 5787059,
+        "fiftyTwoWeekLow": 2.41,
+        "fiftyTwoWeekHigh": 394.0,
+        "priceToSalesTrailing12Months": 0.17817488,
+        "fiftyDayAverage": 12.4628,
+        "twoHundredDayAverage": 110.0857,
+        "trailingAnnualDividendRate": 0.0,
+        "trailingAnnualDividendYield": 0.0,
+        "currency": "USD",
+        "tradeable": false,
+        "enterpriseValue": 262880,
+        "profitMargins": -0.3225,
+        "floatShares": 68662,
+        "sharesOutstanding": 2381800,
+        "sharesShort": 7734,
+        "sharesShortPriorMonth": 15146,
+        "sharesShortPreviousMonthDate": 1735603200,
+        "dateShortInterest": 1738281600,
+        "sharesPercentSharesOut": 0.0164,
+        "heldPercentInsiders": 0.03728,
+        "heldPercentInstitutions": 0.00088,
+        "shortRatio": 0.01,
+        "shortPercentOfFloat": 0.017,
+        "impliedSharesOutstanding": 2381800,
+        "bookValue": 59.204,
+        "priceToBook": 0.041039456,
+        "lastFiscalYearEnd": 1703980800,
+        "nextFiscalYearEnd": 1735603200,
+        "mostRecentQuarter": 1727654400,
+        "earningsQuarterlyGrowth": 11.32,
+        "netIncomeToCommon": -10474665,
+        "trailingEps": -5.47,
+        "lastSplitFactor": "1:200",
+        "lastSplitDate": 1739145600,
+        "enterpriseToRevenue": 0.008,
+        "enterpriseToEbitda": -0.025,
+        "52WeekChange": -0.9812838,
+        "SandP52WeekChange": 0.1861316,
+        "lastDividendValue": 0.0,
+        "lastDividendDate": 1402444800,
+        "quoteType": "EQUITY",
+        "currentPrice": 2.4297,
+        "recommendationKey": "none",
+        "totalCash": 621000,
+        "totalCashPerShare": 8.737,
+        "ebitda": -10602998,
+        "totalDebt": 835000,
+        "quickRatio": 0.311,
+        "currentRatio": 0.874,
+        "totalRevenue": 32479656,
+        "debtToEquity": 30.486,
+        "revenuePerShare": 857.458,
+        "grossProfits": 6097331,
+        "operatingCashflow": -7281000,
+        "earningsGrowth": 4.716,
+        "revenueGrowth": -0.333,
+        "grossMargins": 0.18773001,
+        "ebitdaMargins": -0.32645,
+        "operatingMargins": -0.24638,
+        "financialCurrency": "USD",
+        "symbol": "RIME",
+        "language": "en-US",
+        "region": "US",
+        "typeDisp": "Equity",
+        "quoteSourceName": "Nasdaq Real Time Price",
+        "triggerable": true,
+        "customPriceAlertConfidence": "HIGH",
+        "shortName": "Algorhythm Holdings, Inc.",
+        "longName": "Algorhythm Holdings, Inc.",
+        "corporateActions": [],
+        "regularMarketTime": 1740428207,
+        "exchange": "NCM",
+        "messageBoardId": "finmb_386744",
+        "exchangeTimezoneName": "America/New_York",
+        "exchangeTimezoneShortName": "EST",
+        "gmtOffSetMilliseconds": -18000000,
+        "market": "us_market",
+        "esgPopulated": false,
+        "marketState": "REGULAR",
+        "regularMarketChangePercent": -12.26174,
+        "regularMarketPrice": 2.4297,
+        "hasPrePostMarketData": true,
+        "firstTradeDateMilliseconds": 784564200000,
+        "regularMarketChange": -0.34030008,
+        "regularMarketDayRange": "2.4297 - 2.77",
+        "fullExchangeName": "NasdaqCM",
+        "averageDailyVolume3Month": 690012,
+        "fiftyTwoWeekLowChange": 0.019699812,
+        "fiftyTwoWeekLowChangePercent": 0.008174196,
+        "fiftyTwoWeekRange": "2.41 - 394.0",
+        "fiftyTwoWeekHighChange": -391.5703,
+        "fiftyTwoWeekHighChangePercent": -0.9938333,
+        "fiftyTwoWeekChangePercent": -98.12838,
+        "cryptoTradeable": false,
+        "earningsTimestampStart": 1747166400,
+        "earningsTimestampEnd": 1747684800,
+        "earningsCallTimestampStart": 1732114800,
+        "earningsCallTimestampEnd": 1732114800,
+        "isEarningsDateEstimate": true,
+        "epsTrailingTwelveMonths": -5.47,
+        "fiftyDayAverageChange": -10.0331,
+        "fiftyDayAverageChangePercent": -0.8050438,
+        "twoHundredDayAverageChange": -107.656,
+        "twoHundredDayAverageChangePercent": -0.977929,
+        "sourceInterval": 15,
+        "exchangeDataDelayedBy": 0,
+        "prevName": "The Singing Machine Company, Inc.",
+        "nameChangeDate": "2025-02-24",
+        "displayName": "Algorhythm",
+        "trailingPegRatio": null
+    },
+    "stats": {
+        "Market Cap": 5787059,
+        "PE Ratio": null,
+        "EPS": -5.47,
+        "52 Week High": 394.0,
+        "52 Week Low": 2.41,
+        "Dividend Yield": null,
+        "Recommendation": "none"
+    },
+    "news": [
+        {
+            "id": "98198a63-ba93-3ceb-b254-8d956f0fd5cd",
+            "content": {
+                "id": "98198a63-ba93-3ceb-b254-8d956f0fd5cd",
+                "contentType": "STORY",
+                "title": "Algorhythm announces 1-for-200 reverse stock split",
+                "description": "",
+                "summary": "Algorhythm (RIME) Holdings announced the date of effectiveness and the ratio of a forthcoming reverse stock split of the Company’s Common Stock. On January 13, 2025, the Company announced, on a Current Report on Form 8-K, the voting results from the annual meeting of stockholders held that day. At the Meeting, stockholders voted upon and approved Proposal 3, an amendment to the Company’s Certificate of Incorporation to effect a Reverse Split with a ratio of not less than one-for-ten and not more",
+                "pubDate": "2025-02-06T13:20:19Z",
+                "displayTime": "2025-02-06T13:20:19Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": {
+                    "originalUrl": "https://media.zenfs.com/en/tipranks_452/097670a128888e1828116a13ce464258",
+                    "originalWidth": 192,
+                    "originalHeight": 192,
+                    "caption": "https://www.tipranks.com/news/the-fly/algorhythm-announces-1-for-200-reverse-stock-split",
+                    "resolutions": [
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/vDOv_NTc3Npv8_k5zbf.Xg--~B/aD0xOTI7dz0xOTI7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/tipranks_452/097670a128888e1828116a13ce464258",
+                            "width": 192,
+                            "height": 192,
+                            "tag": "original"
+                        },
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/epgLaNclvmvGQIC4Qc5FSQ--~B/Zmk9c3RyaW07aD0xMjg7dz0xNzA7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/tipranks_452/097670a128888e1828116a13ce464258",
+                            "width": 170,
+                            "height": 128,
+                            "tag": "170x128"
+                        }
+                    ]
+                },
+                "provider": {
+                    "displayName": "TipRanks",
+                    "url": "https://www.tipranks.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/algorhythm-announces-1-200-reverse-132019744.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/algorhythm-announces-1-200-reverse-132019744.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": false,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        },
+        {
+            "id": "f23c6d66-3791-3d52-a27c-50352010bd2a",
+            "content": {
+                "id": "f23c6d66-3791-3d52-a27c-50352010bd2a",
+                "contentType": "STORY",
+                "title": "Singing Machine, Stingray announce karaoke partnership with BYD",
+                "description": "",
+                "summary": "Algorhythm Holdings (RIME) announces its subsidiary, The Singing Machine entered into a strategic partnership deal with BYD (BYDDF) and Stingray (STGYF). Singing Machine will be launching a globally available in-car karaoke microphone, designed to fully integrate with Stingray Karaoke app and BYD’s infotainment system in its vehicles. The first-of-its-kind partnership will have enhanced karaoke features and proprietary technology that allows for unique vocal enhancements such as vocal effects an",
+                "pubDate": "2024-11-15T12:36:01Z",
+                "displayTime": "2024-11-15T12:36:01Z",
+                "isHosted": true,
+                "bypassModal": false,
+                "previewUrl": null,
+                "thumbnail": {
+                    "originalUrl": "https://media.zenfs.com/en/tipranks_452/740f5b35098ee61dacb714fa2bfeccc8",
+                    "originalWidth": 192,
+                    "originalHeight": 192,
+                    "caption": "https://www.tipranks.com/news/the-fly/singing-machine-stingray-announce-karaoke-partnership-with-byd",
+                    "resolutions": [
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/1sNq6arEE4KvpmCAXitWjg--~B/aD0xOTI7dz0xOTI7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/tipranks_452/740f5b35098ee61dacb714fa2bfeccc8",
+                            "width": 192,
+                            "height": 192,
+                            "tag": "original"
+                        },
+                        {
+                            "url": "https://s.yimg.com/uu/api/res/1.2/Y3LeFWTi3MQrV3QjkiTYZg--~B/Zmk9c3RyaW07aD0xMjg7dz0xNzA7YXBwaWQ9eXRhY2h5b24-/https://media.zenfs.com/en/tipranks_452/740f5b35098ee61dacb714fa2bfeccc8",
+                            "width": 170,
+                            "height": 128,
+                            "tag": "170x128"
+                        }
+                    ]
+                },
+                "provider": {
+                    "displayName": "TipRanks",
+                    "url": "https://www.tipranks.com/"
+                },
+                "canonicalUrl": {
+                    "url": "https://finance.yahoo.com/news/singing-machine-stingray-announce-karaoke-123601239.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "clickThroughUrl": {
+                    "url": "https://finance.yahoo.com/news/singing-machine-stingray-announce-karaoke-123601239.html",
+                    "site": "finance",
+                    "region": "US",
+                    "lang": "en-US"
+                },
+                "metadata": {
+                    "editorsPick": false
+                },
+                "finance": {
+                    "premiumFinance": {
+                        "isPremiumNews": false,
+                        "isPremiumFreeNews": false
+                    }
+                },
+                "storyline": null
+            }
+        }
+    ],
+    "minInfo": {
+        "Stock Name": "Algorhythm Holdings, Inc.",
+        "Market Cap": 5787059,
+        "PE Ratio": null,
+        "Dividend Yield": null,
+        "52 Week High": 394.0,
+        "52 Week Low": 2.41,
+        "EPS": -5.47,
+        "Sector": "Technology",
+        "Recommendation": "none"
+    }
+}
