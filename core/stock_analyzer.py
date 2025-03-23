@@ -47,6 +47,7 @@ class StockAnalyzer:
             # Save filtered data
             self.file_utils.save_filtered_data(symbol, filtered_data, self.output_dir)
             
+            print(f"filtered_data :  {filtered_data}")
             # Generate reports
             word_report_path = self.report_service.generate_word_report(symbol, filtered_data)
             excel_report_path = self.report_service.generate_excel_report(symbol, filtered_data)

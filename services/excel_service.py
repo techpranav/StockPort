@@ -33,13 +33,13 @@ class ExcelService:
                 quarterly_balance.to_excel(writer, sheet_name='Quarterly Balance Sheet', index=True)
             
             # Yearly Cash Flow
-            if 'yearly_cash_flow' in data:
-                yearly_cash = pd.DataFrame(data['yearly_cash_flow'])
+            if 'yearly_cashflow' in data:
+                yearly_cash = pd.DataFrame(data['yearly_cashflow'])
                 yearly_cash.to_excel(writer, sheet_name='Yearly Cash Flow', index=True)
             
             # Quarterly Cash Flow
-            if 'quarterly_cash_flow' in data:
-                quarterly_cash = pd.DataFrame(data['quarterly_cash_flow'])
+            if 'quarterly_cashflow' in data:
+                quarterly_cash = pd.DataFrame(data['quarterly_cashflow'])
                 quarterly_cash.to_excel(writer, sheet_name='Quarterly Cash Flow', index=True)
             
             # Historical Data

@@ -12,21 +12,21 @@ class FundamentalAnalysisService:
         ratios = {}
         
         # Get financial statements
-        income_stmt = data.get('yearly_income_stmt', pd.DataFrame())
+        income_statement = data.get('yearly_income_statement', pd.DataFrame())
         balance_sheet = data.get('yearly_balance_sheet', pd.DataFrame())
-        cash_flow = data.get('yearly_cash_flow', pd.DataFrame())
+        cashflow = data.get('yearly_cashflow', pd.DataFrame())
         
-        if income_stmt.empty or balance_sheet.empty:
+        if income_statement.empty or balance_sheet.empty:
             return ratios
         
         # Profitability Ratios
-        ratios['profitability'] = self._calculate_profitability_ratios(income_stmt, balance_sheet)
+        ratios['profitability'] = self._calculate_profitability_ratios(income_statement, balance_sheet)
         
         # Liquidity Ratios
         ratios['liquidity'] = self._calculate_liquidity_ratios(balance_sheet)
         
         # Efficiency Ratios
-        ratios['efficiency'] = self._calculate_efficiency_ratios(income_stmt, balance_sheet)
+        ratios['efficiency'] = self._calculate_efficiency_ratios(income_statement, balance_sheet)
         
         # Debt Ratios
         ratios['debt'] = self._calculate_debt_ratios(balance_sheet)
@@ -36,13 +36,13 @@ class FundamentalAnalysisService:
         
         return ratios
     
-    def _calculate_profitability_ratios(self, income_stmt: pd.DataFrame, balance_sheet: pd.DataFrame) -> Dict[str, float]:
+    def _calculate_profitability_ratios(self, income_statement: pd.DataFrame, balance_sheet: pd.DataFrame) -> Dict[str, float]:
         """Calculate profitability ratios."""
         ratios = {}
         
         try:
             # Return on Equity (ROE)
-            net_income = income_stmt.loc['Net Income'].iloc[0]
+            net_income = income_statement.loc['Net Income'].iloc[0]
             total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0]
             ratios['roe'] = (net_income / total_equity) * 100 if total_equity != 0 else 0
             
@@ -51,12 +51,12 @@ class FundamentalAnalysisService:
             ratios['roa'] = (net_income / total_assets) * 100 if total_assets != 0 else 0
             
             # Gross Profit Margin
-            gross_profit = income_stmt.loc['Gross Profit'].iloc[0]
-            revenue = income_stmt.loc['Total Revenue'].iloc[0]
+            gross_profit = income_statement.loc['Gross Profit'].iloc[0]
+            revenue = income_statement.loc['Total Revenue'].iloc[0]
             ratios['gross_margin'] = (gross_profit / revenue) * 100 if revenue != 0 else 0
             
             # Operating Margin
-            operating_income = income_stmt.loc['Operating Income'].iloc[0]
+            operating_income = income_statement.loc['Operating Income'].iloc[0]
             ratios['operating_margin'] = (operating_income / revenue) * 100 if revenue != 0 else 0
             
             # Net Profit Margin
@@ -92,18 +92,18 @@ class FundamentalAnalysisService:
         
         return ratios
     
-    def _calculate_efficiency_ratios(self, income_stmt: pd.DataFrame, balance_sheet: pd.DataFrame) -> Dict[str, float]:
+    def _calculate_efficiency_ratios(self, income_statement: pd.DataFrame, balance_sheet: pd.DataFrame) -> Dict[str, float]:
         """Calculate efficiency ratios."""
         ratios = {}
         
         try:
             # Asset Turnover
-            revenue = income_stmt.loc['Total Revenue'].iloc[0]
+            revenue = income_statement.loc['Total Revenue'].iloc[0]
             total_assets = balance_sheet.loc['Total Assets'].iloc[0]
             ratios['asset_turnover'] = revenue / total_assets if total_assets != 0 else 0
             
             # Inventory Turnover
-            cogs = income_stmt.loc['Cost Of Revenue'].iloc[0]
+            cogs = income_statement.loc['Cost Of Revenue'].iloc[0]
             inventory = balance_sheet.loc['Inventory'].iloc[0]
             ratios['inventory_turnover'] = cogs / inventory if inventory != 0 else 0
             

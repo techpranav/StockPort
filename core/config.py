@@ -50,7 +50,7 @@ BALANCE_SHEET_KEYS = [
     "totalDebt"
 ]
 
-CASH_FLOW_KEYS = [
+CASHFLOW_KEYS = [
     "totalCashFromOperatingActivities",
     "totalCashFromInvestingActivities",
     "totalCashFromFinancingActivities",

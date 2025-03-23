@@ -1,10 +1,14 @@
 import yfinance as yf
 import pandas as pd
 from typing import Dict, Any, List
-from core.config import (
+from constants.Constants import (
     INCOME_STATEMENT_KEYS,
     BALANCE_SHEET_KEYS,
-    CASH_FLOW_KEYS
+    CASHFLOW_KEYS,
+    FINANCIAL_STATEMENT_TYPES,
+    FINANCIAL_SHEET_NAMES,
+    FINANCIAL_STATEMENT_FILTER_KEYS,
+    FINANCIAL_METRICS_KEYS
 )
 import json
 from datetime import datetime
@@ -18,7 +22,7 @@ class YahooFinanceService:
     def __init__(self):
         self.income_statement_keys = INCOME_STATEMENT_KEYS
         self.balance_sheet_keys = BALANCE_SHEET_KEYS
-        self.cash_flow_keys = CASH_FLOW_KEYS
+        self.cashflow_keys = CASHFLOW_KEYS
         self.max_retries = 3
         self.retry_delay = 10  # Increased delay between retries
         self.request_delay = 3  # Delay between API calls
@@ -136,65 +140,74 @@ class YahooFinanceService:
         quarterly_cashflow = ticker.quarterly_cashflow
 
         return {
-            "yearly_income_statement": yearly_income_statement,
-            "yearly_balance_sheet": yearly_balance_sheet,
-            "yearly_cashflow": yearly_cashflow,
-            "quarterly_income_statement": quarterly_income_statement,
-            "quarterly_balance_sheet": quarterly_balance_sheet,
-            "quarterly_cashflow": quarterly_cashflow,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["income_statement"]: yearly_income_statement,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["balance_sheet"]: yearly_balance_sheet,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["cashflow"]: yearly_cashflow,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["income_statement"]: quarterly_income_statement,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["balance_sheet"]: quarterly_balance_sheet,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["cashflow"]: quarterly_cashflow,
         }
 
     def export_to_excel(self, stock_symbol, financials):
         """Exports financial data to an Excel file."""
         with pd.ExcelWriter(f"{stock_symbol}_financials.xlsx") as writer:
-            financials["yearly_income_statement"].to_excel(writer, sheet_name="Yearly Income Statement")
-            financials["yearly_balance_sheet"].to_excel(writer, sheet_name="Yearly Balance Sheet")
-            financials["yearly_cashflow"].to_excel(writer, sheet_name="Yearly Cash Flow")
-            financials["quarterly_income_statement"].to_excel(writer, sheet_name="Quarterly Income Statement")
-            financials["quarterly_balance_sheet"].to_excel(writer, sheet_name="Quarterly Balance Sheet")
-            financials["quarterly_cashflow"].to_excel(writer, sheet_name="Quarterly Cash Flow")
+            # Export yearly statements
+            financials[FINANCIAL_STATEMENT_TYPES["yearly"]["income_statement"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["income_statement"])
+            financials[FINANCIAL_STATEMENT_TYPES["yearly"]["balance_sheet"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["balance_sheet"])
+            financials[FINANCIAL_STATEMENT_TYPES["yearly"]["cashflow"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["cashflow"])
+            
+            # Export quarterly statements
+            financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["income_statement"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["income_statement"])
+            financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["balance_sheet"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["balance_sheet"])
+            financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["cashflow"]].to_excel(
+                writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["cashflow"])
         print(f"Financial data exported to {stock_symbol}_financials.xlsx")
 
     def export_filtered_financials(self, stock_symbol, financials, exportFilteredFinancials=False):
         """Filter each of the six statements (yearly/quarterly for income, balance, cashflow)
         to keep only the desired keys, then export them to 'updated_financials.xlsx'."""
         # Extract each DataFrame from the financials dictionary
-        yearly_income = financials["yearly_income_statement"]
-        yearly_balance = financials["yearly_balance_sheet"]
-        yearly_cashflow = financials["yearly_cashflow"]
-        quarterly_income = financials["quarterly_income_statement"]
-        quarterly_balance = financials["quarterly_balance_sheet"]
-        quarterly_cashflow = financials["quarterly_cashflow"]
+        yearly_income = financials[FINANCIAL_STATEMENT_TYPES["yearly"]["income_statement"]]
+        yearly_balance = financials[FINANCIAL_STATEMENT_TYPES["yearly"]["balance_sheet"]]
+        yearly_cashflow = financials[FINANCIAL_STATEMENT_TYPES["yearly"]["cashflow"]]
+        quarterly_income = financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["income_statement"]]
+        quarterly_balance = financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["balance_sheet"]]
+        quarterly_cashflow = financials[FINANCIAL_STATEMENT_TYPES["quarterly"]["cashflow"]]
 
         # Filter them according to the keys we want
         yis_filtered = self.filter_financial_df(yearly_income, self.income_statement_keys)
         ybs_filtered = self.filter_financial_df(yearly_balance, self.balance_sheet_keys)
-        ycf_filtered = self.filter_financial_df(yearly_cashflow, self.cash_flow_keys)
+        ycf_filtered = self.filter_financial_df(yearly_cashflow, self.cashflow_keys)
 
         qis_filtered = self.filter_financial_df(quarterly_income, self.income_statement_keys)
         qbs_filtered = self.filter_financial_df(quarterly_balance, self.balance_sheet_keys)
-        qcf_filtered = self.filter_financial_df(quarterly_cashflow, self.cash_flow_keys)
+        qcf_filtered = self.filter_financial_df(quarterly_cashflow, self.cashflow_keys)
 
         if exportFilteredFinancials:
             # Write to a new Excel file named "<symbol>_updated_financials.xlsx"
             output_file = f"{stock_symbol}_updated_financials.xlsx"
             with pd.ExcelWriter(output_file) as writer:
-                yis_filtered.to_excel(writer, sheet_name="Yearly Income Statement")
-                ybs_filtered.to_excel(writer, sheet_name="Yearly Balance Sheet")
-                ycf_filtered.to_excel(writer, sheet_name="Yearly Cash Flow")
+                yis_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["income_statement"])
+                ybs_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["balance_sheet"])
+                ycf_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["yearly"]["cashflow"])
 
-                qis_filtered.to_excel(writer, sheet_name="Quarterly Income Statement")
-                qbs_filtered.to_excel(writer, sheet_name="Quarterly Balance Sheet")
-                qcf_filtered.to_excel(writer, sheet_name="Quarterly Cash Flow")
+                qis_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["income_statement"])
+                qbs_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["balance_sheet"])
+                qcf_filtered.to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES["quarterly"]["cashflow"])
             print(f"Filtered financial data exported to {output_file}")
 
         return {
-            "yearly_income_statement": yis_filtered,
-            "yearly_balance_sheet": ybs_filtered,
-            "yearly_cashflow": ycf_filtered,
-            "quarterly_income_statement": qis_filtered,
-            "quarterly_balance_sheet": qbs_filtered,
-            "quarterly_cashflow": qcf_filtered,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["income_statement"]: yis_filtered,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["balance_sheet"]: ybs_filtered,
+            FINANCIAL_STATEMENT_TYPES["yearly"]["cashflow"]: ycf_filtered,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["income_statement"]: qis_filtered,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["balance_sheet"]: qbs_filtered,
+            FINANCIAL_STATEMENT_TYPES["quarterly"]["cashflow"]: qcf_filtered,
         }
 
     def filter_financial_df(self, df, keys):
@@ -269,24 +282,16 @@ class YahooFinanceService:
             financials = data['financials']
             
             # Process yearly statements
-            if 'yearly_income_stmt' in financials:
-                filtered_data['yearly_income_stmt'] = self._filter_dataframe(financials['yearly_income_stmt'])
-            
-            if 'yearly_balance_sheet' in financials:
-                filtered_data['yearly_balance_sheet'] = self._filter_dataframe(financials['yearly_balance_sheet'])
-            
-            if 'yearly_cash_flow' in financials:
-                filtered_data['yearly_cash_flow'] = self._filter_dataframe(financials['yearly_cash_flow'])
+            for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
+                if key in financials:
+                    filtered_data[key] = self._filter_dataframe(financials[key])
             
             # Process quarterly statements
-            if 'quarterly_income_stmt' in financials:
-                filtered_data['quarterly_income_stmt'] = self._filter_dataframe(financials['quarterly_income_stmt'])
-            
-            if 'quarterly_balance_sheet' in financials:
-                filtered_data['quarterly_balance_sheet'] = self._filter_dataframe(financials['quarterly_balance_sheet'])
-            
-            if 'quarterly_cash_flow' in financials:
-                filtered_data['quarterly_cash_flow'] = self._filter_dataframe(financials['quarterly_cash_flow'])
+            for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
+                if key in financials:
+                    filtered_data[key] = self._filter_dataframe(financials[key])
         
         # Add metrics
         filtered_data['metrics'] = self._calculate_metrics(filtered_data)
@@ -314,7 +319,7 @@ class YahooFinanceService:
     def _filter_dict_by_keys(self, data: Dict[str, Any], keys: List[str] = None) -> Dict[str, Any]:
         """Filter dictionary by specified keys."""
         if keys is None:
-            keys = self.income_statement_keys + self.balance_sheet_keys + self.cash_flow_keys
+            keys = self.income_statement_keys + self.balance_sheet_keys + self.cashflow_keys
         return {k: v for k, v in data.items() if k in keys}
 
     def _filter_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -353,20 +358,20 @@ class YahooFinanceService:
         info = data.get("info", {})
         
         # Income Statement Metrics
-        metrics["Revenue"] = info.get("totalRevenue", 0)
-        metrics["Gross Profit"] = info.get("grossProfits", 0)
-        metrics["Operating Income"] = info.get("operatingIncome", 0)
-        metrics["Net Income"] = info.get("netIncome", 0)
+        metrics["Revenue"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["revenue"], 0)
+        metrics["Gross Profit"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["gross_profit"], 0)
+        metrics["Operating Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"], 0)
+        metrics["Net Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["net_income"], 0)
         
         # Balance Sheet Metrics
-        metrics["Total Assets"] = info.get("totalAssets", 0)
-        metrics["Total Liabilities"] = info.get("totalLiab", 0)
-        metrics["Total Equity"] = info.get("totalStockholderEquity", 0)
+        metrics["Total Assets"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_assets"], 0)
+        metrics["Total Liabilities"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_liabilities"], 0)
+        metrics["Total Equity"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_equity"], 0)
         
         # Cash Flow Metrics
-        metrics["Operating Cash Flow"] = info.get("totalCashFromOperatingActivities", 0)
-        metrics["Investing Cash Flow"] = info.get("totalCashFromInvestingActivities", 0)
-        metrics["Financing Cash Flow"] = info.get("totalCashFromFinancingActivities", 0)
+        metrics["Operating Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"], 0)
+        metrics["Investing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"], 0)
+        metrics["Financing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"], 0)
         
         return metrics
 
@@ -375,16 +380,16 @@ class YahooFinanceService:
         text = []
         
         # Add income statement
-        if not data["income_stmt"].empty:
-            text.append(self._format_financials("Income Statement", data["income_stmt"]))
+        if not data["income_statement"].empty:
+            text.append(self._format_financials("Income Statement", data["income_statement"]))
         
         # Add balance sheet
         if not data["balance_sheet"].empty:
             text.append(self._format_financials("Balance Sheet", data["balance_sheet"]))
         
         # Add cash flow
-        if not data["cash_flow"].empty:
-            text.append(self._format_financials("Cash Flow", data["cash_flow"]))
+        if not data["cashflow"].empty:
+            text.append(self._format_financials("Cash Flow", data["cashflow"]))
         
         return "\n\n".join(text)
 

@@ -81,10 +81,26 @@ def process_stock_symbol(stock):
         # Save the data
         save_stock_data_to_file(stock, filtered_data)
         
+        # Generate summaries
+        str_financials = getFinancialsText(stock_data)
+        # gpt_summary = get_stock_summary(stock, filtered_data, str_financials)
+        # gpt_short_summary = getOverallShortSummary(gpt_summary)
+        # gpt_summary_para = getShortSummary(gpt_short_summary)
+        
+        # decision = (
+        #     "BUY" if "BUY" in gpt_summary.upper() else
+        #     "HOLD" if "HOLD" in gpt_summary.upper() else
+        #     "SELL" if "SELL" in gpt_summary.upper() else
+        #     "NA"
+        # )
+        
         return {
             "symbol": stock,
             "status": "success",
-            "data": filtered_data
+            "data": filtered_data,
+            # "summary": gpt_summary_para,
+            # "overview": gpt_short_summary,
+            # "decision": decision
         }
     except Exception as e:
         print(f"Error processing {stock}: {str(e)}")
@@ -108,10 +124,15 @@ def main():
         try:
             print(f"\nProcessing stock: {stock}")
             result = process_stock_symbol(stock)
+            
+            # Add to summaries with financial data
             stock_summaries.append([
                 len(stock_summaries) + 1,
                 stock,
-                result['status']
+                result.get('overview', ''),
+                result.get('summary', ''),
+                result.get('decision', ''),
+                result.get('data', {})  # Include financial data
             ])
 
             # Remove stock from list & update file
@@ -120,6 +141,10 @@ def main():
 
             # Append to completed file
             append_to_completed(stock)
+
+            # Generate Excel report after each successful processing
+            generate_excel_report(stock_summaries, EXCEL_FILE)
+            print(f"Excel report updated: {EXCEL_FILE}")
 
             # Add delay before processing next stock
             if stock_symbols:  # Only delay if there are more stocks to process

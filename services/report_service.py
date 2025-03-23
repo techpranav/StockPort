@@ -6,10 +6,15 @@ import markdown
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 from pathlib import Path
 import pandas as pd
 from core.config import OUTPUT_DIR, ENABLE_AI_FEATURES
+from constants.Constants import (
+    FINANCIAL_STATEMENT_FILTER_KEYS,
+    FINANCIAL_SHEET_NAMES
+)
+import os
 
 class ReportService:
     def __init__(self):
@@ -31,17 +36,17 @@ class ReportService:
                 doc.add_paragraph(f"{key}: {value}")
         
         # Add financial statements
-        if "income_stmt" in data and not data["income_stmt"].empty:
+        if "income_statement" in data and not data["income_statement"].empty:
             doc.add_heading("Income Statement", level=1)
-            self._add_dataframe_to_doc(doc, data["income_stmt"])
+            self._add_dataframe_to_doc(doc, data["income_statement"])
         
         if "balance_sheet" in data and not data["balance_sheet"].empty:
             doc.add_heading("Balance Sheet", level=1)
             self._add_dataframe_to_doc(doc, data["balance_sheet"])
         
-        if "cash_flow" in data and not data["cash_flow"].empty:
+        if "cashflow" in data and not data["cashflow"].empty:
             doc.add_heading("Cash Flow Statement", level=1)
-            self._add_dataframe_to_doc(doc, data["cash_flow"])
+            self._add_dataframe_to_doc(doc, data["cashflow"])
         
         # Add AI summary if available
         if ENABLE_AI_FEATURES and "summary" in data and data["summary"]:
@@ -63,7 +68,7 @@ class ReportService:
             
             # Create Excel file path
             excel_file = output_dir / f"{symbol}_Analysis_Report.xlsx"
-            
+            print(f"data :  {data}")
             # Create Excel writer
             with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
                 # Write company info
@@ -77,24 +82,20 @@ class ReportService:
                     metrics_df.to_excel(writer, sheet_name='Key Metrics', index=False)
                 
                 # Write yearly financial statements
-                if 'yearly_income_stmt' in data and not data['yearly_income_stmt'].empty:
-                    data['yearly_income_stmt'].to_excel(writer, sheet_name='Yearly Income Statement', index=True)
-                
-                if 'yearly_balance_sheet' in data and not data['yearly_balance_sheet'].empty:
-                    data['yearly_balance_sheet'].to_excel(writer, sheet_name='Yearly Balance Sheet', index=True)
-                
-                if 'yearly_cash_flow' in data and not data['yearly_cash_flow'].empty:
-                    data['yearly_cash_flow'].to_excel(writer, sheet_name='Yearly Cash Flow', index=True)
+                for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                    key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
+                    sheet_name = FINANCIAL_SHEET_NAMES['yearly'][statement_type]
+                    print(f"key :  {key}")
+                    if key in data and not data[key].empty:
+                        data[key].to_excel(writer, sheet_name=sheet_name, index=True)
                 
                 # Write quarterly financial statements
-                if 'quarterly_income_stmt' in data and not data['quarterly_income_stmt'].empty:
-                    data['quarterly_income_stmt'].to_excel(writer, sheet_name='Quarterly Income Statement', index=True)
-                
-                if 'quarterly_balance_sheet' in data and not data['quarterly_balance_sheet'].empty:
-                    data['quarterly_balance_sheet'].to_excel(writer, sheet_name='Quarterly Balance Sheet', index=True)
-                
-                if 'quarterly_cash_flow' in data and not data['quarterly_cash_flow'].empty:
-                    data['quarterly_cash_flow'].to_excel(writer, sheet_name='Quarterly Cash Flow', index=True)
+                for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                    key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
+                    sheet_name = FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
+                    print(f"key :  {key}")
+                    if key in data and not data[key].empty:
+                        data[key].to_excel(writer, sheet_name=sheet_name, index=True)
             
             return excel_file
             
