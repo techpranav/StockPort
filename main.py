@@ -10,6 +10,7 @@ from constants.Constants import *
 from util.Utils import *
 from util.googledrive import *
 import traceback
+from services.yahoo_finance import YahooFinanceService
 
 STOCK_FILE = f"{input_dir}\\stocks.txt"
 COMPLETED_FILE = f"{input_dir}\\completed.txt"
@@ -45,13 +46,15 @@ def append_to_failed(symbol):
         f.write(symbol + "\n")
 
 
-def save_stock_data_to_file(stock_symbol, stock_data):
-    """Save stock data (JSON) into a file."""
-    processed_data = {str(key): value for key, value in stock_data.items() if not isinstance(value, pd.DataFrame)}
-    filename = os.path.join(getSymbolOutputDirectory(stock_symbol), f"{stock_symbol}_stock_data.json")
-    with open(filename, "w", encoding="utf-8") as file:
-        json.dump(processed_data, file, indent=4, ensure_ascii=False)
-    print(f"Stock data saved to: {filename}")
+def save_stock_data_to_file(symbol, data):
+    """Save stock data to a JSON file."""
+    directory = os.path.join(getOutputDirectory(), symbol)
+    os.makedirs(directory, exist_ok=True)
+    
+    file_path = os.path.join(directory, f"{symbol}_stock_data.json")
+    with open(file_path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print(f"Saved data to {file_path}")
 
 
 def format_financials(financial_dict, title):
@@ -62,49 +65,34 @@ def format_financials(financial_dict, title):
 
 
 def process_stock_symbol(stock):
-    """Process a single stock symbol and return the results."""
     try:
         print(f"Processing stock: {stock}")
-        time.sleep(60)  # Wait 60 seconds to avoid rate limits
-
-        stock_data = fetch_stock_data(stock)
-        updated_stock_data = filter_stock_data(stock_data)
-        save_stock_data_to_file(stock, updated_stock_data)
-
-        directory = getSymbolOutputDirectory(stock)
-        WORD_FILE = f"{directory}\\{stock}_Analysis_Report.docx"
-        info = clean_info(updated_stock_data["info"])
-
-        str_financials = getFinancialsText(stock_data)
-        gpt_summary = get_stock_summary(stock, updated_stock_data, str_financials)
-
-        word_file = generate_word_report(stock, stock_data, gpt_summary, filename=WORD_FILE)
-
-        # gpt_short_summary = getOverallShortSummary(gpt_summary)
-        # gpt_summary_para = getShortSummary(gpt_short_summary)
-
-        # decision = (
-        #     "BUY" if "BUY" in gpt_summary.upper() else
-        #     "HOLD" if "HOLD" in gpt_summary.upper() else
-        #     "SELL" if "SELL" in gpt_summary.upper() else
-        #     "NA"
-        # )
-
-        # Upload files to Google Drive
-        # uploadFilesToDrive(directory)
-
+        yf_service = YahooFinanceService()
+        
+        # Add delay to avoid rate limiting
+        time.sleep(2)
+        
+        # Fetch stock data
+        stock_data = yf_service.fetch_stock_data(stock)
+        
+        # Filter the data
+        filtered_data = yf_service.filter_stock_data(stock_data)
+        
+        # Save the data
+        save_stock_data_to_file(stock, filtered_data)
+        
         return {
-            'symbol': stock,
-            # 'short_summary': gpt_short_summary,
-            # 'summary': gpt_summary_para,
-            # 'decision': decision,
-            # 'word_file': word_file
+            "symbol": stock,
+            "status": "success",
+            "data": filtered_data
         }
-
     except Exception as e:
-        print(f"Error processing {stock}: {e}")
-        traceback.print_exc()
-        raise e
+        print(f"Error processing {stock}: {str(e)}")
+        return {
+            "symbol": stock,
+            "status": "error",
+            "error": str(e)
+        }
 
 
 def main():
@@ -114,16 +102,16 @@ def main():
         return
 
     stock_summaries = []
+    delay_between_stocks = 5  # Delay between processing different stocks
 
     for stock in stock_symbols[:]:  # Create a copy to modify list safely
         try:
+            print(f"\nProcessing stock: {stock}")
             result = process_stock_symbol(stock)
             stock_summaries.append([
                 len(stock_summaries) + 1,
                 stock,
-                # result['short_summary'],
-                # result['summary'],
-                # result['decision']
+                result['status']
             ])
 
             # Remove stock from list & update file
@@ -133,9 +121,10 @@ def main():
             # Append to completed file
             append_to_completed(stock)
 
-            # Save Excel file after every iteration
-            # generate_excel_report(stock_summaries, EXCEL_FILE)
-            # print(f"Excel report updated: {EXCEL_FILE}")
+            # Add delay before processing next stock
+            if stock_symbols:  # Only delay if there are more stocks to process
+                print(f"Waiting {delay_between_stocks} seconds before processing next stock...")
+                time.sleep(delay_between_stocks)
 
         except Exception as e:
             print(f"Error processing {stock}: {e}")
@@ -148,10 +137,15 @@ def main():
             stock_symbols.remove(stock)
             update_stock_file(stock_symbols)
 
+            # Add delay before processing next stock
+            if stock_symbols:  # Only delay if there are more stocks to process
+                print(f"Waiting {delay_between_stocks} seconds before processing next stock...")
+                time.sleep(delay_between_stocks)
+
             # Continue processing the next symbol
             continue
 
-    print("Processing complete!")
+    print("\nProcessing complete!")
 
 
 def getFinancialsText(stock_data):

@@ -10,57 +10,121 @@ import json
 from datetime import datetime
 import plotly.subplots as sp
 import plotly.graph_objects as go
+import time
+from requests.exceptions import RequestException
+import random
 
 class YahooFinanceService:
     def __init__(self):
         self.income_statement_keys = INCOME_STATEMENT_KEYS
         self.balance_sheet_keys = BALANCE_SHEET_KEYS
         self.cash_flow_keys = CASH_FLOW_KEYS
+        self.max_retries = 3
+        self.retry_delay = 10  # Increased delay between retries
+        self.request_delay = 3  # Delay between API calls
+        self.last_request_time = 0
+
+    def _wait_between_requests(self):
+        """Ensure minimum delay between requests."""
+        current_time = time.time()
+        time_since_last_request = current_time - self.last_request_time
+        if time_since_last_request < self.request_delay:
+            time.sleep(self.request_delay - time_since_last_request)
+        self.last_request_time = time.time()
 
     def fetch_stock_data(self, symbol: str, exportFinacials=False, exportFilteredFinancials=False) -> Dict[str, Any]:
-        """Fetch stock data from Yahoo Finance."""
-        try:
-            stock = yf.Ticker(symbol)
-            data = stock.history(period="1y", interval="1d")
-            info = stock.info  # Fetch stock data
-
-            stats = {
-                "Market Cap": info.get("marketCap"),
-                "PE Ratio": info.get("trailingPE"),
-                "EPS": info.get("trailingEps"),
-                "52 Week High": info.get("fiftyTwoWeekHigh"),
-                "52 Week Low": info.get("fiftyTwoWeekLow"),
-                "Dividend Yield": info.get("dividendYield"),
-                "Recommendation": info.get("recommendationKey"),
-            }
-
-            news = stock.get_news()[:5]  # Fetch latest 5 news articles
-
-            financials = self.fetch_financials(stock)
-            if exportFinacials:
-                self.export_to_excel(symbol, financials)
-            filtered_financials = self.export_filtered_financials(symbol, financials, exportFilteredFinancials)
-            return {
-                "info": info,
-                "financials": financials,
-                "filtered_financials": filtered_financials,
-                "stats": stats,
-                "news": news,
-                "history": data,
-                "minInfo": {
-                    "Stock Name": info.get("longName", symbol),
+        """Fetch stock data from Yahoo Finance with retry logic."""
+        for attempt in range(self.max_retries):
+            try:
+                print(f"Fetching stock data for {symbol} (Attempt {attempt + 1}/{self.max_retries})")
+                
+                # Add random delay between attempts
+                if attempt > 0:
+                    delay = self.retry_delay + random.uniform(5, 10)  # Increased random delay
+                    print(f"Waiting {delay:.1f} seconds before retry...")
+                    time.sleep(delay)
+                
+                # Initialize the ticker with a delay
+                self._wait_between_requests()
+                time.sleep(2)  # Additional delay before creating ticker
+                stock = yf.Ticker(symbol)
+                
+                # Fetch basic info with delay
+                self._wait_between_requests()
+                time.sleep(3)  # Additional delay before fetching info
+                info = stock.info
+                if not info:
+                    raise Exception(f"No data found for symbol {symbol}")
+                
+                # Fetch historical data with delay
+                self._wait_between_requests()
+                time.sleep(3)  # Additional delay before fetching history
+                data = stock.history(period="1y", interval="1d")
+                if data.empty:
+                    raise Exception(f"No price data found for {symbol}")
+                
+                # Fetch news with delay
+                self._wait_between_requests()
+                time.sleep(3)  # Additional delay before fetching news
+                news = stock.get_news()[:5]
+                
+                # Fetch financials with delay
+                self._wait_between_requests()
+                time.sleep(3)  # Additional delay before fetching financials
+                financials = self.fetch_financials(stock)
+                
+                stats = {
                     "Market Cap": info.get("marketCap"),
                     "PE Ratio": info.get("trailingPE"),
-                    "Dividend Yield": info.get("dividendYield"),
+                    "EPS": info.get("trailingEps"),
                     "52 Week High": info.get("fiftyTwoWeekHigh"),
                     "52 Week Low": info.get("fiftyTwoWeekLow"),
-                    "EPS": info.get("trailingEps"),
-                    "Sector": info.get("sector"),
-                    "Recommendation": info.get("recommendationKey")
+                    "Dividend Yield": info.get("dividendYield"),
+                    "Recommendation": info.get("recommendationKey"),
                 }
-            }
-        except Exception as e:
-            raise Exception(f"Error fetching data for {symbol}: {str(e)}")
+
+                if exportFinacials:
+                    self.export_to_excel(symbol, financials)
+                filtered_financials = self.export_filtered_financials(symbol, financials, exportFilteredFinancials)
+                
+                return {
+                    "info": info,
+                    "financials": financials,
+                    "filtered_financials": filtered_financials,
+                    "stats": stats,
+                    "news": news,
+                    "history": data,
+                    "minInfo": {
+                        "Stock Name": info.get("longName", symbol),
+                        "Market Cap": info.get("marketCap"),
+                        "PE Ratio": info.get("trailingPE"),
+                        "Dividend Yield": info.get("dividendYield"),
+                        "52 Week High": info.get("fiftyTwoWeekHigh"),
+                        "52 Week Low": info.get("fiftyTwoWeekLow"),
+                        "EPS": info.get("trailingEps"),
+                        "Sector": info.get("sector"),
+                        "Recommendation": info.get("recommendationKey")
+                    }
+                }
+                
+            except RequestException as e:
+                if "429" in str(e):  # Rate limit error
+                    if attempt < self.max_retries - 1:
+                        delay = 30 + random.uniform(5, 15)  # Longer delay for rate limit errors
+                        print(f"Rate limit hit for {symbol}. Waiting {delay:.1f} seconds before retry...")
+                        time.sleep(delay)
+                        continue
+                elif attempt < self.max_retries - 1:
+                    print(f"Request failed for {symbol}. Retrying in {self.retry_delay} seconds...")
+                    continue
+                raise Exception(f"Failed to fetch data for {symbol} after {self.max_retries} attempts: {str(e)}")
+            except Exception as e:
+                if attempt < self.max_retries - 1:
+                    print(f"Error occurred for {symbol}. Retrying in {self.retry_delay} seconds...")
+                    continue
+                raise Exception(f"Error fetching data for {symbol}: {str(e)}")
+        
+        raise Exception(f"Failed to fetch data for {symbol} after {self.max_retries} attempts")
 
     def fetch_financials(self, ticker):
         yearly_income_statement = ticker.financials

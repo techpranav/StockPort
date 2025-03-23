@@ -1,22 +1,32 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="stock_analyzer",
-    version="0.1.0",
+    name="stockport",
+    version="0.1",
     packages=find_packages(),
-    install_requires=[
-        "streamlit>=1.24.0",
-        "yfinance>=0.2.18",
-        "pandas>=1.5.3",
-        "openpyxl>=3.1.2",
-        "python-docx>=0.8.11",
-        "openai>=0.27.8",
-        "requests>=2.28.2",
-        "beautifulsoup4>=4.12.2",
-        "python-dateutil>=2.8.2",
-        "pydrive>=1.3.1",
-        "pydrive2>=1.9.1",
-        "markdown>=3.4.3"
-    ],
+   install_requires = [
+    "streamlit==1.24.0",
+    "yfinance==0.2.55",
+    "pandas==2.2.3",
+    "numpy==2.2.4",
+    "plotly==5.19.0",
+    "openai==1.12.0",
+    "python-dotenv==1.0.1",
+    "google-auth==2.28.1",
+    "google-auth-oauthlib==1.2.0",
+    "google-auth-httplib2==0.2.0",
+    "google-api-python-client==2.120.0",
+    "python-docx==1.1.0",
+    "openpyxl==3.1.2",
+    "ta==0.11.0",
+    "pydrive2==1.21.3",
+    "pydrive==1.3.1",
+    "ollama==0.4.7",
+    "markdown==3.7",
+    "beautifulsoup4==4.12.2",
+    "python-dateutil==2.8.2",
+    "requests==2.32.3"
+],
+
     python_requires=">=3.8",
 ) 
