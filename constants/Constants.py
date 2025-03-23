@@ -110,17 +110,17 @@ FINANCIAL_METRICS_KEYS = {
     "income_statement": {
         "revenue": "totalRevenue",
         "gross_profit": "grossProfits",
-        "operating_income": "operatingIncome",
-        "net_income": "netIncome"
+        "operating_income": "Operating Income",
+        "net_income": "Net Income"
     },
     "balance_sheet": {
         "total_assets": "totalAssets",
-        "total_liabilities": "totalLiab",
+        "total_liabilities": "Current Liabilities",
         "total_equity": "totalStockholderEquity"
     },
     "cashflow": {
-        "operating_cashflow": "totalCashFromOperatingActivities",
-        "investing_cashflow": "totalCashFromInvestingActivities",
-        "financing_cashflow": "totalCashFromFinancingActivities"
+        "operating_cashflow": "operatingCashflow",
+        "investing_cashflow": "Investing Cash Flow",
+        "financing_cashflow": "Financing Cash Flow"
     }
 }

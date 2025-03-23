@@ -47,7 +47,6 @@ class StockAnalyzer:
             # Save filtered data
             self.file_utils.save_filtered_data(symbol, filtered_data, self.output_dir)
             
-            print(f"filtered_data :  {filtered_data}")
             # Generate reports
             word_report_path = self.report_service.generate_word_report(symbol, filtered_data)
             excel_report_path = self.report_service.generate_excel_report(symbol, filtered_data)
@@ -82,7 +81,7 @@ class StockAnalyzer:
         results = []
         for symbol in symbols:
             try:
-                result = self.process_stock(symbol)
+                result = self.process_stock(symbol.decode().strip())
                 results.append(result)
                 time.sleep(self.delay_between_calls)
             except Exception as e:
@@ -96,7 +95,7 @@ class StockAnalyzer:
             return []
         
         with open(stock_file, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
+            return [line.strip() for line in f.readlines() if line.strip()]
     
     def update_stock_symbols(self, symbols: List[str]) -> None:
         """Update the stock symbols file."""

@@ -47,7 +47,7 @@ def render_mass_analysis() -> Dict[str, Any]:
         symbols = df.iloc[:, 0].tolist()  # Assuming first column contains symbols
     else:
         symbols = [line.decode().strip() for line in uploaded_file.readlines()]
-    
+
     st.write(f"Found {len(symbols)} symbols")
     st.write("First few symbols:", ", ".join(symbols[:5]))
     
@@ -81,12 +81,10 @@ def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) ->
             
         tab_objects = st.tabs(tabs)
         
-        # print(f"result: {result}")
         # Overview tab is always present
         with tab_objects[0]:
             display_overview(result)
         
-        # print(f"result: {result}")
         # Technical Analysis tab
         if ENABLE_TECHNICAL_ANALYSIS:
             with tab_objects[tabs.index("Technical Analysis")]:

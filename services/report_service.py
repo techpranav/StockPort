@@ -68,24 +68,45 @@ class ReportService:
             
             # Create Excel file path
             excel_file = output_dir / f"{symbol}_Analysis_Report.xlsx"
-            print(f"data :  {data}")
+            
             # Create Excel writer
             with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
                 # Write company info
                 if 'info' in data:
-                    info_df = pd.DataFrame([data['info']])
-                    info_df.to_excel(writer, sheet_name='Company Info', index=False)
+                    info_data = data['info']
+                    if isinstance(info_data, dict):
+                        # Convert nested dictionaries to flat structure
+                        flat_info = {}
+                        for key, value in info_data.items():
+                            if isinstance(value, dict):
+                                for subkey, subvalue in value.items():
+                                    flat_info[f"{key}_{subkey}"] = subvalue
+                            else:
+                                flat_info[key] = value
+                        
+                        info_df = pd.DataFrame([flat_info])
+                        info_df.to_excel(writer, sheet_name='Company Info', index=False)
                 
                 # Write metrics
                 if 'metrics' in data:
-                    metrics_df = pd.DataFrame([data['metrics']])
-                    metrics_df.to_excel(writer, sheet_name='Key Metrics', index=False)
+                    metrics_data = data['metrics']
+                    if isinstance(metrics_data, dict):
+                        # Convert metrics to a more readable format
+                        formatted_metrics = {}
+                        for key, value in metrics_data.items():
+                            if isinstance(value, (int, float)):
+                                # Format large numbers with commas and 2 decimal places
+                                formatted_metrics[key] = f"{value:,.2f}"
+                            else:
+                                formatted_metrics[key] = str(value)
+                        
+                        metrics_df = pd.DataFrame([formatted_metrics])
+                        metrics_df.to_excel(writer, sheet_name='Key Metrics', index=False)
                 
                 # Write yearly financial statements
                 for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
                     key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
                     sheet_name = FINANCIAL_SHEET_NAMES['yearly'][statement_type]
-                    print(f"key :  {key}")
                     if key in data and not data[key].empty:
                         data[key].to_excel(writer, sheet_name=sheet_name, index=True)
                 
@@ -93,7 +114,6 @@ class ReportService:
                 for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
                     key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
                     sheet_name = FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
-                    print(f"key :  {key}")
                     if key in data and not data[key].empty:
                         data[key].to_excel(writer, sheet_name=sheet_name, index=True)
             

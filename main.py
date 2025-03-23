@@ -19,12 +19,21 @@ EXCEL_FILE = f"{getOutputDirectory()}\\stock_summary.xlsx"
 
 
 def read_stock_symbols():
-    """Reads stock symbols from 'stocks.txt'."""
-    if not os.path.exists(STOCK_FILE):
-        print(f"{STOCK_FILE} not found!")
+    """Read stock symbols from the input file."""
+    try:
+        with open(STOCK_FILE, 'r') as f:
+            # Read lines and clean each symbol
+            symbols = [line.strip() for line in f.readlines() if line.strip()]
+            # Remove any remaining whitespace and empty lines
+            symbols = [symbol.strip() for symbol in symbols if symbol.strip()]
+            print(f"Read stock symbols: {symbols}")
+            return symbols
+    except FileNotFoundError:
+        print(f"Stock file not found: {STOCK_FILE}")
         return []
-    with open(STOCK_FILE, "r") as f:
-        return [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"Error reading stock file: {e}")
+        return []
 
 
 def update_stock_file(remaining_symbols):

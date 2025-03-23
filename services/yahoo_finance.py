@@ -275,9 +275,9 @@ class YahooFinanceService:
         
         # Filter info section
         if 'info' in data:
-            filtered_data['info'] = self._filter_dict_by_keys(data['info'])
-        
-        # Filter financial statements
+            filtered_data['info'] = data['info']
+       
+         # Filter financial statements
         if 'financials' in data:
             financials = data['financials']
             
@@ -360,18 +360,66 @@ class YahooFinanceService:
         # Income Statement Metrics
         metrics["Revenue"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["revenue"], 0)
         metrics["Gross Profit"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["gross_profit"], 0)
-        metrics["Operating Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"], 0)
-        metrics["Net Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["net_income"], 0)
+        
+        # Get Operating Income from income statement
+        yearly_income_key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['income_statement']
+        if yearly_income_key in data and not data[yearly_income_key].empty:
+            income_stmt = data[yearly_income_key]
+            if  FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"] in income_stmt.index:
+                metrics["Operating Income"] = income_stmt.loc[FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"]].iloc[0]
+            else:
+                metrics["Operating Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"], 0)
+            
+            # Get Net Income from income statement
+            if FINANCIAL_METRICS_KEYS["income_statement"]["net_income"] in income_stmt.index:
+                metrics["Net Income"] = income_stmt.loc[FINANCIAL_METRICS_KEYS["income_statement"]["net_income"]].iloc[0]
+            else:
+                metrics["Net Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["net_income"], 0)
+        else:
+            metrics["Operating Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["operating_income"], 0)
+            metrics["Net Income"] = info.get(FINANCIAL_METRICS_KEYS["income_statement"]["net_income"], 0)
+        
+        # Get Total Liabilities from balance sheet
+        yearly_balance_key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['balance_sheet']
+        if yearly_balance_key in data and not data[yearly_balance_key].empty:
+            balance_sheet = data[yearly_balance_key]
+            if 'Total Liabilities' in balance_sheet.index:
+                metrics["Total Liabilities"] = balance_sheet.loc[FINANCIAL_METRICS_KEYS["balance_sheet"]["total_liabilities"]].iloc[0]
+            else:
+                metrics["Total Liabilities"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_liabilities"], 0)
+        else:
+            metrics["Total Liabilities"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_liabilities"], 0)
         
         # Balance Sheet Metrics
         metrics["Total Assets"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_assets"], 0)
-        metrics["Total Liabilities"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_liabilities"], 0)
         metrics["Total Equity"] = info.get(FINANCIAL_METRICS_KEYS["balance_sheet"]["total_equity"], 0)
         
-        # Cash Flow Metrics
-        metrics["Operating Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"], 0)
-        metrics["Investing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"], 0)
-        metrics["Financing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"], 0)
+        # Get Cash Flow metrics from cash flow statement
+        yearly_cashflow_key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['cashflow']
+        if yearly_cashflow_key in data and not data[yearly_cashflow_key].empty:
+            cashflow_stmt = data[yearly_cashflow_key]
+            
+            # Get Operating Cash Flow
+            if  FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"] in cashflow_stmt.index:
+                metrics["Operating Cash Flow"] = cashflow_stmt.loc[FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"]].iloc[0]
+            else:
+                metrics["Operating Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"], 0)
+            
+            # Get Investing Cash Flow
+            if FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"] in cashflow_stmt.index:
+                metrics["Investing Cash Flow"] = cashflow_stmt.loc[FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"]].iloc[0]
+            else:
+                metrics["Investing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"], 0)
+            
+            # Get Financing Cash Flow
+            if FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"] in cashflow_stmt.index:
+                metrics["Financing Cash Flow"] = cashflow_stmt.loc[FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"]].iloc[0]
+            else:
+                metrics["Financing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"], 0)
+        else:
+            metrics["Operating Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["operating_cashflow"], 0)
+            metrics["Investing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["investing_cashflow"], 0)
+            metrics["Financing Cash Flow"] = info.get(FINANCIAL_METRICS_KEYS["cashflow"]["financing_cashflow"], 0)
         
         return metrics
 
