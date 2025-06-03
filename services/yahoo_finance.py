@@ -275,11 +275,12 @@ class YahooFinanceService:
         
         # Filter info section
         if 'info' in data:
-            filtered_data['info'] = data['info']
-       
-         # Filter financial statements
+            filtered_data['info'] = self._filter_dict_by_keys(data['info'])
+        
+        # Filter financial statements
         if 'financials' in data:
             financials = data['financials']
+            print(f"financials :  {financials}")
             
             # Process yearly statements
             for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
@@ -296,26 +297,197 @@ class YahooFinanceService:
         # Add metrics
         filtered_data['metrics'] = self._calculate_metrics(filtered_data)
         
+        # Add Technical Analysis and Signals
+        if 'history' in data and not data['history'].empty:
+            # Calculate technical indicators
+            filtered_data['technical_analysis'] = self._calculate_technical_analysis(data)
+            
+            # Calculate technical signals using the same data
+            hist_data = data['history'].copy()
+            
+            # Calculate required indicators for signals
+            hist_data['SMA_20'] = hist_data['Close'].rolling(window=20).mean()
+            hist_data['SMA_50'] = hist_data['Close'].rolling(window=50).mean()
+            
+            # Calculate RSI
+            delta = hist_data['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            hist_data['RSI'] = 100 - (100 / (1 + rs))
+            
+            # Calculate Bollinger Bands
+            hist_data['BB_Middle'] = hist_data['Close'].rolling(window=20).mean()
+            bb_std = hist_data['Close'].rolling(window=20).std()
+            hist_data['BB_Upper'] = hist_data['BB_Middle'] + (2 * bb_std)
+            hist_data['BB_Lower'] = hist_data['BB_Middle'] - (2 * bb_std)
+            
+            # Get technical signals
+            filtered_data['technical_signals'] = {
+                'trend': self._analyze_trend(hist_data),
+                'momentum': self._analyze_momentum(hist_data),
+                'volatility': self._analyze_volatility(hist_data),
+                'volume': self._analyze_volume(hist_data)
+            }
+        
+        # Add Fundamental Analysis
+        filtered_data['fundamental_analysis'] = self._calculate_fundamental_analysis(filtered_data)
+        
+        # Add Portfolio Analysis
+        filtered_data['portfolio_analysis'] = self._calculate_portfolio_analysis(filtered_data)
+        
         return filtered_data
-    
-    def _filter_financial_statements(self, data: Dict[str, pd.DataFrame], statement_type: str = 'financials') -> Dict[str, pd.DataFrame]:
-        """Filter financial statements and separate yearly and quarterly data."""
-        filtered_data = {}
+
+    def _analyze_trend(self, df: pd.DataFrame) -> str:
+        """Analyze price trend."""
+        if df['Close'].iloc[-1] > df['SMA_20'].iloc[-1] > df['SMA_50'].iloc[-1]:
+            return "Strong Uptrend"
+        elif df['Close'].iloc[-1] > df['SMA_20'].iloc[-1]:
+            return "Weak Uptrend"
+        elif df['Close'].iloc[-1] < df['SMA_20'].iloc[-1] < df['SMA_50'].iloc[-1]:
+            return "Strong Downtrend"
+        elif df['Close'].iloc[-1] < df['SMA_20'].iloc[-1]:
+            return "Weak Downtrend"
+        return "Sideways"
+
+    def _analyze_momentum(self, df: pd.DataFrame) -> str:
+        """Analyze momentum."""
+        if df['RSI'].iloc[-1] > 70:
+            return "Overbought"
+        elif df['RSI'].iloc[-1] < 30:
+            return "Oversold"
+        return "Neutral"
+
+    def _analyze_volatility(self, df: pd.DataFrame) -> str:
+        """Analyze volatility."""
+        bb_width = (df['BB_Upper'].iloc[-1] - df['BB_Lower'].iloc[-1]) / df['BB_Middle'].iloc[-1]
+        avg_bb_width = (df['Close'].rolling(window=20).std() / df['Close'].rolling(window=20).mean()).mean().iloc[-1]
         
-        # Filter yearly data
-        if 'yearly' in data:
-            yearly_df = self._filter_dataframe(data['yearly'])
-            if not yearly_df.empty:
-                filtered_data[f'yearly_{statement_type}'] = yearly_df
+        if bb_width > avg_bb_width * 1.2:
+            return "High Volatility"
+        elif bb_width < avg_bb_width * 0.8:
+            return "Low Volatility"
+        return "Normal Volatility"
+
+    def _analyze_volume(self, df: pd.DataFrame) -> str:
+        """Analyze volume."""
+        current_volume = df['Volume'].iloc[-1]
+        avg_volume = df['Volume'].rolling(window=20).mean().iloc[-1]
         
-        # Filter quarterly data
-        if 'quarterly' in data:
-            quarterly_df = self._filter_dataframe(data['quarterly'])
-            if not quarterly_df.empty:
-                filtered_data[f'quarterly_{statement_type}'] = quarterly_df
+        if current_volume > avg_volume * 1.5:
+            return "High Volume"
+        elif current_volume < avg_volume * 0.5:
+            return "Low Volume"
+        return "Normal Volume"
+
+    def _calculate_technical_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate technical analysis indicators."""
+        technical_data = {}
         
-        return filtered_data
-    
+        # Get historical data
+        if 'history' in data and not data['history'].empty:
+            hist_data = data['history']
+            
+            # Calculate moving averages
+            technical_data['SMA_20'] = hist_data['Close'].rolling(window=20).mean().iloc[-1]
+            technical_data['SMA_50'] = hist_data['Close'].rolling(window=50).mean().iloc[-1]
+            technical_data['SMA_200'] = hist_data['Close'].rolling(window=200).mean().iloc[-1]
+            
+            # Calculate RSI
+            delta = hist_data['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            technical_data['RSI'] = 100 - (100 / (1 + rs)).iloc[-1]
+            
+            # Calculate MACD
+            exp1 = hist_data['Close'].ewm(span=12, adjust=False).mean()
+            exp2 = hist_data['Close'].ewm(span=26, adjust=False).mean()
+            technical_data['MACD'] = (exp1 - exp2).iloc[-1]
+            
+            # Calculate Bollinger Bands
+            technical_data['BB_Middle'] = hist_data['Close'].rolling(window=20).mean().iloc[-1]
+            bb_std = hist_data['Close'].rolling(window=20).std().iloc[-1]
+            technical_data['BB_Upper'] = technical_data['BB_Middle'] + (2 * bb_std)
+            technical_data['BB_Lower'] = technical_data['BB_Middle'] - (2 * bb_std)
+            
+            # Current price and volume
+            technical_data['Current_Price'] = hist_data['Close'].iloc[-1]
+            technical_data['Volume'] = hist_data['Volume'].iloc[-1]
+        
+        return technical_data
+
+    def _calculate_fundamental_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate fundamental analysis metrics."""
+        fundamental_data = {}
+        
+        # Get metrics
+        metrics = data.get('metrics', {})
+        info = data.get('info', {})
+        
+        # Profitability Ratios
+        if metrics.get('Net Income', 0) != 0 and metrics.get('Revenue', 0) != 0:
+            fundamental_data['Net_Profit_Margin'] = (metrics['Net Income'] / metrics['Revenue']) * 100
+        
+        if metrics.get('Operating Income', 0) != 0 and metrics.get('Revenue', 0) != 0:
+            fundamental_data['Operating_Margin'] = (metrics['Operating Income'] / metrics['Revenue']) * 100
+        
+        # Liquidity Ratios
+        if metrics.get('Total Current Assets', 0) != 0 and metrics.get('Total Current Liabilities', 0) != 0:
+            fundamental_data['Current_Ratio'] = metrics['Total Current Assets'] / metrics['Total Current Liabilities']
+        
+        # Debt Ratios
+        if metrics.get('Total Assets', 0) != 0 and metrics.get('Total Liabilities', 0) != 0:
+            fundamental_data['Debt_Ratio'] = metrics['Total Liabilities'] / metrics['Total Assets']
+        
+        # Market Ratios
+        if info.get('marketCap', 0) != 0 and metrics.get('Net Income', 0) != 0:
+            fundamental_data['P/E_Ratio'] = info['marketCap'] / metrics['Net Income']
+        
+        # Growth Metrics
+        if 'yearly_income_stmt' in data and not data['yearly_income_stmt'].empty:
+            income_stmt = data['yearly_income_stmt']
+            if 'Revenue' in income_stmt.index and len(income_stmt.columns) >= 2:
+                current_revenue = income_stmt.loc['Revenue'].iloc[0]
+                prev_revenue = income_stmt.loc['Revenue'].iloc[1]
+                if prev_revenue != 0:
+                    fundamental_data['Revenue_Growth'] = ((current_revenue - prev_revenue) / prev_revenue) * 100
+        
+        return fundamental_data
+
+    def _calculate_portfolio_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate portfolio analysis metrics."""
+        portfolio_data = {}
+        
+        # Get metrics and info
+        metrics = data.get('metrics', {})
+        info = data.get('info', {})
+        
+        # Risk Metrics
+        if 'history' in data and not data['history'].empty:
+            hist_data = data['history']
+            returns = hist_data['Close'].pct_change()
+            portfolio_data['Volatility'] = returns.std() * (252 ** 0.5)  # Annualized volatility
+        
+        # Return Metrics
+        if 'history' in data and not data['history'].empty:
+            hist_data = data['history']
+            portfolio_data['Total_Return'] = ((hist_data['Close'].iloc[-1] / hist_data['Close'].iloc[0]) - 1) * 100
+        
+        # Dividend Metrics
+        if info.get('dividendYield', 0) != 0:
+            portfolio_data['Dividend_Yield'] = info['dividendYield'] * 100
+        
+        # Market Metrics
+        if info.get('marketCap', 0) != 0:
+            portfolio_data['Market_Cap'] = info['marketCap']
+        
+        # Beta (if available)
+        if info.get('beta', 0) != 0:
+            portfolio_data['Beta'] = info['beta']
+        
+        return portfolio_data
+
     def _filter_dict_by_keys(self, data: Dict[str, Any], keys: List[str] = None) -> Dict[str, Any]:
         """Filter dictionary by specified keys."""
         if keys is None:

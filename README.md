@@ -1,4 +1,4 @@
-# Stock Analyzer
+# Stock Port
 
 A comprehensive stock analysis application that provides technical and fundamental analysis of stocks, portfolio management, and AI-powered insights.
 

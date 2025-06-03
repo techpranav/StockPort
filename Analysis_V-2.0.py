@@ -291,11 +291,11 @@ def main():
         try:
             print(f"Processing stock: {stock}")
 
-            stock_data = fetch_stock_data(stock)
+            stock_data = YahooFinanceService().fetch_stock_data(stock)
 
             # Remove stock from list & update file
             # stock_symbols.remove(stock)
-            # update_stock_file(stock_symbols)
+            update_stock_file(stock_symbols)
             data=  getSummarizedData(stock_data)
             print(data)
             # Append to completed file
