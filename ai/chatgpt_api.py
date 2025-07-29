@@ -52,7 +52,6 @@ def invoke_ollama(prompt):
     )
 
     ret_response = remove_think_block(response["message"]["content"])
-    print(ret_response)  # Should return only the joke
     return ret_response
 
 def invoke_chatgpt(prompt, retries=3, delay=5):

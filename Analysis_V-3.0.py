@@ -43,7 +43,6 @@ def calculate_metrics(data):
         return None, None
 
     # Ensure 'Change' is calculated as a single-column Series
-    print(data)
 
     # Reset index to ensure it starts from 0
     data.reset_index(drop=True, inplace=True)

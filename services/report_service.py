@@ -12,16 +12,123 @@ import pandas as pd
 from core.config import OUTPUT_DIR, ENABLE_AI_FEATURES
 from constants.Constants import (
     FINANCIAL_STATEMENT_FILTER_KEYS,
-    FINANCIAL_SHEET_NAMES
+    FINANCIAL_SHEET_NAMES,
+    FINANCIAL_STATEMENT_TYPES,
+    FINANCIAL_METRICS_KEYS
 )
 import os
 
 class ReportService:
+    """Service for generating stock analysis reports."""
+    
     def __init__(self):
         """Initialize the report service."""
-        self.output_dir = Path(OUTPUT_DIR)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.reports_dir = "reports"
+        if not os.path.exists(self.reports_dir):
+            os.makedirs(self.reports_dir)
     
+    def generate_excel_report(self, symbol: str, data: Dict[str, Any]) -> str:
+        """Generate an Excel report for a stock."""
+        try:
+            # Create Excel file path
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            excel_path = os.path.join(self.reports_dir, f"{symbol}_report_{timestamp}.xlsx")
+            
+            with pd.ExcelWriter(excel_path) as writer:
+                # Write company information
+                if 'info' in data:
+                    self._write_company_info(writer, data['info'])
+                
+                # Write key metrics
+                if 'metrics' in data:
+                    self._write_metrics(writer, data['metrics'])
+                
+                # Write technical analysis
+                if 'technical_analysis' in data:
+                    self._write_technical_analysis(writer, data['technical_analysis'])
+                
+                # Write fundamental analysis
+                if 'fundamental_analysis' in data:
+                    self._write_fundamental_analysis(writer, data['fundamental_analysis'])
+                
+                # Write portfolio analysis
+                if 'portfolio_analysis' in data:
+                    self._write_portfolio_analysis(writer, data['portfolio_analysis'])
+                
+                # Write financial statements
+                if 'financials' in data:
+                    self._write_financial_statements(writer, data['financials'])
+            
+            return excel_path
+            
+        except Exception as e:
+            print(f"Error generating report for {symbol}: {str(e)}")
+            raise
+    
+    def _write_company_info(self, writer: pd.ExcelWriter, info: Dict[str, Any]) -> None:
+        """Write company information to Excel."""
+        # Create a flat structure for nested dictionaries
+        flat_info = {}
+        for key, value in info.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    flat_info[f"{key}_{subkey}"] = subvalue
+            else:
+                flat_info[key] = value
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(list(flat_info.items()), columns=['Metric', 'Value'])
+        df.to_excel(writer, sheet_name='Company Info', index=False)
+    
+    def _write_metrics(self, writer: pd.ExcelWriter, metrics: Dict[str, Any]) -> None:
+        """Write key metrics to Excel."""
+        # Convert metrics to DataFrame
+        df = pd.DataFrame(list(metrics.items()), columns=['Metric', 'Value'])
+        
+        # Format numeric values
+        df['Value'] = pd.to_numeric(df['Value'], errors='ignore')
+        numeric_mask = pd.to_numeric(df['Value'], errors='coerce').notna()
+        df.loc[numeric_mask, 'Value'] = df.loc[numeric_mask, 'Value'].apply(
+            lambda x: f"{x:,.2f}" if abs(x) >= 1000 else f"{x:.2f}"
+        )
+        
+        df.to_excel(writer, sheet_name='Key Metrics', index=False)
+    
+    def _write_technical_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
+        """Write technical analysis to Excel."""
+        df = pd.DataFrame(list(analysis.items()), columns=['Indicator', 'Value'])
+        df.to_excel(writer, sheet_name='Technical Analysis', index=False)
+    
+    def _write_fundamental_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
+        """Write fundamental analysis to Excel."""
+        df = pd.DataFrame(list(analysis.items()), columns=['Metric', 'Value'])
+        df.to_excel(writer, sheet_name='Fundamental Analysis', index=False)
+    
+    def _write_portfolio_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
+        """Write portfolio analysis to Excel."""
+        df = pd.DataFrame(list(analysis.items()), columns=['Metric', 'Value'])
+        df.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
+    
+    def _write_financial_statements(self, writer: pd.ExcelWriter, financials: Dict[str, Any]) -> None:
+        """Write financial statements to Excel."""
+        # Write yearly statements
+        for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+            key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
+            if key in financials and not financials[key].empty:
+                financials[key].to_excel(
+                    writer,
+                    sheet_name=FINANCIAL_SHEET_NAMES['yearly'][statement_type]
+                )
+        
+        # Write quarterly statements
+        for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+            key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
+            if key in financials and not financials[key].empty:
+                financials[key].to_excel(
+                    writer,
+                    sheet_name=FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
+                )
+
     def generate_word_report(self, symbol: str, data: Dict[str, Any]) -> Path:
         """Generate a Word report for the stock analysis."""
         doc = Document()
@@ -54,175 +161,11 @@ class ReportService:
             doc.add_paragraph(data["summary"])
         
         # Save the document
-        output_path = self.output_dir / f"{symbol}_Analysis_Report.docx"
+        output_path = os.path.join(self.reports_dir, f"{symbol}_Analysis_Report.docx")
+
         doc.save(str(output_path))
         
         return output_path
-    
-    def generate_excel_report(self, stock_summaries: List[Dict[str, Any]], output_file: str = "stock_report.xlsx"):
-        """Generate Excel report with stock data."""
-        try:
-            print(f"Generating Excel report with {len(stock_summaries)} stocks...")
-            
-            # Create Excel writer
-            with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-                # Create Overview sheet
-                overview_data = []
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    metrics = stock_data.get('metrics', {})
-                    info = stock_data.get('info', {})
-                    
-                    # Format large numbers with commas and 2 decimal places
-                    formatted_metrics = {
-                        'Symbol': symbol,
-                        'Company Name': info.get('longName', ''),
-                        'Market Cap': f"{metrics.get('Market Cap', 0):,.2f}",
-                        'Revenue': f"{metrics.get('Revenue', 0):,.2f}",
-                        'Net Income': f"{metrics.get('Net Income', 0):,.2f}",
-                        'Operating Income': f"{metrics.get('Operating Income', 0):,.2f}",
-                        'Total Assets': f"{metrics.get('Total Assets', 0):,.2f}",
-                        'Total Liabilities': f"{metrics.get('Total Liabilities', 0):,.2f}",
-                        'Total Equity': f"{metrics.get('Total Equity', 0):,.2f}",
-                        'Operating Cash Flow': f"{metrics.get('Operating Cash Flow', 0):,.2f}",
-                        'Investing Cash Flow': f"{metrics.get('Investing Cash Flow', 0):,.2f}",
-                        'Financing Cash Flow': f"{metrics.get('Financing Cash Flow', 0):,.2f}"
-                    }
-                    overview_data.append(formatted_metrics)
-                
-                overview_df = pd.DataFrame(overview_data)
-                overview_df.to_excel(writer, sheet_name='Overview', index=False)
-                
-                # Create Company Info sheet
-                company_info_data = []
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    info = stock_data.get('info', {})
-                    
-                    # Create a flat structure for nested dictionaries
-                    flat_info = {
-                        'Symbol': symbol,
-                        'Company Name': info.get('longName', ''),
-                        'Sector': info.get('sector', ''),
-                        'Industry': info.get('industry', ''),
-                        'Country': info.get('country', ''),
-                        'Currency': info.get('currency', ''),
-                        'Exchange': info.get('exchange', ''),
-                        'Website': info.get('website', ''),
-                        'Phone': info.get('phone', ''),
-                        'Address': info.get('address1', ''),
-                        'City': info.get('city', ''),
-                        'State': info.get('state', ''),
-                        'Zip': info.get('zip', ''),
-                        'Description': info.get('longBusinessSummary', '')
-                    }
-                    company_info_data.append(flat_info)
-                
-                company_info_df = pd.DataFrame(company_info_data)
-                company_info_df.to_excel(writer, sheet_name='Company Info', index=False)
-                
-                # Create Technical Analysis sheet
-                technical_data = []
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    technical = stock_data.get('technical_analysis', {})
-                    
-                    # Get technical signals
-                    signals = stock_data.get('technical_signals', {})
-                    
-                    technical_info = {
-                        'Symbol': symbol,
-                        'Current Price': f"{technical.get('Current_Price', 0):,.2f}",
-                        'SMA_20': f"{technical.get('SMA_20', 0):,.2f}",
-                        'SMA_50': f"{technical.get('SMA_50', 0):,.2f}",
-                        'SMA_200': f"{technical.get('SMA_200', 0):,.2f}",
-                        'RSI': f"{technical.get('RSI', 0):,.2f}",
-                        'MACD': f"{technical.get('MACD', 0):,.2f}",
-                        'BB_Upper': f"{technical.get('BB_Upper', 0):,.2f}",
-                        'BB_Middle': f"{technical.get('BB_Middle', 0):,.2f}",
-                        'BB_Lower': f"{technical.get('BB_Lower', 0):,.2f}",
-                        'Volume': f"{technical.get('Volume', 0):,.0f}",
-                        'Trend Signal': signals.get('trend', ''),
-                        'Momentum Signal': signals.get('momentum', ''),
-                        'Volatility Signal': signals.get('volatility', ''),
-                        'Volume Signal': signals.get('volume', '')
-                    }
-                    technical_data.append(technical_info)
-                
-                technical_df = pd.DataFrame(technical_data)
-                technical_df.to_excel(writer, sheet_name='Technical Analysis', index=False)
-                
-                # Create Fundamental Analysis sheet
-                fundamental_data = []
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    fundamental = stock_data.get('fundamental_analysis', {})
-                    
-                    fundamental_info = {
-                        'Symbol': symbol,
-                        'Net Profit Margin (%)': f"{fundamental.get('Net_Profit_Margin', 0):,.2f}",
-                        'Operating Margin (%)': f"{fundamental.get('Operating_Margin', 0):,.2f}",
-                        'Current Ratio': f"{fundamental.get('Current_Ratio', 0):,.2f}",
-                        'Debt Ratio': f"{fundamental.get('Debt_Ratio', 0):,.2f}",
-                        'P/E Ratio': f"{fundamental.get('P/E_Ratio', 0):,.2f}",
-                        'Revenue Growth (%)': f"{fundamental.get('Revenue_Growth', 0):,.2f}"
-                    }
-                    fundamental_data.append(fundamental_info)
-                
-                fundamental_df = pd.DataFrame(fundamental_data)
-                fundamental_df.to_excel(writer, sheet_name='Fundamental Analysis', index=False)
-                
-                # Create Portfolio Analysis sheet
-                portfolio_data = []
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    portfolio = stock_data.get('portfolio_analysis', {})
-                    
-                    portfolio_info = {
-                        'Symbol': symbol,
-                        'Volatility (%)': f"{portfolio.get('Volatility', 0):,.2f}",
-                        'Total Return (%)': f"{portfolio.get('Total_Return', 0):,.2f}",
-                        'Dividend Yield (%)': f"{portfolio.get('Dividend_Yield', 0):,.2f}",
-                        'Market Cap': f"{portfolio.get('Market_Cap', 0):,.2f}",
-                        'Beta': f"{portfolio.get('Beta', 0):,.2f}"
-                    }
-                    portfolio_data.append(portfolio_info)
-                
-                portfolio_df = pd.DataFrame(portfolio_data)
-                portfolio_df.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
-                
-                # Create Financial Statements sheets for each stock
-                for stock_data in stock_summaries:
-                    symbol = stock_data.get('symbol', '')
-                    print(f"Processing financial statements for {symbol}")
-                    
-                    # Process yearly statements
-                    for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-                        key = f'yearly_{statement_type}'
-                        if key in stock_data and not stock_data[key].empty:
-                            sheet_name = f"{symbol} {FINANCIAL_SHEET_NAMES['yearly'][statement_type]}"
-                            print(f"Writing {sheet_name}")
-                            stock_data[key].to_excel(writer, sheet_name=sheet_name)
-                    
-                    # Process quarterly statements
-                    for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-                        key = f'quarterly_{statement_type}'
-                        if key in stock_data and not stock_data[key].empty:
-                            sheet_name = f"{symbol} {FINANCIAL_SHEET_NAMES['quarterly'][statement_type]}"
-                            print(f"Writing {sheet_name}")
-                            stock_data[key].to_excel(writer, sheet_name=sheet_name)
-                
-                # Format all sheets
-                for sheet_name in writer.sheets:
-                    sheet = writer.sheets[sheet_name]
-                    self._format_sheet(sheet)
-            
-            print(f"Excel report generated successfully: {output_file}")
-            return output_file
-            
-        except Exception as e:
-            print(f"Error generating Excel report: {str(e)}")
-            raise
     
     def _add_dataframe_to_doc(self, doc: Document, df: pd.DataFrame) -> None:
         """Add a DataFrame to a Word document."""

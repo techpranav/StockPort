@@ -76,7 +76,7 @@ def format_financials(financial_dict, title):
 def process_stock_symbol(stock):
     try:
         print(f"Processing stock: {stock}")
-        yf_service = YahooFinanceService()
+        yf_service = YahooFinanceService(skip_history=False)
         
         # Add delay to avoid rate limiting
         time.sleep(2)
@@ -113,6 +113,7 @@ def process_stock_symbol(stock):
         }
     except Exception as e:
         print(f"Error processing {stock}: {str(e)}")
+        traceback.print_exc();
         return {
             "symbol": stock,
             "status": "error",

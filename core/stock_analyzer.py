@@ -1,9 +1,12 @@
+import traceback
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import time
 from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
 
-from services.yahoo_finance import YahooFinanceService
+from services.yahoo_finance.yahoo_finance_service import YahooFinanceService
 from services.ai_service import AIService
 from services.report_service import ReportService
 from utils.file_utils import FileUtils
@@ -17,6 +20,12 @@ from core.config import (
     COMPLETED_FILE,
     FAILED_FILE
 )
+from models.stock_data import (
+    StockData, CompanyInfo, FinancialMetrics, TechnicalIndicators,
+    TechnicalSignals, FinancialStatements, NewsItem
+)
+from exceptions.stock_data_exceptions import DataAnalysisException
+from utils.debug_utils import DebugUtils
 
 class StockAnalyzer:
     def __init__(self, input_dir: str, output_dir: str, ai_mode: str = None, days_back: int = 365, delay_between_calls: int = 60):
@@ -27,7 +36,7 @@ class StockAnalyzer:
         self.delay_between_calls = delay_between_calls
         
         # Initialize services
-        self.yahoo_finance = YahooFinanceService()
+        self.yahoo_finance = YahooFinanceService(skip_history=False)
         self.ai_service = AIService(ai_mode=ai_mode) if ai_mode else None
         self.report_service = ReportService()
         self.file_utils = FileUtils(input_dir=str(self.input_dir), output_dir=str(self.output_dir))
@@ -42,8 +51,10 @@ class StockAnalyzer:
         try:
             # Fetch and filter data
             stock_data = self.yahoo_finance.fetch_stock_data(symbol)
+            print("\n\n\n stock_data ######### ", stock_data )
+            print("\n\n\n ############################# \n\n ")
             filtered_data = self.yahoo_finance.filter_stock_data(stock_data)
-            
+
             # Save filtered data
             self.file_utils.save_filtered_data(symbol, filtered_data, self.output_dir)
             
@@ -60,7 +71,7 @@ class StockAnalyzer:
             summary = None
             if ENABLE_AI_FEATURES and self.ai_service:
                 summary = self.ai_service.get_stock_summary(symbol, filtered_data)
-            
+
             return {
                 'symbol': symbol,
                 'history': stock_data.get('history'),
@@ -74,6 +85,7 @@ class StockAnalyzer:
             }
             
         except Exception as e:
+            print(traceback.format_exc())
             raise Exception(f"Error processing {symbol}: {str(e)}")
     
     def process_multiple_stocks(self, symbols: List[str]) -> List[Dict[str, Any]]:

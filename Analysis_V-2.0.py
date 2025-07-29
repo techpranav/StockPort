@@ -260,7 +260,6 @@ def update_stock_data_in_excel(original_file, updated_file):
                 # Fetch stock data
                 stock_data = fetch_stock_data(stock_symbol)
                 summary_data = getSummarizedData(stock_data)  # Get summarized financials
-                print(summary_data)
                 # Update respective columns with the fetched data
                 for key, value in summary_data.items():
                     if key in headers:  # Update only if the column exists
@@ -297,7 +296,6 @@ def main():
             # stock_symbols.remove(stock)
             update_stock_file(stock_symbols)
             data=  getSummarizedData(stock_data)
-            print(data)
             # Append to completed file
             append_to_completed(stock)
 

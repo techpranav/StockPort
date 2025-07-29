@@ -1,42 +1,26 @@
-# Stock Port
+# Stock Market Data Analysis Tool
 
-A comprehensive stock analysis application that provides technical and fundamental analysis of stocks, portfolio management, and AI-powered insights.
+A Python-based tool for fetching, analyzing, and exporting stock market data using Yahoo Finance API.
 
 ## Features
 
-- **Technical Analysis**
-  - Price charts with multiple indicators (MACD, RSI, etc.)
-  - Support and resistance levels
-  - Volume analysis
-  - Trend analysis
-
-- **Fundamental Analysis**
-  - Financial ratios calculation
-  - Company financials analysis
-  - Sector comparison
-  - Valuation metrics
-
-- **Portfolio Management**
-  - Portfolio tracking
-  - Performance metrics
-  - Risk analysis
-  - Sector allocation
-  - Recommendations
-
-- **AI Integration**
-  - Stock analysis summaries
-  - Investment recommendations
-  - Market sentiment analysis
+- Fetch historical stock data
+- Calculate financial metrics and ratios
+- Perform technical analysis
+- Export data to Excel
+- Rate limiting and retry logic
+- Comprehensive error handling
+- Debug logging system
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone https://bitbucket.org/yourusername/stock-analyzer.git
-cd stock-analyzer
+git clone <repository-url>
+cd stock-market-analysis
 ```
 
-2. Create and activate a virtual environment:
+2. Create a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -47,49 +31,99 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables:
-Create a `.env` file with the following variables:
+## Project Structure
+
 ```
-OPENAI_API_KEY=your_openai_api_key
-GOOGLE_DRIVE_CREDENTIALS=your_google_drive_credentials
+stock-market-analysis/
+├── config/
+│   └── settings.py           # Global configuration settings
+├── exceptions/
+│   └── stock_data_exceptions.py  # Custom exceptions
+├── models/
+│   └── stock_data.py         # Data models
+├── services/
+│   ├── analysis/
+│   │   ├── financial_analysis.py  # Financial calculations
+│   │   └── technical_analysis.py  # Technical indicators
+│   ├── yahoo_finance/
+│   │   ├── data_exporter.py      # Data export functionality
+│   │   └── yahoo_finance_service.py  # Main service
+│   └── stock_service.py      # Stock service interface
+├── utils/
+│   └── debug_utils.py        # Debug logging utilities
+├── requirements.txt          # Project dependencies
+└── README.md                # This file
 ```
 
 ## Usage
 
-1. Start the application:
-```bash
-streamlit run app/main.py
+### Basic Usage
+
+```python
+from services.stock_service import StockService
+from services.yahoo_finance.yahoo_finance_service import YahooFinanceService
+from utils.debug_utils import DebugUtils
+
+# Enable debug mode
+DebugUtils.set_debug_mode(True)
+
+# Initialize services
+yahoo_service = YahooFinanceService()
+stock_service = StockService(yahoo_service)
+
+# Fetch stock data
+data = stock_service.fetch_stock_data("AAPL", export_financials=True)
 ```
 
-2. Access the web interface at `http://localhost:8501`
+### Advanced Usage
 
-## Project Structure
+```python
+from services.analysis.financial_analysis import FinancialAnalyzer
+from services.analysis.technical_analysis import TechnicalAnalyzer
+from services.yahoo_finance.data_exporter import DataExporter
 
+# Calculate financial metrics
+metrics = FinancialAnalyzer.calculate_metrics(data)
+
+# Calculate technical indicators
+indicators = TechnicalAnalyzer.calculate_indicators(data['history'])
+
+# Export data
+DataExporter.export_to_excel("AAPL", data['financials']['yearly'])
 ```
-stock-analyzer/
-├── app/
-│   ├── components/
-│   │   ├── analysis.py
-│   │   ├── portfolio.py
-│   │   └── sidebar.py
-│   └── main.py
-├── core/
-│   ├── config.py
-│   └── stock_analyzer.py
-├── services/
-│   ├── ai_service.py
-│   ├── fundamental_analysis.py
-│   ├── portfolio_service.py
-│   ├── report_service.py
-│   ├── technical_analysis.py
-│   └── yahoo_finance.py
-├── utils/
-│   ├── drive_utils.py
-│   └── file_utils.py
-├── .env
-├── .gitignore
-├── README.md
-└── requirements.txt
+
+## Configuration
+
+The application can be configured through the `config/settings.py` file:
+
+- API settings (rate limits, retries)
+- File paths
+- Logging settings
+- Analysis parameters
+
+## Error Handling
+
+The application uses custom exceptions for better error handling:
+
+- `StockDataException`: Base exception for stock data operations
+- `RateLimitException`: Raised when API rate limit is exceeded
+- `InvalidSymbolException`: Raised for invalid stock symbols
+- `DataFetchException`: Raised for errors in fetching data
+- `DataProcessingException`: Raised for errors in processing data
+- `ExportException`: Raised for errors in exporting data
+
+## Debug Mode
+
+Debug mode can be enabled/disabled using `DebugUtils`:
+
+```python
+from utils.debug_utils import DebugUtils
+
+# Enable debug mode
+DebugUtils.set_debug_mode(True)
+
+# Disable debug mode
+DebugUtils.set_debug_mode(False)
 ```
 
 ## Contributing

@@ -60,12 +60,12 @@ CASHFLOW_KEYS = [
 # Rate Limiting
 DELAY_BETWEEN_CALLS = 60  # seconds between API calls 
 
-class YahooFinanceService:
-    def fetch_stock_data(self, symbol: str) -> pd.DataFrame:
-        """Fetch stock data from Yahoo Finance."""
-        data = yf.download(symbol, period="1y", interval="1d")
-        
-        # Log the fetched data
-        print(f"Fetched data for {symbol}:\n{data.head()}")  # Log the first few rows of the DataFrame
-        
-        return data 
+# class YahooFinanceService:
+#     def fetch_stock_data(self, symbol: str) -> pd.DataFrame:
+#         """Fetch stock data from Yahoo Finance."""
+#         data = yf.download(symbol, period="1y", interval="1d")
+#
+#         # Log the fetched data
+#         print(f"Fetched data for {symbol}:\n{data.head()}")  # Log the first few rows of the DataFrame
+#
+#         return data

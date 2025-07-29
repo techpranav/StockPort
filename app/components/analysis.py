@@ -32,29 +32,67 @@ def render_mass_analysis() -> Dict[str, Any]:
     """Render the mass analysis section."""
     st.header("Mass Stock Analysis")
     
-    uploaded_file = st.file_uploader(
-        "Upload Stock Symbols File",
-        type=["txt", "csv"],
-        help="Upload a file containing stock symbols (one per line)"
-    )
+    # Create a container for the file upload area
+    upload_container = st.container()
+    
+    with upload_container:
+        st.markdown("""
+        <style>
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin: 10px 0;
+        }
+        .upload-area:hover {
+            border-color: #2196F3;
+            background-color: #f0f7ff;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        st.markdown('<div class="upload-area">', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader(
+            "📁 Drag and drop your stock symbols file here or click to browse",
+            type=["txt", "csv"],
+            help="Upload a file containing stock symbols (one per line)"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
     
     if not uploaded_file:
         return {"symbols": [], "analyze": False}
     
     # Process uploaded file
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-        symbols = df.iloc[:, 0].tolist()  # Assuming first column contains symbols
-    else:
-        symbols = [line.decode().strip() for line in uploaded_file.readlines()]
-
-    st.write(f"Found {len(symbols)} symbols")
-    st.write("First few symbols:", ", ".join(symbols[:5]))
-    
-    return {
-        "symbols": symbols,
-        "analyze": bool(st.button("Analyze All Stocks", type="primary"))
-    }
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+            symbols = df.iloc[:, 0].tolist()  # Assuming first column contains symbols
+        else:
+            symbols = [line.decode().strip() for line in uploaded_file.readlines()]
+        
+        # Display file info and preview
+        st.success(f"✅ Successfully loaded {len(symbols)} symbols from {uploaded_file.name}")
+        
+        # Create expandable preview
+        with st.expander("📋 Preview Symbols", expanded=True):
+            preview_df = pd.DataFrame(symbols, columns=['Symbol'])
+            st.dataframe(preview_df.head(10), use_container_width=True)
+            if len(symbols) > 10:
+                st.info(f"... and {len(symbols) - 10} more symbols")
+        
+        # Add analyze button with visual feedback
+        analyze_button = st.button("🚀 Start Analysis", type="primary", use_container_width=True)
+        
+        return {
+            "symbols": symbols,
+            "analyze": bool(analyze_button and symbols)
+        }
+        
+    except Exception as e:
+        st.error(f"❌ Error processing file: {str(e)}")
+        return {"symbols": [], "analyze": False}
 
 def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) -> None:
     """Display analysis results and download options."""
@@ -62,48 +100,86 @@ def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) ->
         st.warning("No results to display.")
         return
     
-    # Initialize services based on enabled features
-    technical_service = TechnicalAnalysisService() if ENABLE_TECHNICAL_ANALYSIS else None
-    fundamental_service = FundamentalAnalysisService() if ENABLE_FUNDAMENTAL_ANALYSIS else None
-    portfolio_service = PortfolioService() if ENABLE_PORTFOLIO_ANALYSIS else None
+    # Create a container for results
+    results_container = st.container()
     
-    for result in results:
-        st.subheader(f"Analysis Results for {result['symbol']}")
+    with results_container:
+        st.markdown("""
+        <style>
+        .results-area {
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #ffffff;
+        }
+        .results-area:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
-        # Create tabs based on enabled features
-        tabs = ["Overview"]
-        if ENABLE_TECHNICAL_ANALYSIS:
-            tabs.append("Technical Analysis")
-        if ENABLE_FUNDAMENTAL_ANALYSIS:
-            tabs.append("Fundamental Analysis")
-        if ENABLE_PORTFOLIO_ANALYSIS:
-            tabs.append("Portfolio")
-            
-        tab_objects = st.tabs(tabs)
+        # Initialize services based on enabled features
+        technical_service = TechnicalAnalysisService() if ENABLE_TECHNICAL_ANALYSIS else None
+        fundamental_service = FundamentalAnalysisService() if ENABLE_FUNDAMENTAL_ANALYSIS else None
+        portfolio_service = PortfolioService() if ENABLE_PORTFOLIO_ANALYSIS else None
         
-        # Overview tab is always present
-        with tab_objects[0]:
-            display_overview(result)
+        # Display progress
+        total_stocks = len(results)
+        st.progress(1.0, text=f"Analysis complete for {total_stocks} stocks")
         
-        # Technical Analysis tab
-        if ENABLE_TECHNICAL_ANALYSIS:
-            with tab_objects[tabs.index("Technical Analysis")]:
-                display_technical_analysis(result, technical_service)
+        # Create expandable sections for each result
+        for i, result in enumerate(results, 1):
+            with st.expander(f"📊 {result['symbol']} Analysis Results", expanded=(i == 1)):
+                st.markdown('<div class="results-area">', unsafe_allow_html=True)
+                
+                # Create tabs based on enabled features
+                tabs = ["Overview"]
+                if ENABLE_TECHNICAL_ANALYSIS:
+                    tabs.append("Technical Analysis")
+                if ENABLE_FUNDAMENTAL_ANALYSIS:
+                    tabs.append("Fundamental Analysis")
+                if ENABLE_PORTFOLIO_ANALYSIS:
+                    tabs.append("Portfolio")
+                    
+                tab_objects = st.tabs(tabs)
+                
+                # Overview tab is always present
+                with tab_objects[0]:
+                    display_overview(result)
+                
+                # Technical Analysis tab
+                if ENABLE_TECHNICAL_ANALYSIS:
+                    with tab_objects[tabs.index("Technical Analysis")]:
+                        display_technical_analysis(result, technical_service)
+                
+                # Fundamental Analysis tab
+                if ENABLE_FUNDAMENTAL_ANALYSIS:
+                    with tab_objects[tabs.index("Fundamental Analysis")]:
+                        display_fundamental_analysis(result, fundamental_service)
+                
+                # Portfolio tab
+                if ENABLE_PORTFOLIO_ANALYSIS:
+                    with tab_objects[tabs.index("Portfolio")]:
+                        display_portfolio_analysis(result, portfolio_service)
+                
+                # Display download options
+                display_download_options(result, output_dir)
+                
+                st.markdown('</div>', unsafe_allow_html=True)
         
-        # Fundamental Analysis tab
-        if ENABLE_FUNDAMENTAL_ANALYSIS:
-            with tab_objects[tabs.index("Fundamental Analysis")]:
-                display_fundamental_analysis(result, fundamental_service)
+        # Add summary statistics
+        st.markdown("### 📈 Analysis Summary")
+        successful = sum(1 for r in results if r.get('status') == 'success')
+        failed = sum(1 for r in results if r.get('status') == 'error')
         
-        # Portfolio tab
-        if ENABLE_PORTFOLIO_ANALYSIS:
-            with tab_objects[tabs.index("Portfolio")]:
-                display_portfolio_analysis(result, portfolio_service)
-        
-        # Display download options
-        display_download_options(result, output_dir)
-        
-        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Stocks", total_stocks)
+        with col2:
+            st.metric("Successful", successful)
+        with col3:
+            st.metric("Failed", failed)
 
 def display_overview(result: Dict[str, Any]) -> None:
     """Display overview of the analysis results."""
@@ -125,6 +201,7 @@ def display_technical_analysis(result: Dict[str, Any], technical_service: Techni
         
     if 'history' in result:
         # Calculate technical indicators
+        print("result ######## ",result)
         df = technical_service.calculate_technical_indicators(result['history'])
         
         # Create and display price chart
