@@ -44,27 +44,17 @@ class StockDataProvider(ABC):
         """Fetch company news."""
         pass
     
-    @abstractmethod
-    def _normalize_company_info(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize company information from provider-specific format."""
+    def _normalize_company_info(self, *args, **kwargs):
         pass
     
-    @abstractmethod
-    def _normalize_financial_metrics(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize financial metrics from provider-specific format."""
+    def _normalize_financial_metrics(self, *args, **kwargs):
         pass
     
-    @abstractmethod
-    def _normalize_technical_analysis(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize technical analysis from provider-specific format."""
+    def _normalize_technical_analysis(self, *args, **kwargs):
         pass
     
-    @abstractmethod
-    def _normalize_financial_statements(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize financial statements from provider-specific format."""
+    def _normalize_financial_statements(self, *args, **kwargs):
         pass
     
-    @abstractmethod
-    def _normalize_news(self, raw_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Normalize news data from provider-specific format."""
+    def _normalize_news(self, *args, **kwargs):
         pass 
