@@ -53,7 +53,8 @@ class BaseFetcher:
         
         for attempt in range(self.max_retries):
             try:
-                self._log_api_call(api_name, symbol)
+                DebugUtils.log_api_call(api_name, symbol, attempt=self.api_call_count, total_attempts=self.max_retries, args=args, kwargs=kwargs)
+                DebugUtils.debug(f"Consecutive Failures: {self.consecutive_failures}")
                 self._wait_for_rate_limit()
                 
                 # Add jitter to avoid thundering herd
@@ -80,12 +81,13 @@ class BaseFetcher:
                 return result
                 
             except InvalidSymbolException as e:
-                # Don't retry for invalid symbols
-                self._debug.log_error(e)
+                DebugUtils.log_error(e)
+                DebugUtils.trace(e, f"Invalid symbol exception in fetch_with_retry for {symbol}")
                 raise
             except Exception as e:
                 last_error = e
                 error_msg: str = str(e)
+                DebugUtils.trace(e, f"Exception in fetch_with_retry for {symbol}")
                 
                 if "Too Many Requests" in error_msg:
                     self.consecutive_failures += 1
@@ -94,7 +96,7 @@ class BaseFetcher:
                             self.rate_limit_delay * (2 ** attempt) + random.uniform(0, 1),
                             Settings.API_RATE_LIMIT_COOLDOWN
                         )
-                        self._debug.log_warning(f"Rate limit hit for {symbol}. Retrying in {wait_time:.1f} seconds...")
+                        DebugUtils.log_warning(f"Rate limit hit for {symbol}. Retrying in {wait_time:.1f} seconds...")
                         time.sleep(wait_time)
                         continue
                         
@@ -106,17 +108,17 @@ class BaseFetcher:
                     
                 elif attempt < self.max_retries - 1:
                     wait_time = self.rate_limit_delay * (2 ** attempt) + random.uniform(0, 1)
-                    self._debug.log_warning(f"Error occurred for {symbol}. Retrying in {wait_time:.1f} seconds...")
+                    DebugUtils.log_warning(f"Error occurred for {symbol}. Retrying in {wait_time:.1f} seconds...")
                     time.sleep(wait_time)
                     continue
                 
-                self._debug.log_error(f"Max retries ({self.max_retries}) reached for {api_name}")
+                DebugUtils.log_error(f"Max retries ({self.max_retries}) reached for {api_name}")
                 raise DataFetchException(f"Error fetching data: {str(e)}")
         
         if last_error:
             raise last_error
     
-    def _log_api_call(self, api_name: str, symbol: str) -> None:
+    def _log_api_call(self, api_name: str, symbol: str, args: tuple = (), kwargs: dict = {}) -> None:
         """
         Log API call details.
         
@@ -125,8 +127,8 @@ class BaseFetcher:
             symbol: Stock symbol
         """
         self.api_call_count += 1
-        self._debug.log_api_call(api_name, symbol, self.api_call_count, self.max_retries)
-        self._debug.debug(f"Consecutive Failures: {self.consecutive_failures}")
+        DebugUtils.log_api_call(api_name, symbol, attempt=self.api_call_count, total_attempts=self.max_retries, args=args, kwargs=kwargs)
+        DebugUtils.debug(f"Consecutive Failures: {self.consecutive_failures}")
     
     def _wait_for_rate_limit(self) -> None:
         """Wait to respect rate limits."""
@@ -135,7 +137,7 @@ class BaseFetcher:
         
         if time_since_last_request < self.rate_limit_delay:
             sleep_time: float = self.rate_limit_delay - time_since_last_request
-            self._debug.debug(f"Rate limit: Waiting {sleep_time:.2f} seconds...")
+            DebugUtils.debug(f"Rate limit: Waiting {sleep_time:.2f} seconds...")
             time.sleep(sleep_time)
         
         self.last_request_time = time.time() 

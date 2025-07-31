@@ -24,16 +24,13 @@ class NewsFetcher(BaseFetcher):
             List of news items
         """
         try:
-            self._debug.info(f"Fetching news for {symbol} (limit={limit})...")
-            news_df = self.fetch_with_retry(symbol, lambda: stock.get_news())
+            DebugUtils.info(f"Fetching news for {symbol} (limit={limit})...")
+            news_lambda = lambda: stock.get_news()
+            news_lambda.__name__ = "stock.news"
+            news_df = self.fetch_with_retry(symbol, news_lambda)
             print("news_df ###### ",news_df)
-            if news_df is not None and type(news_df) == list and len(news_df) > 0:
-                # Convert DataFrame to list of dictionaries
-                news_list = news_df.to_dict('records')
-                return news_list[:limit] if news_list else []
-            else:
-                return []
+            return news_df if news_df else []
                 
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching news for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching news for {symbol}")
             return [] 

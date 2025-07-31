@@ -26,17 +26,17 @@ class HistoricalDataFetcher(BaseFetcher):
             DataFrame containing historical price data
         """
         try:
-            self._debug.info(f"Fetching historical data for {symbol} (period={period}, interval={interval})")
+            DebugUtils.info(f"Fetching historical data for {symbol} (period={period}, interval={interval})")
             
             # Fetch historical data with retry logic
             hist_data = self.fetch_with_retry(symbol, stock.history, period=period, interval=interval)
             
             if hist_data.empty:
-                self._debug.warning(f"No historical data found for {symbol}")
+                DebugUtils.warning(f"No historical data found for {symbol}")
                 return pd.DataFrame()
             
             return hist_data
             
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching historical data for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching historical data for {symbol}")
             return pd.DataFrame() 

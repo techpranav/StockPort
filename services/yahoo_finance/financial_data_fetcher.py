@@ -39,19 +39,18 @@ class FinancialDataFetcher(BaseFetcher):
         
         try:
             # Fetch yearly financials
-            self._debug.info(f"Fetching yearly financials for {symbol}...")
+            DebugUtils.info(f"Fetching yearly financials for {symbol}...")
             lambda_stock_financials = lambda: stock.financials
-            lambda_stock_balancesheet = lambda: stock.balance_sheet
-            lambda_cashflow = lambda: stock.cashflow
-            lambda_quarterly_financials = lambda: stock.quarterly_financials
-            lambda_quarterly_balance_sheet = lambda: stock.quarterly_balance_sheet
-            lambda_quarterly_cashflow = lambda: stock.quarterly_cashflow
-
             lambda_stock_financials.__name__ = "stock.financials"
+            lambda_stock_balancesheet = lambda: stock.balance_sheet
             lambda_stock_balancesheet.__name__ = "stock.balance_sheet"
+            lambda_cashflow = lambda: stock.cashflow
             lambda_cashflow.__name__ = "stock.cashflow"
+            lambda_quarterly_financials = lambda: stock.quarterly_financials
             lambda_quarterly_financials.__name__ = "stock.quarterly_financials"
-            lambda_quarterly_balance_sheet.__name__ = "stock.quarterly_cashflow"
+            lambda_quarterly_balance_sheet = lambda: stock.quarterly_balance_sheet
+            lambda_quarterly_balance_sheet.__name__ = "stock.quarterly_balance_sheet"
+            lambda_quarterly_cashflow = lambda: stock.quarterly_cashflow
             lambda_quarterly_cashflow.__name__ = "stock.quarterly_cashflow"
 
             financials['yearly']['income_statement'] = self.fetch_with_retry(symbol, lambda_stock_financials)
@@ -59,7 +58,7 @@ class FinancialDataFetcher(BaseFetcher):
             financials['yearly']['cashflow'] = self.fetch_with_retry(symbol, lambda_cashflow)
             
             # Fetch quarterly financials
-            self._debug.info(f"Fetching quarterly financials for {symbol}...")
+            DebugUtils.info(f"Fetching quarterly financials for {symbol}...")
 
             financials['quarterly']['income_statement'] = self.fetch_with_retry(symbol, lambda_quarterly_financials)
             financials['quarterly']['balance_sheet'] = self.fetch_with_retry(symbol, lambda_quarterly_balance_sheet)
@@ -67,6 +66,6 @@ class FinancialDataFetcher(BaseFetcher):
             
         except Exception as e:
             print(traceback.format_exc())
-            self._debug.log_error(e, f"Error fetching financial data for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching financial data for {symbol}")
         
         return financials 

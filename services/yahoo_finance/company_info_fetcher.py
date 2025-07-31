@@ -23,8 +23,10 @@ class CompanyInfoFetcher(BaseFetcher):
             Dictionary containing company information
         """
         try:
-            self._debug.info(f"Fetching company info for {symbol}...")
-            return self.fetch_with_retry(symbol, lambda: stock.info)
+            DebugUtils.info(f"Fetching company info for {symbol}...")
+            info_lambda = lambda: stock.info
+            info_lambda.__name__ = "stock.info"
+            return self.fetch_with_retry(symbol, info_lambda)
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching company info for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching company info for {symbol}")
             return {} 

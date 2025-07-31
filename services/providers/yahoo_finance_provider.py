@@ -38,7 +38,7 @@ class YahooFinanceProvider(StockDataProvider, BaseFetcher):
             stock = self.fetch_with_retry(symbol, yf.Ticker, symbol)
             return self.fetch_with_retry(symbol, stock.history, period=period, interval=interval)
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching historical data for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching historical data for {symbol}")
             return pd.DataFrame()
     
     def fetch_financials(self, symbol: str) -> Dict[str, Any]:
@@ -47,17 +47,16 @@ class YahooFinanceProvider(StockDataProvider, BaseFetcher):
             stock = self.fetch_with_retry(symbol, yf.Ticker, symbol)
 
             lambda_stock_financials = lambda: stock.financials
-            lambda_stock_balancesheet = lambda: stock.balance_sheet
-            lambda_cashflow = lambda: stock.cashflow
-            lambda_quarterly_financials = lambda: stock.quarterly_financials
-            lambda_quarterly_balance_sheet = lambda: stock.quarterly_balance_sheet
-            lambda_quarterly_cashflow = lambda: stock.quarterly_cashflow
-
             lambda_stock_financials.__name__ = "stock.financials"
+            lambda_stock_balancesheet = lambda: stock.balance_sheet
             lambda_stock_balancesheet.__name__ = "stock.balance_sheet"
+            lambda_cashflow = lambda: stock.cashflow
             lambda_cashflow.__name__ = "stock.cashflow"
+            lambda_quarterly_financials = lambda: stock.quarterly_financials
             lambda_quarterly_financials.__name__ = "stock.quarterly_financials"
-            lambda_quarterly_balance_sheet.__name__ = "stock.quarterly_cashflow"
+            lambda_quarterly_balance_sheet = lambda: stock.quarterly_balance_sheet
+            lambda_quarterly_balance_sheet.__name__ = "stock.quarterly_balance_sheet"
+            lambda_quarterly_cashflow = lambda: stock.quarterly_cashflow
             lambda_quarterly_cashflow.__name__ = "stock.quarterly_cashflow"
 
             return {
@@ -73,26 +72,30 @@ class YahooFinanceProvider(StockDataProvider, BaseFetcher):
                 }
             }
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching financials for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching financials for {symbol}")
             return {}
     
     def fetch_company_info(self, symbol: str) -> Dict[str, Any]:
         """Fetch company information."""
         try:
             stock = self.fetch_with_retry(symbol, yf.Ticker, symbol)
-            return self.fetch_with_retry(symbol, lambda: stock.info)
+            info_lambda = lambda: stock.info
+            info_lambda.__name__ = "stock.info"
+            return self.fetch_with_retry(symbol, info_lambda)
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching company info for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching company info for {symbol}")
             return {}
     
     def fetch_news(self, symbol: str, limit: int = 5) -> list:
         """Fetch company news."""
         try:
             stock = self.fetch_with_retry(symbol, yf.Ticker, symbol)
-            news_data = self.fetch_with_retry(symbol, lambda: stock.get_news())
+            news_lambda = lambda: stock.get_news()
+            news_lambda.__name__ = "stock.news"
+            news_data = self.fetch_with_retry(symbol, news_lambda)
             return news_data[:limit] if news_data else []
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching news for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching news for {symbol}")
             return []
     
     def fetch_stock_data(self, symbol: str) -> Dict[str, Any]:
@@ -103,7 +106,7 @@ class YahooFinanceProvider(StockDataProvider, BaseFetcher):
                 raise InvalidSymbolException("Symbol cannot be empty")
             
             symbol = symbol.strip().upper()
-            self._debug.info(f"Fetching stock data for {symbol}")
+            DebugUtils.info(f"Fetching stock data for {symbol}")
             
             # Create ticker object
             stock = self.fetch_with_retry(symbol, yf.Ticker, symbol)
@@ -125,5 +128,5 @@ class YahooFinanceProvider(StockDataProvider, BaseFetcher):
             return data
             
         except Exception as e:
-            self._debug.log_error(e, f"Error fetching stock data for {symbol}")
+            DebugUtils.log_error(e, f"Error fetching stock data for {symbol}")
             raise DataFetchException(f"Failed to fetch stock data for {symbol}: {str(e)}") 
