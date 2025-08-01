@@ -151,6 +151,9 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
                 if key in data:
                     filtered_data[key] = data[key]
             
+            # Calculate and add metrics
+            filtered_data['metrics'] = self._calculate_metrics(data)
+            
             return filtered_data
             
         except Exception as e:
@@ -222,7 +225,23 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
                     'sector': info.get('sector', 'Unknown'),
                     'industry': info.get('industry', 'Unknown')
                 })
-            
+
+            # # Income Statement Metrics
+            metrics["Revenue"] = info.get("totalRevenue", 0)
+            metrics["Gross Profit"] = info.get("grossProfits", 0)
+            metrics["Operating Income"] = info.get("operatingIncome", 0)
+            metrics["Net Income"] = info.get("netIncome", 0)
+
+            # # Balance Sheet Metrics
+            metrics["Total Assets"] = info.get("totalAssets", 0)
+            metrics["Total Liabilities"] = info.get("totalLiab", 0)
+            metrics["Total Equity"] = info.get("totalStockholderEquity", 0)
+            #
+            # # Cash Flow Metrics
+            metrics["Operating Cash Flow"] = info.get("operatingCashflow", 0)
+            metrics["Investing Cash Flow"] = info.get("totalCashFromInvestingActivities", 0)
+            metrics["Financing Cash Flow"] = info.get("totalCashFromFinancingActivities", 0)
+            print("\n\n metrics #### \n" , metrics)
             return metrics
             
         except Exception as e:
