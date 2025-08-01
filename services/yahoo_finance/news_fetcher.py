@@ -28,7 +28,6 @@ class NewsFetcher(BaseFetcher):
             news_lambda = lambda: stock.get_news()
             news_lambda.__name__ = "stock.news"
             news_df = self.fetch_with_retry(symbol, news_lambda)
-            print("news_df ###### ",news_df)
             return news_df if news_df else []
                 
         except Exception as e:

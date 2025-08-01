@@ -33,7 +33,6 @@ class ReportService:
             # Create Excel file path
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             excel_path = os.path.join(self.reports_dir, f"{symbol}_report_{timestamp}.xlsx")
-            print("\n\n data ############### ",data)
             with pd.ExcelWriter(excel_path) as writer:
                 # Write company information
                 if 'info' in data:

@@ -16,7 +16,6 @@ class FundamentalAnalysisService:
         """Calculate key financial ratios."""
         ratios = {}
         financials = data.get('financials', {})
-        print("\n\n calculate_financial_ratios ######## ",financials)
         # Get financial statements
         income_statement = financials.get('yearly', {}).get('income_statement', pd.DataFrame())
         balance_sheet = financials.get('yearly', {}).get('balance_sheet', pd.DataFrame())
@@ -52,7 +51,6 @@ class FundamentalAnalysisService:
         try:
             # Return on Equity (ROE)
             net_income = income_statement.loc['Net Income'].iloc[0]
-            print("\n\n _calculate_profitability_ratios : balance_sheet ####### ",balance_sheet)
             total_equity = balance_sheet.loc['Stockholders Equity'].iloc[0]
             ratios['roe'] = (net_income / total_equity) * 100 if total_equity != 0 else 0
             
@@ -151,6 +149,7 @@ class FundamentalAnalysisService:
         ratios = {}
         
         try:
+            print("\n\n\n _calculate_market_ratios ######### info ============ ",info)
             # Price to Earnings (P/E)
             ratios['pe_ratio'] = info.get('forwardPE', 0)
             

@@ -5,14 +5,15 @@ import pandas as pd
 from utils.debug_utils import DebugUtils
 from services.fetcher.base_fetcher import BaseFetcher
 
+
 class FinancialDataFetcher(BaseFetcher):
     """Class for fetching financial statements."""
-    
+
     def __init__(self):
         """Initialize the financial data fetcher."""
         BaseFetcher.__init__(self)  # Initialize BaseFetcher
         self._debug = DebugUtils()
-    
+
     def fetch_financial_data(self, stock: yf.Ticker, symbol: str) -> Dict[str, Dict[str, pd.DataFrame]]:
         """
         Fetch financial statements.
@@ -36,7 +37,7 @@ class FinancialDataFetcher(BaseFetcher):
                 'cashflow': pd.DataFrame()
             }
         }
-        
+
         try:
             # Fetch yearly financials
             DebugUtils.info(f"Fetching yearly financials for {symbol}...")
@@ -63,22 +64,10 @@ class FinancialDataFetcher(BaseFetcher):
             financials['quarterly']['income_statement'] = self.fetch_with_retry(symbol, lambda_quarterly_financials)
             financials['quarterly']['balance_sheet'] = self.fetch_with_retry(symbol, lambda_quarterly_balance_sheet)
             financials['quarterly']['cashflow'] = self.fetch_with_retry(symbol, lambda_quarterly_cashflow)
-            
-            # Debug: Print quarterly balance sheet
-            quarterly_bs = financials['quarterly']['balance_sheet']
-            print(f"Quarterly Balance Sheet Type: {type(quarterly_bs)}")
-            if hasattr(quarterly_bs, 'shape'):
-                print(f"Quarterly Balance Sheet Shape: {quarterly_bs.shape}")
-                print(f"Quarterly Balance Sheet Empty: {quarterly_bs.empty}")
-                if not quarterly_bs.empty:
-                    print(f"Quarterly Balance Sheet Columns: {list(quarterly_bs.columns)}")
-                    print(f"Quarterly Balance Sheet Index (first 10):")
-                    for i, idx in enumerate(quarterly_bs.index[:10]):
-                        print(f"  {i+1}. {idx}")
-            print(f"--- END RAW BALANCE SHEET DATA ---\n")
-            
+
+
         except Exception as e:
             print(traceback.format_exc())
             DebugUtils.log_error(e, f"Error fetching financial data for {symbol}")
-        
-        return financials 
+
+        return financials

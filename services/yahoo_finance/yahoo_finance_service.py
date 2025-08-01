@@ -72,7 +72,7 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             ticker = self.fetch_with_retry(symbol, yf.Ticker, symbol)
             
             data = {}
-            
+            print("\n\n ticker ########## ",ticker)
             # Fetch historical data (skip if flag is set)
             if not self.skip_history:
                 try:
@@ -96,7 +96,8 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             
             # Fetch news
             data['news'] = self._news_fetcher.fetch_news(ticker, symbol)
-            
+            print("\n\n data['info']  ########## ",data['info'] )
+
             # Convert raw data to StockData object
             return self._normalize_to_stock_data(symbol, data)
             
@@ -296,7 +297,6 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             metrics["Operating Cash Flow"] = info.get("operatingCashflow", 0)
             metrics["Investing Cash Flow"] = info.get("totalCashFromInvestingActivities", 0)
             metrics["Financing Cash Flow"] = info.get("totalCashFromFinancingActivities", 0)
-            print("\n\n metrics #### \n" , metrics)
             return metrics
             
         except Exception as e:
