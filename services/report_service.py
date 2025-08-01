@@ -33,7 +33,7 @@ class ReportService:
             # Create Excel file path
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             excel_path = os.path.join(self.reports_dir, f"{symbol}_report_{timestamp}.xlsx")
-            
+            print("\n\n data ############### ",data)
             with pd.ExcelWriter(excel_path) as writer:
                 # Write company information
                 if 'info' in data:
@@ -96,6 +96,8 @@ class ReportService:
     
     def _write_technical_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
         """Write technical analysis to Excel."""
+        print("\n\n ######## _write_technical_analysis ###### \n\n",analysis)
+
         df = pd.DataFrame(list(analysis.items()), columns=['Indicator', 'Value'])
         df.to_excel(writer, sheet_name='Technical Analysis', index=False)
     
@@ -113,21 +115,10 @@ class ReportService:
         """Write financial statements to Excel."""
         # Write yearly statements
         for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-            key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
-            if key in financials and not financials[key].empty:
-                financials[key].to_excel(
-                    writer,
-                    sheet_name=FINANCIAL_SHEET_NAMES['yearly'][statement_type]
-                )
-        
-        # Write quarterly statements
+           financials['yearly'][statement_type].to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES['yearly'][statement_type])
         for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-            key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
-            if key in financials and not financials[key].empty:
-                financials[key].to_excel(
-                    writer,
-                    sheet_name=FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
-                )
+           financials['quarterly'][statement_type].to_excel(writer, sheet_name=FINANCIAL_SHEET_NAMES['quarterly'][statement_type])
+
 
     def generate_word_report(self, symbol: str, data: Dict[str, Any]) -> Path:
         """Generate a Word report for the stock analysis."""
