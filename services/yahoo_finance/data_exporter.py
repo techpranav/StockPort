@@ -100,10 +100,10 @@ class DataExporter:
                 filtered_data['balance_sheet'] = balance_sheet[
                     balance_sheet.index.isin([
                         'Total Assets',
-                        'Total Current Assets',
+                        'Current Assets',
                         'Total Liabilities',
                         'Total Current Liabilities',
-                        'Total Stockholder Equity'
+                        'Stockholders Equity'
                     ])
                 ]
             

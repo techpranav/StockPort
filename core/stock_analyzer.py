@@ -8,6 +8,7 @@ import numpy as np
 
 from services.yahoo_finance.yahoo_finance_service import YahooFinanceService
 from services.ai_service import AIService
+from services.stock_service import StockService
 from services.report_service import ReportService
 from utils.file_utils import FileUtils
 from utils.drive_utils import DriveUtils
@@ -36,7 +37,7 @@ class StockAnalyzer:
         self.delay_between_calls = delay_between_calls
         
         # Initialize services
-        self.yahoo_finance = YahooFinanceService(skip_history=False)
+        self.stock_service = StockService()
         self.ai_service = AIService(ai_mode=ai_mode) if ai_mode else None
         self.report_service = ReportService()
         self.file_utils = FileUtils(input_dir=str(self.input_dir), output_dir=str(self.output_dir))
@@ -49,18 +50,19 @@ class StockAnalyzer:
     def process_stock(self, symbol: str) -> Dict[str, Any]:
         """Process a single stock symbol."""
         try:
-            # Fetch and filter data
-            stock_data = self.yahoo_finance.fetch_stock_data(symbol)
-            print("\n\n\n stock_data ######### ", stock_data )
-            print("\n\n\n ############################# \n\n ")
-            filtered_data = self.yahoo_finance.filter_stock_data(stock_data)
-
-            # Save filtered data
-            self.file_utils.save_filtered_data(symbol, filtered_data, self.output_dir)
+            # Fetch standardized stock data
+            stock_data = self.stock_service.fetch_stock_data(symbol)
+            DebugUtils.info(f"Successfully fetched standardized data for {symbol}")
+            
+            # Convert StockData to dictionary format for legacy compatibility
+            stock_dict = stock_data.to_dict()
+            
+            # Save filtered data (using legacy format for now)
+            self.file_utils.save_filtered_data(symbol, stock_dict, self.output_dir)
             
             # Generate reports
-            word_report_path = self.report_service.generate_word_report(symbol, filtered_data)
-            excel_report_path = self.report_service.generate_excel_report(symbol, filtered_data)
+            word_report_path = self.report_service.generate_word_report(symbol, stock_dict)
+            excel_report_path = self.report_service.generate_excel_report(symbol, stock_dict)
             
             # Upload to Google Drive if enabled
             if ENABLE_GOOGLE_DRIVE:
@@ -70,23 +72,42 @@ class StockAnalyzer:
             # Get AI summary if enabled
             summary = None
             if ENABLE_AI_FEATURES and self.ai_service:
-                summary = self.ai_service.get_stock_summary(symbol, filtered_data)
+                summary = self.ai_service.get_stock_summary(symbol, stock_dict)
 
+            # Return data in a format compatible with the UI
             return {
                 'symbol': symbol,
-                'history': stock_data.get('history'),
-                'info': stock_data.get('info'),
-                'financials': stock_data.get('financials'),
-                'filtered_data': filtered_data,
+                'status': 'success',
+                'history': stock_data.raw_data.get('history', pd.DataFrame()),
+                'info': stock_data.company_info.__dict__,
+                'financials': stock_data.raw_data.get('financials', {}),
+                'metrics': stock_data.metrics.__dict__,
+                'technical_analysis': stock_data.technical_analysis.__dict__,
+                'technical_signals': stock_data.technical_signals.__dict__,
+                'filtered_data': stock_dict,
                 'word_report_path': str(word_report_path),
                 'excel_report_path': str(excel_report_path),
                 'summary': summary,
-                'metrics': filtered_data.get('metrics', {})
+                'stock_data_object': stock_data  # Include the full StockData object for future use
             }
             
         except Exception as e:
-            print(traceback.format_exc())
-            raise Exception(f"Error processing {symbol}: {str(e)}")
+            DebugUtils.log_error(e, f"Error processing {symbol}")
+            return {
+                'symbol': symbol,
+                'status': 'error',
+                'error': str(e),
+                'history': pd.DataFrame(),
+                'info': {},
+                'financials': {},
+                'metrics': {},
+                'technical_analysis': {},
+                'technical_signals': {},
+                'filtered_data': {},
+                'word_report_path': None,
+                'excel_report_path': None,
+                'summary': None
+            }
     
     def process_multiple_stocks(self, symbols: List[str]) -> List[Dict[str, Any]]:
         """Process multiple stock symbols."""

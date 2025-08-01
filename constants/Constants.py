@@ -24,7 +24,7 @@ INCOME_STATEMENT_KEYS = [
 
 BALANCE_SHEET_KEYS = [
     "Total Assets",
-    "Total Current Assets",
+    "Current Assets",
     "Cash And Cash Equivalents",
     "Short Term Investments",
     "Net Receivables",

@@ -42,8 +42,8 @@ class StockService(BaseFetcher):
             StockData object containing all stock information
         """
         self._debug.info(f"Fetching comprehensive stock data for {symbol}")
-        data = self._provider.fetch_stock_data(symbol)
-        return StockData(**data)
+        stock_data = self._provider.fetch_stock_data(symbol)
+        return stock_data
     
     def fetch_historical_data(self, symbol: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
         """Fetch historical price data.

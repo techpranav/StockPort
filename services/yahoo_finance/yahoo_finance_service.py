@@ -26,7 +26,7 @@ from .news_fetcher import NewsFetcher
 class YahooFinanceService(StockDataProvider, BaseFetcher):
     """Yahoo Finance data provider implementation."""
     
-    def __init__(self, skip_history: bool = True):  # Default to True to skip history for now
+    def __init__(self, skip_history: bool = False):  # Default to False to fetch history
         """Initialize the Yahoo Finance service."""
         BaseFetcher.__init__(self)  # Initialize BaseFetcher
         self.skip_history = skip_history
@@ -48,14 +48,14 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
         """Get the name of the data provider."""
         return "Yahoo Finance"
     
-    def fetch_stock_data(self, symbol: str, export_financials: bool = False, export_filtered_financials: bool = False) -> Dict[str, Any]:
+    def fetch_stock_data(self, symbol: str, export_financials: bool = False, export_filtered_financials: bool = False) -> StockData:
         """Fetch stock data for a given symbol.
         
         Args:
             symbol: Stock symbol to fetch data for
             
         Returns:
-            Dictionary containing stock data
+            StockData object containing standardized stock data
             
         Raises:
             DataFetchError: If there's an error fetching the data
@@ -75,7 +75,13 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             
             # Fetch historical data (skip if flag is set)
             if not self.skip_history:
-                data['history'] = self._historical_fetcher.fetch_historical_data(ticker, symbol)
+                try:
+                    data['history'] = self._historical_fetcher.fetch_historical_data(ticker, symbol)
+                    if data['history'].empty:
+                        DebugUtils.warning(f"Historical data fetch returned empty DataFrame for {symbol}")
+                except Exception as e:
+                    DebugUtils.log_error(e, f"Error fetching historical data for {symbol}")
+                    data['history'] = pd.DataFrame()
             else:
                 data['history'] = pd.DataFrame()
                 DebugUtils.info("Skipping historical data fetch (skip_history=True)")
@@ -83,17 +89,66 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             # Fetch financial data
             data['financials'] = self._financial_fetcher.fetch_financial_data(ticker, symbol)
             
+            print(f"{'='*60}\n")
+            
             # Fetch company info
             data['info'] = self._company_info_fetcher.fetch_company_info(ticker, symbol)
             
             # Fetch news
             data['news'] = self._news_fetcher.fetch_news(ticker, symbol)
             
-            return data
+            # Convert raw data to StockData object
+            return self._normalize_to_stock_data(symbol, data)
             
         except Exception as e:
             DebugUtils.log_error(e, f"Error fetching stock data for {symbol}")
             raise DataFetchException(f"Failed to fetch stock data for {symbol}: {str(e)}")
+    
+    def _normalize_to_stock_data(self, symbol: str, raw_data: Dict[str, Any]) -> StockData:
+        """Convert raw Yahoo Finance data to standardized StockData object."""
+        try:
+            # Normalize company info
+            company_info = self._normalize_company_info(symbol, raw_data.get('info', {}))
+            
+            # Normalize financial metrics
+            metrics = self._normalize_financial_metrics(raw_data)
+            
+            # Normalize technical indicators
+            technical_analysis = self._normalize_technical_indicators(raw_data.get('history', pd.DataFrame()))
+            
+            # Generate technical signals
+            technical_signals = self._normalize_technical_signals(raw_data.get('history', pd.DataFrame()))
+            
+            # Normalize financial statements
+            financials = self._normalize_financial_statements(raw_data.get('financials', {}))
+            
+            # Normalize news
+            news = self._normalize_news(raw_data.get('news', []))
+            
+            return StockData(
+                symbol=symbol,
+                company_info=company_info,
+                metrics=metrics,
+                technical_analysis=technical_analysis,
+                technical_signals=technical_signals,
+                financials=financials,
+                news=news,
+                raw_data=raw_data
+            )
+            
+        except Exception as e:
+            DebugUtils.log_error(e, f"Error normalizing data for {symbol}")
+            # Return a minimal StockData object with available data
+            return StockData(
+                symbol=symbol,
+                company_info=CompanyInfo(symbol=symbol, name=symbol),
+                metrics=FinancialMetrics(),
+                technical_analysis=TechnicalIndicators(),
+                technical_signals=TechnicalSignals(),
+                financials=FinancialStatements(),
+                news=[],
+                raw_data=raw_data
+            )
     
     def fetch_historical_data(self, symbol: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
         """Fetch historical price data."""
@@ -247,3 +302,197 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
         except Exception as e:
             DebugUtils.log_error(e, "Error calculating metrics")
             return {}
+    
+    def _normalize_company_info(self, symbol: str, info_dict: Dict[str, Any]) -> CompanyInfo:
+        """Normalize company info to CompanyInfo dataclass."""
+        try:
+            return CompanyInfo(
+                symbol=symbol,
+                name=info_dict.get('longName', symbol),
+                sector=info_dict.get('sector'),
+                industry=info_dict.get('industry'),
+                website=info_dict.get('website'),
+                description=info_dict.get('longBusinessSummary'),
+                country=info_dict.get('country'),
+                currency=info_dict.get('currency'),
+                exchange=info_dict.get('exchange'),
+                market_cap=info_dict.get('marketCap'),
+                employees=info_dict.get('fullTimeEmployees'),
+                phone=info_dict.get('phone'),
+                address=info_dict.get('address1'),
+                city=info_dict.get('city'),
+                state=info_dict.get('state'),
+                zip_code=info_dict.get('zip')
+            )
+        except Exception as e:
+            DebugUtils.log_error(e, f"Error normalizing company info for {symbol}")
+            return CompanyInfo(symbol=symbol, name=symbol)
+    
+    def _normalize_financial_metrics(self, raw_data: Dict[str, Any]) -> FinancialMetrics:
+        """Normalize financial metrics to FinancialMetrics dataclass."""
+        try:
+            info = raw_data.get('info', {})
+            history = raw_data.get('history', pd.DataFrame())
+            
+            # Calculate current price from history if available
+            current_price = None
+            if not history.empty and 'Close' in history.columns:
+                current_price = float(history['Close'].iloc[-1])
+            
+            return FinancialMetrics(
+                revenue=info.get('totalRevenue'),
+                gross_profit=info.get('grossProfits'),
+                operating_income=info.get('operatingIncome'),
+                net_income=info.get('netIncome'),
+                total_assets=info.get('totalAssets'),
+                total_liabilities=info.get('totalLiab'),
+                total_equity=info.get('totalStockholderEquity'),
+                operating_cash_flow=info.get('operatingCashflow'),
+                investing_cash_flow=info.get('totalCashFromInvestingActivities'),
+                financing_cash_flow=info.get('totalCashFromFinancingActivities'),
+                free_cash_flow=info.get('freeCashflow'),
+                eps=info.get('trailingEps'),
+                pe_ratio=info.get('trailingPE'),
+                dividend_yield=info.get('dividendYield'),
+                beta=info.get('beta')
+            )
+        except Exception as e:
+            DebugUtils.log_error(e, "Error normalizing financial metrics")
+            return FinancialMetrics()
+    
+    def _normalize_technical_indicators(self, history: pd.DataFrame) -> TechnicalIndicators:
+        """Normalize technical indicators to TechnicalIndicators dataclass."""
+        try:
+            if history.empty or 'Close' not in history.columns:
+                return TechnicalIndicators()
+            
+            # Calculate basic indicators
+            current_price = float(history['Close'].iloc[-1]) if len(history) > 0 else None
+            volume = float(history['Volume'].iloc[-1]) if 'Volume' in history.columns and len(history) > 0 else None
+            
+            # Calculate SMAs if we have enough data
+            sma_20 = float(history['Close'].rolling(20).mean().iloc[-1]) if len(history) >= 20 else None
+            sma_50 = float(history['Close'].rolling(50).mean().iloc[-1]) if len(history) >= 50 else None
+            sma_200 = float(history['Close'].rolling(200).mean().iloc[-1]) if len(history) >= 200 else None
+            
+            # Calculate RSI if we have enough data
+            rsi = None
+            if len(history) >= 14:
+                delta = history['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                rs = gain / loss
+                rsi = float(100 - (100 / (1 + rs.iloc[-1]))) if not rs.iloc[-1] == 0 else None
+            
+            return TechnicalIndicators(
+                current_price=current_price,
+                sma_20=sma_20,
+                sma_50=sma_50,
+                sma_200=sma_200,
+                rsi=rsi,
+                volume=volume,
+                volume_sma=float(history['Volume'].rolling(20).mean().iloc[-1]) if 'Volume' in history.columns and len(history) >= 20 else None
+            )
+        except Exception as e:
+            DebugUtils.log_error(e, "Error normalizing technical indicators")
+            return TechnicalIndicators()
+    
+    def _normalize_technical_signals(self, history: pd.DataFrame) -> TechnicalSignals:
+        """Generate technical signals from historical data."""
+        try:
+            if history.empty or 'Close' not in history.columns or len(history) < 20:
+                return TechnicalSignals()
+            
+            # Simple trend analysis
+            sma_20 = history['Close'].rolling(20).mean()
+            sma_50 = history['Close'].rolling(50).mean() if len(history) >= 50 else None
+            current_price = history['Close'].iloc[-1]
+            
+            # Determine trend
+            trend = "Sideways"
+            if sma_50 is not None and len(sma_50.dropna()) > 0:
+                if current_price > sma_20.iloc[-1] > sma_50.iloc[-1]:
+                    trend = "Uptrend"
+                elif current_price < sma_20.iloc[-1] < sma_50.iloc[-1]:
+                    trend = "Downtrend"
+            
+            # Simple momentum analysis using RSI
+            momentum = "Neutral"
+            if len(history) >= 14:
+                delta = history['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                rs = gain / loss
+                rsi = 100 - (100 / (1 + rs.iloc[-1])) if not rs.iloc[-1] == 0 else 50
+                
+                if rsi > 70:
+                    momentum = "Overbought"
+                elif rsi < 30:
+                    momentum = "Oversold"
+            
+            # Simple volatility analysis
+            volatility = "Normal"
+            if len(history) >= 20:
+                returns = history['Close'].pct_change()
+                vol = returns.rolling(20).std().iloc[-1] * 100
+                if vol > 3:
+                    volatility = "High"
+                elif vol < 1:
+                    volatility = "Low"
+            
+            # Volume analysis
+            volume_signal = "Normal Volume"
+            if 'Volume' in history.columns and len(history) >= 20:
+                avg_volume = history['Volume'].rolling(20).mean().iloc[-1]
+                current_volume = history['Volume'].iloc[-1]
+                if current_volume > avg_volume * 1.5:
+                    volume_signal = "High Volume"
+                elif current_volume < avg_volume * 0.5:
+                    volume_signal = "Low Volume"
+            
+            return TechnicalSignals(
+                trend=trend,
+                momentum=momentum,
+                volatility=volatility,
+                volume=volume_signal
+            )
+        except Exception as e:
+            DebugUtils.log_error(e, "Error generating technical signals")
+            return TechnicalSignals()
+    
+    def _normalize_financial_statements(self, financials_dict: Dict[str, Any]) -> FinancialStatements:
+        """Normalize financial statements to FinancialStatements dataclass."""
+        try:
+            return FinancialStatements(
+                yearly_income_statement=financials_dict.get('yearly', {}).get('income_statement', pd.DataFrame()),
+                quarterly_income_statement=financials_dict.get('quarterly', {}).get('income_statement', pd.DataFrame()),
+                yearly_balance_sheet=financials_dict.get('yearly', {}).get('balance_sheet', pd.DataFrame()),
+                quarterly_balance_sheet=financials_dict.get('quarterly', {}).get('balance_sheet', pd.DataFrame()),
+                yearly_cash_flow=financials_dict.get('yearly', {}).get('cashflow', pd.DataFrame()),
+                quarterly_cash_flow=financials_dict.get('quarterly', {}).get('cashflow', pd.DataFrame())
+            )
+        except Exception as e:
+            DebugUtils.log_error(e, "Error normalizing financial statements")
+            return FinancialStatements()
+    
+    def _normalize_news(self, news_list: List[Dict[str, Any]]) -> List[NewsItem]:
+        """Normalize news data to NewsItem dataclass."""
+        try:
+            normalized_news = []
+            for item in news_list:
+                try:
+                    news_item = NewsItem(
+                        title=item.get('title', ''),
+                        summary=item.get('summary'),
+                        url=item.get('link'),
+                        published_date=item.get('providerPublishTime'),
+                        source=item.get('publisher')
+                    )
+                    normalized_news.append(news_item)
+                except Exception as e:
+                    DebugUtils.log_error(e, f"Error normalizing news item: {item}")
+                    continue
+            return normalized_news
+        except Exception as e:
+            DebugUtils.log_error(e, "Error normalizing news")
+            return []

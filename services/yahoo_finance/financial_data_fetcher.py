@@ -56,13 +56,26 @@ class FinancialDataFetcher(BaseFetcher):
             financials['yearly']['income_statement'] = self.fetch_with_retry(symbol, lambda_stock_financials)
             financials['yearly']['balance_sheet'] = self.fetch_with_retry(symbol, lambda_stock_balancesheet)
             financials['yearly']['cashflow'] = self.fetch_with_retry(symbol, lambda_cashflow)
-            
+
             # Fetch quarterly financials
             DebugUtils.info(f"Fetching quarterly financials for {symbol}...")
 
             financials['quarterly']['income_statement'] = self.fetch_with_retry(symbol, lambda_quarterly_financials)
             financials['quarterly']['balance_sheet'] = self.fetch_with_retry(symbol, lambda_quarterly_balance_sheet)
             financials['quarterly']['cashflow'] = self.fetch_with_retry(symbol, lambda_quarterly_cashflow)
+            
+            # Debug: Print quarterly balance sheet
+            quarterly_bs = financials['quarterly']['balance_sheet']
+            print(f"Quarterly Balance Sheet Type: {type(quarterly_bs)}")
+            if hasattr(quarterly_bs, 'shape'):
+                print(f"Quarterly Balance Sheet Shape: {quarterly_bs.shape}")
+                print(f"Quarterly Balance Sheet Empty: {quarterly_bs.empty}")
+                if not quarterly_bs.empty:
+                    print(f"Quarterly Balance Sheet Columns: {list(quarterly_bs.columns)}")
+                    print(f"Quarterly Balance Sheet Index (first 10):")
+                    for i, idx in enumerate(quarterly_bs.index[:10]):
+                        print(f"  {i+1}. {idx}")
+            print(f"--- END RAW BALANCE SHEET DATA ---\n")
             
         except Exception as e:
             print(traceback.format_exc())
