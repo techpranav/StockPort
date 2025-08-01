@@ -36,6 +36,7 @@ class AlphaVantageProvider(StockDataProvider):
         return StockData(
             symbol=symbol,
             company_info=self._normalize_company_info(company_info),
+            info=company_info,  # Store original raw info dictionary
             metrics=self._normalize_financial_metrics(financials),
             technical_analysis=self._normalize_technical_analysis({}),  # Implement actual data fetching
             technical_signals=TechnicalSignals(),  # Implement actual signal calculation

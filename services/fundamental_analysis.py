@@ -149,7 +149,6 @@ class FundamentalAnalysisService:
         ratios = {}
         
         try:
-            print("\n\n\n _calculate_market_ratios ######### info ============ ",info)
             # Price to Earnings (P/E)
             ratios['pe_ratio'] = info.get('forwardPE', 0)
             

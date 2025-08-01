@@ -136,6 +136,7 @@ class StockData:
     """Standardized stock data structure."""
     symbol: str
     company_info: CompanyInfo
+    info: Dict[str, Any]  # Store original raw info dictionary
     metrics: FinancialMetrics
     technical_analysis: TechnicalIndicators
     technical_signals: TechnicalSignals
@@ -147,7 +148,8 @@ class StockData:
         """Convert the stock data to a dictionary format, keeping DataFrames as DataFrames."""
         return {
             'symbol': self.symbol,
-            'info': self.company_info.__dict__,
+            'info': self.info,  # Original raw info dictionary
+            'company_info': self.company_info.__dict__,  # Normalized company info
             'metrics': self.metrics.__dict__,
             'technical_analysis': self.technical_analysis.__dict__,
             'technical_signals': self.technical_signals.__dict__,

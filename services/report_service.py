@@ -36,7 +36,7 @@ class ReportService:
             with pd.ExcelWriter(excel_path) as writer:
                 # Write company information
                 if 'info' in data:
-                    self._write_company_info(writer, data['info'])
+                    self._write_company_info(writer, data['company_info'])
                 
                 # Write key metrics
                 if 'metrics' in data:
