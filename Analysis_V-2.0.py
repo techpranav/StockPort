@@ -11,7 +11,7 @@ import time
 from bs4 import BeautifulSoup
 
 import os
-from constants.Constants import *
+from constants.StringConstants import input_dir, output_dir
 from util.Utils import *
 from util.googledrive import *
 import traceback
