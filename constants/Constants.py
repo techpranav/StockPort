@@ -1,5 +1,120 @@
+# Directory paths
 output_dir="D:\\OneDrive - Technia AB\\Pranav\\Development\\Projects\\Upwork\\StockAnalyzer\\output\\output"
 input_dir="D:\\OneDrive - Technia AB\\Pranav\\Development\\Projects\\Upwork\\StockAnalyzer\\input"
+
+# File Extensions
+EXCEL_EXTENSION = ".xlsx"
+WORD_EXTENSION = ".docx"
+TEXT_EXTENSION = ".txt"
+JSON_EXTENSION = ".json"
+
+# File Name Patterns
+REPORT_FILE_PATTERN = "{symbol}_report_{timestamp}"
+ANALYSIS_REPORT_FILE_PATTERN = "{symbol}_Analysis_Report"
+FINANCIALS_FILE_PATTERN = "{symbol}_financials_{timestamp}"
+TECHNICAL_ANALYSIS_FILE_PATTERN = "{symbol}_technical_analysis_{timestamp}"
+STOCK_SUMMARY_FILE = "stock_summary"
+STOCK_ANALYSIS_FILE = "stock_analysis"
+
+# Directory Names
+REPORTS_DIR = "reports"
+INPUT_DIR_NAME = "input"
+OUTPUT_DIR_NAME = "output"
+
+# File Names
+STOCKS_FILE = "stocks.txt"
+COMPLETED_FILE = "completed.txt"
+FAILED_FILE = "failed.txt"
+COMPLETED_STOCKS_FILE = "completed_stocks.txt"
+FAILED_STOCKS_FILE = "failed_stocks.txt"
+
+# Excel Sheet Names
+SHEET_COMPANY_INFO = "Company Info"
+SHEET_KEY_METRICS = "Key Metrics"
+SHEET_TECHNICAL_ANALYSIS = "Technical Analysis"
+SHEET_FUNDAMENTAL_ANALYSIS = "Fundamental Analysis"
+SHEET_PORTFOLIO_ANALYSIS = "Portfolio Analysis"
+
+# UI Tab Names
+TAB_OVERVIEW = "Overview"
+TAB_TECHNICAL_ANALYSIS = "Technical Analysis"
+TAB_FUNDAMENTAL_ANALYSIS = "Fundamental Analysis"
+TAB_PORTFOLIO = "Portfolio"
+
+# UI Headers and Titles
+HEADER_SINGLE_STOCK_ANALYSIS = "Single Stock Analysis"
+HEADER_MASS_ANALYSIS = "Mass Analysis"
+HEADER_MASS_STOCK_ANALYSIS = "Mass Stock Analysis"
+
+# UI Section Headers (with emojis)
+SECTION_FINANCIAL_METRICS = "#### 📊 Financial Metrics"
+SECTION_COMPANY_INFO = "#### 🏢 Company Information"
+SECTION_TECHNICAL_ANALYSIS = "#### 📈 Technical Analysis"
+SECTION_BALANCE_SHEET = "#### 💰 Balance Sheet Summary"
+SECTION_CASH_FLOW = "#### 💸 Cash Flow Summary"
+SECTION_AI_ANALYSIS = "#### 🤖 AI Analysis"
+
+# DataFrame Column Names
+COLUMN_METRIC = "Metric"
+COLUMN_VALUE = "Value"
+COLUMN_ATTRIBUTE = "Attribute"
+COLUMN_INDICATOR = "Indicator"
+COLUMN_SERIAL_NUMBER = "Serial Number"
+COLUMN_STOCK_NAME = "Stock Name"
+COLUMN_OVERVIEW = "Overview"
+COLUMN_SUMMARY = "Summary"
+COLUMN_DECISION = "Decision"
+
+# Status Messages
+MSG_NO_FINANCIAL_METRICS = "No financial metrics available"
+MSG_NO_COMPANY_INFO = "No company information available"
+MSG_NO_TECHNICAL_DATA = "No technical analysis data available"
+MSG_NO_FUNDAMENTAL_DATA = "No fundamental analysis data available"
+MSG_NO_PORTFOLIO_DATA = "No portfolio analysis data available"
+MSG_ANALYSIS_COMPLETE = "Analysis complete for {total_stocks} stocks"
+
+# Currency and Formatting
+CURRENCY_SYMBOL = "$"
+PERCENTAGE_SYMBOL = "%"
+NOT_AVAILABLE = "N/A"
+
+# Company Info Keys (for UI display)
+COMPANY_INFO_KEYS = {
+    'name': 'Company Name',
+    'sector': 'Sector',
+    'industry': 'Industry',
+    'market_cap': 'Market Cap',
+    'employees': 'Employees',
+    'country': 'Country',
+    'exchange': 'Exchange',
+    'currency': 'Currency',
+    'website': 'Website',
+    'description': 'Description',
+    'phone': 'Phone',
+    'address': 'Address',
+    'city': 'City',
+    'state': 'State',
+    'zip_code': 'Zip Code'
+}
+
+# Financial Metrics Display Names
+FINANCIAL_METRICS_DISPLAY = {
+    'revenue': 'Revenue',
+    'net_income': 'Net Income',
+    'gross_profit': 'Gross Profit',
+    'operating_income': 'Operating Income',
+    'eps': 'EPS',
+    'pe_ratio': 'P/E Ratio',
+    'dividend_yield': 'Dividend Yield',
+    'beta': 'Beta',
+    'total_assets': 'Total Assets',
+    'total_liabilities': 'Total Liabilities',
+    'total_equity': 'Total Equity',
+    'operating_cash_flow': 'Operating Cash Flow',
+    'investing_cash_flow': 'Investing Cash Flow',
+    'financing_cash_flow': 'Financing Cash Flow',
+    'free_cash_flow': 'Free Cash Flow'
+}
 
 # Financial Statement Keys
 INCOME_STATEMENT_KEYS = [
@@ -124,3 +239,87 @@ FINANCIAL_METRICS_KEYS = {
         "financing_cashflow": "Financing Cash Flow"
     }
 }
+
+# Export Keys for Financial Statements
+BALANCE_SHEET_EXPORT_KEYS = [
+    "Treasury Shares Number",
+    "Ordinary Shares Number", 
+    "Share Issued",
+    "Net Debt",
+    "Total Debt",
+    "Tangible Book Value",
+    "Invested Capital",
+    "Working Capital",
+    "Net Tangible Assets",
+    "Capital Lease Obligations",
+    "Common Stock Equity",
+    "Total Capitalization",
+    "Total Equity Gross Minority Interest",
+    "Stockholders Equity"
+]
+
+INCOME_STATEMENT_EXPORT_KEYS = [
+    "Tax Effect Of Unusual Items",
+    "Tax Rate For Calcs",
+    "Normalized EBITDA",
+    "Net Income From Continuing Operation Net Minority Interest",
+    "Reconciled Depreciation",
+    "Reconciled Cost Of Revenue",
+    "EBITDA",
+    "EBIT",
+    "Net Interest Income",
+    "Interest Expense",
+    "Interest Income",
+    "Normalized Income",
+    "Net Income From Continuing And Discontinued Operation",
+    "Total Expenses",
+    "Total Operating Income As Reported"
+]
+
+CASHFLOW_EXPORT_KEYS = [
+    "Free Cash Flow",
+    "Repurchase Of Capital Stock",
+    "Repayment Of Debt",
+    "Issuance Of Debt",
+    "Issuance Of Capital Stock",
+    "Capital Expenditure",
+    "Interest Paid Supplemental Data",
+    "Income Tax Paid Supplemental Data",
+    "End Cash Position",
+    "Beginning Cash Position",
+    "Changes In Cash",
+    "Financing Cash Flow",
+    "Cash Flow From Continuing Financing Activities",
+    "Net Other Financing Charges",
+    "Cash Dividends Paid"
+]
+
+# API Related Constants
+API_RETRY_ATTEMPTS = 5
+API_DELAY_SECONDS = 60
+RATE_LIMIT_DELAY = 10
+
+# Log Messages
+LOG_FETCHING_DATA = "Fetching data for {symbol}"
+LOG_DATA_FETCHED = "Successfully fetched data for {symbol}"
+LOG_ERROR_FETCHING = "Error fetching data for {symbol}: {error}"
+LOG_PROCESSING_STOCK = "Processing stock: {symbol}"
+LOG_STOCK_PROCESSED = "Successfully processed stock: {symbol}"
+LOG_ERROR_PROCESSING = "Error processing stock {symbol}: {error}"
+
+# Error Messages
+ERROR_SYMBOL_NOT_FOUND = "Symbol not found: {symbol}"
+ERROR_DATA_FETCH_FAILED = "Failed to fetch data for {symbol}"
+ERROR_RATE_LIMIT = "Rate limit exceeded. Please try again later."
+ERROR_INVALID_SYMBOL = "Invalid symbol: {symbol}"
+ERROR_NO_DATA_AVAILABLE = "No data available for {symbol}"
+
+# Success Messages
+SUCCESS_DATA_SAVED = "Data saved successfully for {symbol}"
+SUCCESS_REPORT_GENERATED = "Report generated successfully for {symbol}"
+SUCCESS_ANALYSIS_COMPLETE = "Analysis completed successfully"
+
+# Default Values
+DEFAULT_PERIOD = "1y"
+DEFAULT_INTERVAL = "1d"
+DEFAULT_LIMIT = 5
