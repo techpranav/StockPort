@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import pandas as pd
 import json
-from constants.Constants import (
+from constants.StringConstants import (
     FINANCIAL_STATEMENT_FILTER_KEYS
 )
 @dataclass

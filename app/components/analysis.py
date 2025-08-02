@@ -13,10 +13,47 @@ from services.technical_analysis import TechnicalAnalysisService
 from services.fundamental_analysis import FundamentalAnalysisService
 from services.portfolio_service import PortfolioService
 from utils.debug_utils import DebugUtils
+from constants.StringConstants import (
+    # Tab names
+    TAB_OVERVIEW,
+    TAB_TECHNICAL_ANALYSIS,
+    TAB_FUNDAMENTAL_ANALYSIS,
+    TAB_PORTFOLIO,
+    # Column names
+    COLUMN_METRIC,
+    COLUMN_VALUE,
+    COLUMN_ATTRIBUTE,
+    # Currency and formatting
+    CURRENCY_SYMBOL,
+    PERCENTAGE_SYMBOL,
+    NOT_AVAILABLE,
+    # Company info keys
+    COMPANY_INFO_KEYS,
+    FINANCIAL_METRICS_DISPLAY
+)
+from constants.Messages import (
+    # Headers and titles
+    HEADER_SINGLE_STOCK_ANALYSIS,
+    HEADER_MASS_STOCK_ANALYSIS,
+    # Section headers
+    SECTION_FINANCIAL_METRICS,
+    SECTION_COMPANY_INFO,
+    SECTION_TECHNICAL_ANALYSIS,
+    SECTION_BALANCE_SHEET,
+    SECTION_CASH_FLOW,
+    SECTION_AI_ANALYSIS,
+    # Status messages
+    MSG_NO_FINANCIAL_METRICS,
+    MSG_NO_COMPANY_INFO,
+    MSG_NO_TECHNICAL_DATA,
+    MSG_NO_FUNDAMENTAL_DATA,
+    MSG_NO_PORTFOLIO_DATA,
+    MSG_ANALYSIS_COMPLETE
+)
 
 def render_single_stock_analysis() -> Dict[str, Any]:
     """Render the single stock analysis section."""
-    st.header("Single Stock Analysis")
+    st.header(HEADER_SINGLE_STOCK_ANALYSIS)
     
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -31,7 +68,7 @@ def render_single_stock_analysis() -> Dict[str, Any]:
 
 def render_mass_analysis() -> Dict[str, Any]:
     """Render the mass analysis section."""
-    st.header("Mass Stock Analysis")
+    st.header(HEADER_MASS_STOCK_ANALYSIS)
     
     # Create a container for the file upload area
     upload_container = st.container()
@@ -135,13 +172,13 @@ def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) ->
                 st.markdown('<div class="results-area">', unsafe_allow_html=True)
                 
                 # Create tabs based on enabled features
-                tabs = ["Overview"]
+                tabs = [TAB_OVERVIEW]
                 if ENABLE_TECHNICAL_ANALYSIS:
-                    tabs.append("Technical Analysis")
+                    tabs.append(TAB_TECHNICAL_ANALYSIS)
                 if ENABLE_FUNDAMENTAL_ANALYSIS:
-                    tabs.append("Fundamental Analysis")
+                    tabs.append(TAB_FUNDAMENTAL_ANALYSIS)
                 if ENABLE_PORTFOLIO_ANALYSIS:
-                    tabs.append("Portfolio")
+                    tabs.append(TAB_PORTFOLIO)
                     
                 tab_objects = st.tabs(tabs)
                 
@@ -151,17 +188,17 @@ def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) ->
                 
                 # Technical Analysis tab
                 if ENABLE_TECHNICAL_ANALYSIS:
-                    with tab_objects[tabs.index("Technical Analysis")]:
+                    with tab_objects[tabs.index(TAB_TECHNICAL_ANALYSIS)]:
                         display_technical_analysis(result, technical_service)
                 
                 # Fundamental Analysis tab
                 if ENABLE_FUNDAMENTAL_ANALYSIS:
-                    with tab_objects[tabs.index("Fundamental Analysis")]:
+                    with tab_objects[tabs.index(TAB_FUNDAMENTAL_ANALYSIS)]:
                         display_fundamental_analysis(result, fundamental_service)
                 
                 # Portfolio tab
                 if ENABLE_PORTFOLIO_ANALYSIS:
-                    with tab_objects[tabs.index("Portfolio")]:
+                    with tab_objects[tabs.index(TAB_PORTFOLIO)]:
                         display_portfolio_analysis(result, portfolio_service)
                 
                 # Display download options
@@ -189,7 +226,7 @@ def display_overview(result: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### 📊 Financial Metrics")
+        st.markdown(f"#### {SECTION_FINANCIAL_METRICS}")
         if result.get('metrics'):
             metrics = result['metrics']
             
@@ -198,63 +235,63 @@ def display_overview(result: Dict[str, Any]) -> None:
             
             # Financial Performance
             if metrics.get('revenue'):
-                metrics_data.append(['Revenue', f"${metrics['revenue']:,.0f}" if metrics['revenue'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{CURRENCY_SYMBOL}{metrics['revenue']:,.0f}"])
             if metrics.get('net_income'):
-                metrics_data.append(['Net Income', f"${metrics['net_income']:,.0f}" if metrics['net_income'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{CURRENCY_SYMBOL}{metrics['net_income']:,.0f}"])
             if metrics.get('gross_profit'):
-                metrics_data.append(['Gross Profit', f"${metrics['gross_profit']:,.0f}" if metrics['gross_profit'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{CURRENCY_SYMBOL}{metrics['gross_profit']:,.0f}"])
             if metrics.get('operating_income'):
-                metrics_data.append(['Operating Income', f"${metrics['operating_income']:,.0f}" if metrics['operating_income'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{CURRENCY_SYMBOL}{metrics['operating_income']:,.0f}"])
             
             # Financial Ratios
             if metrics.get('eps'):
-                metrics_data.append(['EPS', f"${metrics['eps']:.2f}" if metrics['eps'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{CURRENCY_SYMBOL}{metrics['eps']:.2f}"])
             if metrics.get('pe_ratio'):
-                metrics_data.append(['P/E Ratio', f"{metrics['pe_ratio']:.2f}" if metrics['pe_ratio'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{metrics['pe_ratio']:.2f}"])
             if metrics.get('dividend_yield'):
-                metrics_data.append(['Dividend Yield', f"{metrics['dividend_yield']*100:.2f}%" if metrics['dividend_yield'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{PERCENTAGE_SYMBOL}{metrics['dividend_yield']*100:.2f}"])
             if metrics.get('beta'):
-                metrics_data.append(['Beta', f"{metrics['beta']:.2f}" if metrics['beta'] else "N/A"])
+                metrics_data.append([COLUMN_METRIC, f"{metrics['beta']:.2f}"])
             
             if metrics_data:
-                metrics_df = pd.DataFrame(metrics_data, columns=['Metric', 'Value'])
+                metrics_df = pd.DataFrame(metrics_data, columns=[COLUMN_METRIC, COLUMN_VALUE])
                 st.dataframe(metrics_df, use_container_width=True, hide_index=True)
             else:
-                st.info("No financial metrics available")
+                st.info(MSG_NO_FINANCIAL_METRICS)
     
     with col2:
-        st.markdown("#### 🏢 Company Information")
+        st.markdown(f"#### {SECTION_COMPANY_INFO}")
         if result.get('info'):
             info = result['info']
             
             # Create company info DataFrame
             info_data = []
             if info.get('name'):
-                info_data.append(['Company Name', info['name']])
+                info_data.append([COLUMN_ATTRIBUTE, info['name']])
             if info.get('sector'):
-                info_data.append(['Sector', info['sector']])
+                info_data.append([COLUMN_ATTRIBUTE, info['sector']])
             if info.get('industry'):
-                info_data.append(['Industry', info['industry']])
+                info_data.append([COLUMN_ATTRIBUTE, info['industry']])
             if info.get('market_cap'):
-                info_data.append(['Market Cap', f"${info['market_cap']:,.0f}" if info['market_cap'] else "N/A"])
+                info_data.append([COLUMN_ATTRIBUTE, f"{CURRENCY_SYMBOL}{info['market_cap']:,.0f}"])
             if info.get('employees'):
-                info_data.append(['Employees', f"{info['employees']:,}" if info['employees'] else "N/A"])
+                info_data.append([COLUMN_ATTRIBUTE, f"{info['employees']:,}"])
             if info.get('country'):
-                info_data.append(['Country', info['country']])
+                info_data.append([COLUMN_ATTRIBUTE, info['country']])
             if info.get('exchange'):
-                info_data.append(['Exchange', info['exchange']])
+                info_data.append([COLUMN_ATTRIBUTE, info['exchange']])
             if info.get('currency'):
-                info_data.append(['Currency', info['currency']])
+                info_data.append([COLUMN_ATTRIBUTE, info['currency']])
             
             if info_data:
-                info_df = pd.DataFrame(info_data, columns=['Attribute', 'Value'])
+                info_df = pd.DataFrame(info_data, columns=[COLUMN_ATTRIBUTE, COLUMN_VALUE])
                 st.dataframe(info_df, use_container_width=True, hide_index=True)
             else:
-                st.info("No company information available")
+                st.info(MSG_NO_COMPANY_INFO)
     
     # Technical Analysis Section
     if result.get('technical_analysis'):
-        st.markdown("#### 📈 Technical Analysis")
+        st.markdown(f"#### {SECTION_TECHNICAL_ANALYSIS}")
         tech_analysis = result['technical_analysis']
         
         col3, col4 = st.columns(2)
@@ -263,15 +300,15 @@ def display_overview(result: Dict[str, Any]) -> None:
             st.markdown("**Price & Indicators**")
             tech_data = []
             if tech_analysis.get('current_price'):
-                tech_data.append(['Current Price', f"${tech_analysis['current_price']:.2f}"])
+                tech_data.append(['Indicator', f"{CURRENCY_SYMBOL}{tech_analysis['current_price']:.2f}"])
             if tech_analysis.get('sma_20'):
-                tech_data.append(['SMA 20', f"${tech_analysis['sma_20']:.2f}"])
+                tech_data.append(['Indicator', f"{CURRENCY_SYMBOL}{tech_analysis['sma_20']:.2f}"])
             if tech_analysis.get('sma_50'):
-                tech_data.append(['SMA 50', f"${tech_analysis['sma_50']:.2f}"])
+                tech_data.append(['Indicator', f"{CURRENCY_SYMBOL}{tech_analysis['sma_50']:.2f}"])
             if tech_analysis.get('sma_200'):
-                tech_data.append(['SMA 200', f"${tech_analysis['sma_200']:.2f}"])
+                tech_data.append(['Indicator', f"{CURRENCY_SYMBOL}{tech_analysis['sma_200']:.2f}"])
             if tech_analysis.get('rsi'):
-                tech_data.append(['RSI', f"{tech_analysis['rsi']:.2f}"])
+                tech_data.append(['Indicator', f"{tech_analysis['rsi']:.2f}"])
             
             if tech_data:
                 tech_df = pd.DataFrame(tech_data, columns=['Indicator', 'Value'])
@@ -283,13 +320,13 @@ def display_overview(result: Dict[str, Any]) -> None:
                 signals = result['technical_signals']
                 signals_data = []
                 if signals.get('trend'):
-                    signals_data.append(['Trend', signals['trend']])
+                    signals_data.append(['Signal', signals['trend']])
                 if signals.get('momentum'):
-                    signals_data.append(['Momentum', signals['momentum']])
+                    signals_data.append(['Signal', signals['momentum']])
                 if signals.get('volatility'):
-                    signals_data.append(['Volatility', signals['volatility']])
+                    signals_data.append(['Signal', signals['volatility']])
                 if signals.get('volume'):
-                    signals_data.append(['Volume', signals['volume']])
+                    signals_data.append(['Signal', signals['volume']])
                 
                 if signals_data:
                     signals_df = pd.DataFrame(signals_data, columns=['Signal', 'Status'])
@@ -305,14 +342,14 @@ def display_overview(result: Dict[str, Any]) -> None:
         balance_sheet_data = []
         
         if any(metrics.get(key) for key in ['total_assets', 'total_liabilities', 'total_equity']):
-            st.markdown("#### 💰 Balance Sheet Summary")
+            st.markdown(f"#### {SECTION_BALANCE_SHEET}")
             
             if metrics.get('total_assets'):
-                balance_sheet_data.append(['Total Assets', f"${metrics['total_assets']:,.0f}"])
+                balance_sheet_data.append(['Item', f"{CURRENCY_SYMBOL}{metrics['total_assets']:,.0f}"])
             if metrics.get('total_liabilities'):
-                balance_sheet_data.append(['Total Liabilities', f"${metrics['total_liabilities']:,.0f}"])
+                balance_sheet_data.append(['Item', f"{CURRENCY_SYMBOL}{metrics['total_liabilities']:,.0f}"])
             if metrics.get('total_equity'):
-                balance_sheet_data.append(['Total Equity', f"${metrics['total_equity']:,.0f}"])
+                balance_sheet_data.append(['Item', f"{CURRENCY_SYMBOL}{metrics['total_equity']:,.0f}"])
             
             if balance_sheet_data:
                 balance_df = pd.DataFrame(balance_sheet_data, columns=['Item', 'Value'])
@@ -324,16 +361,16 @@ def display_overview(result: Dict[str, Any]) -> None:
         cash_flow_data = []
         
         if any(metrics.get(key) for key in ['operating_cash_flow', 'investing_cash_flow', 'financing_cash_flow', 'free_cash_flow']):
-            st.markdown("#### 💸 Cash Flow Summary")
+            st.markdown(f"#### {SECTION_CASH_FLOW}")
             
             if metrics.get('operating_cash_flow'):
-                cash_flow_data.append(['Operating Cash Flow', f"${metrics['operating_cash_flow']:,.0f}"])
+                cash_flow_data.append(['Cash Flow Type', f"{CURRENCY_SYMBOL}{metrics['operating_cash_flow']:,.0f}"])
             if metrics.get('investing_cash_flow'):
-                cash_flow_data.append(['Investing Cash Flow', f"${metrics['investing_cash_flow']:,.0f}"])
+                cash_flow_data.append(['Cash Flow Type', f"{CURRENCY_SYMBOL}{metrics['investing_cash_flow']:,.0f}"])
             if metrics.get('financing_cash_flow'):
-                cash_flow_data.append(['Financing Cash Flow', f"${metrics['financing_cash_flow']:,.0f}"])
+                cash_flow_data.append(['Cash Flow Type', f"{CURRENCY_SYMBOL}{metrics['financing_cash_flow']:,.0f}"])
             if metrics.get('free_cash_flow'):
-                cash_flow_data.append(['Free Cash Flow', f"${metrics['free_cash_flow']:,.0f}"])
+                cash_flow_data.append(['Cash Flow Type', f"{CURRENCY_SYMBOL}{metrics['free_cash_flow']:,.0f}"])
             
             if cash_flow_data:
                 cash_flow_df = pd.DataFrame(cash_flow_data, columns=['Cash Flow Type', 'Value'])
@@ -341,7 +378,7 @@ def display_overview(result: Dict[str, Any]) -> None:
     
     # Display AI summary only if AI features are enabled
     if ENABLE_AI_FEATURES and result.get('summary'):
-        st.markdown("#### 🤖 AI Analysis")
+        st.markdown(f"#### {SECTION_AI_ANALYSIS}")
         st.write(result['summary'])
 
 def display_technical_analysis(result: Dict[str, Any], technical_service: TechnicalAnalysisService) -> None:
@@ -359,7 +396,7 @@ def display_technical_analysis(result: Dict[str, Any], technical_service: Techni
         
         if missing_columns:
             st.warning(f"Historical data is missing required columns: {', '.join(missing_columns)}")
-            st.info("Technical analysis requires OHLCV data (Open, High, Low, Close, Volume)")
+            st.info(MSG_NO_TECHNICAL_DATA)
             return
         
         try:
@@ -381,7 +418,7 @@ def display_technical_analysis(result: Dict[str, Any], technical_service: Techni
             DebugUtils.log_error(e, f"Error in technical analysis for {result['symbol']}")
             st.error(f"Error performing technical analysis: {str(e)}")
     else:
-        st.info("No historical data available for technical analysis.")
+        st.info(MSG_NO_TECHNICAL_DATA)
 
 def display_fundamental_analysis(result: Dict[str, Any], fundamental_service: FundamentalAnalysisService) -> None:
     """Display fundamental analysis results."""
@@ -394,7 +431,7 @@ def display_fundamental_analysis(result: Dict[str, Any], fundamental_service: Fu
         ratios = fundamental_service.calculate_financial_ratios(result)
         
         if not ratios or all(not category_ratios for category_ratios in ratios.values()):
-            st.info("No financial data available for fundamental analysis.")
+            st.info(MSG_NO_FUNDAMENTAL_DATA)
             return
         
         # Display ratios by category
@@ -424,7 +461,7 @@ def display_portfolio_analysis(result: Dict[str, Any], portfolio_service: Portfo
     # Check if historical data is available
     history_df = result.get('history', pd.DataFrame())
     if history_df.empty or 'Close' not in history_df.columns:
-        st.info("Portfolio analysis requires historical price data which is not available.")
+        st.info(MSG_NO_PORTFOLIO_DATA)
         return
         
     try:

@@ -11,11 +11,25 @@ from services.report_service import ReportService
 from datetime import datetime
 import plotly.graph_objects as go
 import plotly.subplots as sp
-from constants.Constants import (
+from constants.StringConstants import (
     FINANCIAL_STATEMENT_TYPES,
     FINANCIAL_SHEET_NAMES,
     FINANCIAL_STATEMENT_FILTER_KEYS,
-    FINANCIAL_METRICS_KEYS
+    FINANCIAL_METRICS_KEYS,
+    # File names
+    STOCK_FILE,
+    TEMP_STOCKS_FILE
+)
+from constants.Messages import (
+    # Headers and navigation
+    HEADER_SINGLE_STOCK_ANALYSIS,
+    HEADER_MASS_ANALYSIS,
+    # Messages
+    SUCCESS_ANALYSIS_COMPLETE,
+    ERROR_NO_DATA_AVAILABLE,
+    ERROR_PROCESSING_STOCK,
+    MSG_NO_VALID_SYMBOLS,
+    MSG_PROCESSING_SYMBOL
 )
 
 from core.config import (
@@ -123,21 +137,67 @@ def main():
     # Sidebar navigation
     page = st.sidebar.selectbox(
         "Choose Analysis Type",
-        ["Single Stock Analysis", "Mass Stock Analysis"]
+        [HEADER_SINGLE_STOCK_ANALYSIS, HEADER_MASS_ANALYSIS]
     )
     
-    if page == "Single Stock Analysis":
+    if page == HEADER_SINGLE_STOCK_ANALYSIS:
         # Single stock analysis
         analysis_params = render_single_stock_analysis(config)
-        if analysis_params and analysis_params.get("analyze") and analysis_params.get("symbol"):
-            process_stock(analysis_params.get("analyzer"), analysis_params.get("symbol"))
-
+        if analysis_params and analysis_params['analyze']:
+            try:
+                analyzer = StockAnalyzer(
+                    input_dir=INPUT_DIR,
+                    output_dir=OUTPUT_DIR,
+                    ai_mode=config.get('ai_mode') if ENABLE_AI_FEATURES else None,
+                    days_back=config['days_back'],
+                    delay_between_calls=config['delay_between_calls']
+                )
+                result = analyzer.process_stock(analysis_params['symbol'])
+                st.session_state.results = [result]
+            except Exception as e:
+                st.session_state.error = f"Error analyzing {analysis_params['symbol']}: {str(e)}"
+    
     else:  # Mass Stock Analysis
         # Get analysis parameters from render_mass_analysis
         analysis_params = render_mass_analysis(config)
-        
-        if analysis_params and analysis_params.get("analyze") and analysis_params.get("symbols"):
-            process_multiple_stocks(analysis_params.get("analyzer"), analysis_params.get("symbols"))
+        if analysis_params and analysis_params['analyze']:
+            try:
+                # Save the uploaded file temporarily
+                temp_file = TEMP_STOCKS_FILE
+                with open(temp_file, "wb") as f:
+                    f.write(analysis_params['uploaded_file'].getvalue())
+                
+                # Read stock symbols
+                symbols = read_stock_symbols(temp_file)
+                
+                if symbols:
+                    analyzer = StockAnalyzer(
+                        input_dir=INPUT_DIR,
+                        output_dir=OUTPUT_DIR,
+                        ai_mode=config.get('ai_mode') if ENABLE_AI_FEATURES else None,
+                        days_back=config['days_back'],
+                        delay_between_calls=config['delay_between_calls']
+                    )
+                    
+                    results = []
+                    for symbol in symbols:
+                        try:
+                            st.write(MSG_PROCESSING_SYMBOL.format(symbol=symbol))
+                            result = analyzer.process_stock(symbol)
+                            results.append(result)
+                        except Exception as e:
+                            st.session_state.error = f"Error analyzing {symbol}: {str(e)}"
+                    
+                    st.session_state.results = results
+                else:
+                    st.error(MSG_NO_VALID_SYMBOLS)
+                    
+            except Exception as e:
+                st.session_state.error = f"Error in mass analysis: {str(e)}"
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
     
     # Display results
     if st.session_state.results:
