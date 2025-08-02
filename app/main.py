@@ -75,6 +75,7 @@ def process_multiple_stocks(analyzer: StockAnalyzer, symbols: List[str]) -> None
     total_stocks = len(symbols)
     for i, symbol in enumerate(symbols, 1):
         try:
+            print("\n ####### process_multiple_stocks ######## ")
             display_progress(i/total_stocks, f"Analyzing {symbol} ({i}/{total_stocks})...")
             result = analyzer.process_stock(symbol)
             print("process_multiple_stocks result ::: ", result)
@@ -133,31 +134,28 @@ def main():
     
     else:  # Mass Stock Analysis
         # Get analysis parameters from render_mass_analysis
-        analysis_params = render_mass_analysis(config)
-        
-        if analysis_params and analysis_params.get("analyze") and analysis_params.get("symbols"):
+        results = render_mass_analysis(config)
+        if results:
+            st.session_state.results = results
+        if results:
             # Process each stock
-            for symbol in analysis_params["symbols"]:
+            for result in results:
+                print("result ####### ",result)
+                symbol = result['symbol']
+
                 try:
                     st.write(f"\nProcessing {symbol}...")
-                    
-                    # Fetch stock data
-                    stock_data = stock_service.fetch_stock_data(symbol)
-                    filtered_data = stock_service.filter_stock_data(stock_data)
 
-                    # Generate report
-                    report_path = report_service.generate_excel_report(symbol, filtered_data)
-                    
-                    if os.path.exists(report_path):
-                        st.success(f"Report generated for {symbol}")
-                        st.download_button(
-                            label=f"Download {symbol} Report",
-                            data=open(report_path, 'rb').read(),
-                            file_name=f"{symbol}_report.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    else:
-                        st.error(f"Failed to generate report for {symbol}")
+                    # if os.path.exists(report_path):
+                    #     st.success(f"Report generated for {symbol}")
+                    #     st.download_button(
+                    #         label=f"Download {symbol} Report",
+                    #         data=open(report_path, 'rb').read(),
+                    #         file_name=f"{symbol}_report.xlsx",
+                    #         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    #     )
+                    # else:
+                    #     st.error(f"Failed to generate report for {symbol}")
                 
                 except Exception as e:
                     st.error(f"Error processing {symbol}: {str(e)}")
@@ -233,23 +231,30 @@ def render_mass_analysis(config: Dict[str, Any]) -> Dict[str, Any]:
                     days_back=config['days_back'],
                     delay_between_calls=config['delay_between_calls']
                 )
-                return {
-                    "analyze": True,
-                    "symbols": symbols
-                }
+                results=[]
+                for symbol in symbols:
+                    try:
+                        st.write(f"\nProcessing {symbol}...")
+
+                        results.append(analyzer.process_stock(symbol))
+                    except Exception as e:
+                        st.session_state.error = f"Error analyzing {symbol}: {str(e)}"
+                        print(traceback.format_exc())
+
+                return results
             else:
                 st.error("No valid stock symbols found in the file")
-                return {"analyze": False, "symbols": []}
+                return []
             
         except Exception as e:
             st.session_state.error = f"Error in mass analysis: {str(e)}"
-            return {"analyze": False, "symbols": []}
+            return []
         finally:
             # Clean up temporary file
             if os.path.exists("temp_stocks.txt"):
                 os.remove("temp_stocks.txt")
     
-    return {"analyze": False, "symbols": []}
+    return []
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from services.technical_analysis import TechnicalAnalysisService
 from services.fundamental_analysis import FundamentalAnalysisService
 from services.portfolio_service import PortfolioService
+from utils.debug_utils import DebugUtils
 
 def render_single_stock_analysis() -> Dict[str, Any]:
     """Render the single stock analysis section."""
@@ -183,14 +184,164 @@ def display_analysis_results(results: List[Dict[str, Any]], output_dir: Path) ->
 
 def display_overview(result: Dict[str, Any]) -> None:
     """Display overview of the analysis results."""
-    # Display metrics in a table format
+    
+    # Create comprehensive overview with multiple sections
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### 📊 Financial Metrics")
+        if result.get('metrics'):
+            metrics = result['metrics']
+            
+            # Create a clean metrics DataFrame
+            metrics_data = []
+            
+            # Financial Performance
+            if metrics.get('revenue'):
+                metrics_data.append(['Revenue', f"${metrics['revenue']:,.0f}" if metrics['revenue'] else "N/A"])
+            if metrics.get('net_income'):
+                metrics_data.append(['Net Income', f"${metrics['net_income']:,.0f}" if metrics['net_income'] else "N/A"])
+            if metrics.get('gross_profit'):
+                metrics_data.append(['Gross Profit', f"${metrics['gross_profit']:,.0f}" if metrics['gross_profit'] else "N/A"])
+            if metrics.get('operating_income'):
+                metrics_data.append(['Operating Income', f"${metrics['operating_income']:,.0f}" if metrics['operating_income'] else "N/A"])
+            
+            # Financial Ratios
+            if metrics.get('eps'):
+                metrics_data.append(['EPS', f"${metrics['eps']:.2f}" if metrics['eps'] else "N/A"])
+            if metrics.get('pe_ratio'):
+                metrics_data.append(['P/E Ratio', f"{metrics['pe_ratio']:.2f}" if metrics['pe_ratio'] else "N/A"])
+            if metrics.get('dividend_yield'):
+                metrics_data.append(['Dividend Yield', f"{metrics['dividend_yield']*100:.2f}%" if metrics['dividend_yield'] else "N/A"])
+            if metrics.get('beta'):
+                metrics_data.append(['Beta', f"{metrics['beta']:.2f}" if metrics['beta'] else "N/A"])
+            
+            if metrics_data:
+                metrics_df = pd.DataFrame(metrics_data, columns=['Metric', 'Value'])
+                st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No financial metrics available")
+    
+    with col2:
+        st.markdown("#### 🏢 Company Information")
+        if result.get('info'):
+            info = result['info']
+            
+            # Create company info DataFrame
+            info_data = []
+            if info.get('name'):
+                info_data.append(['Company Name', info['name']])
+            if info.get('sector'):
+                info_data.append(['Sector', info['sector']])
+            if info.get('industry'):
+                info_data.append(['Industry', info['industry']])
+            if info.get('market_cap'):
+                info_data.append(['Market Cap', f"${info['market_cap']:,.0f}" if info['market_cap'] else "N/A"])
+            if info.get('employees'):
+                info_data.append(['Employees', f"{info['employees']:,}" if info['employees'] else "N/A"])
+            if info.get('country'):
+                info_data.append(['Country', info['country']])
+            if info.get('exchange'):
+                info_data.append(['Exchange', info['exchange']])
+            if info.get('currency'):
+                info_data.append(['Currency', info['currency']])
+            
+            if info_data:
+                info_df = pd.DataFrame(info_data, columns=['Attribute', 'Value'])
+                st.dataframe(info_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No company information available")
+    
+    # Technical Analysis Section
+    if result.get('technical_analysis'):
+        st.markdown("#### 📈 Technical Analysis")
+        tech_analysis = result['technical_analysis']
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.markdown("**Price & Indicators**")
+            tech_data = []
+            if tech_analysis.get('current_price'):
+                tech_data.append(['Current Price', f"${tech_analysis['current_price']:.2f}"])
+            if tech_analysis.get('sma_20'):
+                tech_data.append(['SMA 20', f"${tech_analysis['sma_20']:.2f}"])
+            if tech_analysis.get('sma_50'):
+                tech_data.append(['SMA 50', f"${tech_analysis['sma_50']:.2f}"])
+            if tech_analysis.get('sma_200'):
+                tech_data.append(['SMA 200', f"${tech_analysis['sma_200']:.2f}"])
+            if tech_analysis.get('rsi'):
+                tech_data.append(['RSI', f"{tech_analysis['rsi']:.2f}"])
+            
+            if tech_data:
+                tech_df = pd.DataFrame(tech_data, columns=['Indicator', 'Value'])
+                st.dataframe(tech_df, use_container_width=True, hide_index=True)
+        
+        with col4:
+            st.markdown("**Technical Signals**")
+            if result.get('technical_signals'):
+                signals = result['technical_signals']
+                signals_data = []
+                if signals.get('trend'):
+                    signals_data.append(['Trend', signals['trend']])
+                if signals.get('momentum'):
+                    signals_data.append(['Momentum', signals['momentum']])
+                if signals.get('volatility'):
+                    signals_data.append(['Volatility', signals['volatility']])
+                if signals.get('volume'):
+                    signals_data.append(['Volume', signals['volume']])
+                
+                if signals_data:
+                    signals_df = pd.DataFrame(signals_data, columns=['Signal', 'Status'])
+                    st.dataframe(signals_df, use_container_width=True, hide_index=True)
+                else:
+                    st.info("No technical signals available")
+            else:
+                st.info("No technical signals available")
+    
+    # Balance Sheet Summary
     if result.get('metrics'):
-        metrics_df = pd.DataFrame([result['metrics']])
-        st.dataframe(metrics_df)
+        metrics = result['metrics']
+        balance_sheet_data = []
+        
+        if any(metrics.get(key) for key in ['total_assets', 'total_liabilities', 'total_equity']):
+            st.markdown("#### 💰 Balance Sheet Summary")
+            
+            if metrics.get('total_assets'):
+                balance_sheet_data.append(['Total Assets', f"${metrics['total_assets']:,.0f}"])
+            if metrics.get('total_liabilities'):
+                balance_sheet_data.append(['Total Liabilities', f"${metrics['total_liabilities']:,.0f}"])
+            if metrics.get('total_equity'):
+                balance_sheet_data.append(['Total Equity', f"${metrics['total_equity']:,.0f}"])
+            
+            if balance_sheet_data:
+                balance_df = pd.DataFrame(balance_sheet_data, columns=['Item', 'Value'])
+                st.dataframe(balance_df, use_container_width=True, hide_index=True)
+    
+    # Cash Flow Summary
+    if result.get('metrics'):
+        metrics = result['metrics']
+        cash_flow_data = []
+        
+        if any(metrics.get(key) for key in ['operating_cash_flow', 'investing_cash_flow', 'financing_cash_flow', 'free_cash_flow']):
+            st.markdown("#### 💸 Cash Flow Summary")
+            
+            if metrics.get('operating_cash_flow'):
+                cash_flow_data.append(['Operating Cash Flow', f"${metrics['operating_cash_flow']:,.0f}"])
+            if metrics.get('investing_cash_flow'):
+                cash_flow_data.append(['Investing Cash Flow', f"${metrics['investing_cash_flow']:,.0f}"])
+            if metrics.get('financing_cash_flow'):
+                cash_flow_data.append(['Financing Cash Flow', f"${metrics['financing_cash_flow']:,.0f}"])
+            if metrics.get('free_cash_flow'):
+                cash_flow_data.append(['Free Cash Flow', f"${metrics['free_cash_flow']:,.0f}"])
+            
+            if cash_flow_data:
+                cash_flow_df = pd.DataFrame(cash_flow_data, columns=['Cash Flow Type', 'Value'])
+                st.dataframe(cash_flow_df, use_container_width=True, hide_index=True)
     
     # Display AI summary only if AI features are enabled
     if ENABLE_AI_FEATURES and result.get('summary'):
-        st.markdown("### AI Analysis")
+        st.markdown("#### 🤖 AI Analysis")
         st.write(result['summary'])
 
 def display_technical_analysis(result: Dict[str, Any], technical_service: TechnicalAnalysisService) -> None:
@@ -199,77 +350,117 @@ def display_technical_analysis(result: Dict[str, Any], technical_service: Techni
         st.info("Technical analysis features are currently disabled.")
         return
         
-    if 'history' in result:
-        # Calculate technical indicators
-        print("result ######## ",result)
-        df = technical_service.calculate_technical_indicators(result['history'])
+    if 'history' in result and not result['history'].empty:
+        history_df = result['history']
         
-        # Create and display price chart
-        fig = technical_service.create_price_chart(df, result['symbol'])
-        st.plotly_chart(fig, use_container_width=True)
+        # Check if the DataFrame has the required columns
+        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        missing_columns = [col for col in required_columns if col not in history_df.columns]
         
-        # Display technical signals
-        signals = technical_service.get_technical_signals(df)
-        st.markdown("### Technical Signals")
-        for category, signal in signals.items():
-            st.write(f"{category.title()}: {signal}")
+        if missing_columns:
+            st.warning(f"Historical data is missing required columns: {', '.join(missing_columns)}")
+            st.info("Technical analysis requires OHLCV data (Open, High, Low, Close, Volume)")
+            return
+        
+        try:
+            # Calculate technical indicators
+            DebugUtils.info(f"Calculating technical indicators for {result['symbol']}")
+            df = technical_service.calculate_technical_indicators(history_df)
+            
+            # Create and display price chart
+            fig = technical_service.create_price_chart(df, result['symbol'])
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Display technical signals
+            signals = technical_service.get_technical_signals(df)
+            st.markdown("### Technical Signals")
+            for category, signal in signals.items():
+                st.write(f"{category.title()}: {signal}")
+                
+        except Exception as e:
+            DebugUtils.log_error(e, f"Error in technical analysis for {result['symbol']}")
+            st.error(f"Error performing technical analysis: {str(e)}")
+    else:
+        st.info("No historical data available for technical analysis.")
 
 def display_fundamental_analysis(result: Dict[str, Any], fundamental_service: FundamentalAnalysisService) -> None:
     """Display fundamental analysis results."""
     if not ENABLE_FUNDAMENTAL_ANALYSIS:
         st.info("Fundamental analysis features are currently disabled.")
         return
+    
+    try:
+        # Calculate financial ratios
+        ratios = fundamental_service.calculate_financial_ratios(result)
         
-    # Calculate financial ratios
-    ratios = fundamental_service.calculate_financial_ratios(result)
-    
-    # Display ratios by category
-    for category, category_ratios in ratios.items():
-        st.markdown(f"### {category.title()} Ratios")
-        ratio_df = pd.DataFrame([category_ratios])
-        st.dataframe(ratio_df)
-    
-    # Display fundamental signals
-    signals = fundamental_service.get_fundamental_signals(ratios)
-    st.markdown("### Fundamental Signals")
-    for category, signal in signals.items():
-        st.write(f"{category.title()}: {signal}")
+        if not ratios or all(not category_ratios for category_ratios in ratios.values()):
+            st.info("No financial data available for fundamental analysis.")
+            return
+        
+        # Display ratios by category
+        for category, category_ratios in ratios.items():
+            if category_ratios:  # Only display if there are ratios in this category
+                st.markdown(f"### {category.title()} Ratios")
+                ratio_df = pd.DataFrame([category_ratios])
+                st.dataframe(ratio_df)
+        
+        # Display fundamental signals
+        signals = fundamental_service.get_fundamental_signals(ratios)
+        if signals:
+            st.markdown("### Fundamental Signals")
+            for category, signal in signals.items():
+                st.write(f"{category.title()}: {signal}")
+                
+    except Exception as e:
+        DebugUtils.log_error(e, f"Error in fundamental analysis for {result['symbol']}")
+        st.error(f"Error performing fundamental analysis: {str(e)}")
 
 def display_portfolio_analysis(result: Dict[str, Any], portfolio_service: PortfolioService) -> None:
     """Display portfolio analysis results."""
     if not ENABLE_PORTFOLIO_ANALYSIS:
         st.info("Portfolio analysis features are currently disabled.")
         return
+    
+    # Check if historical data is available
+    history_df = result.get('history', pd.DataFrame())
+    if history_df.empty or 'Close' not in history_df.columns:
+        st.info("Portfolio analysis requires historical price data which is not available.")
+        return
         
-    # Create a sample portfolio with the current stock
-    positions = [{
-        'symbol': result['symbol'],
-        'shares': 100,  # Sample position size
-        'cost_basis': result.get('metrics', {}).get('current_price', 0),
-        'sector': result.get('info', {}).get('sector', 'Unknown')
-    }]
-    
-    prices = {result['symbol']: result.get('history', pd.DataFrame())}
-    
-    # Calculate portfolio metrics
-    metrics = portfolio_service.calculate_portfolio_metrics(positions, prices)
-    
-    # Generate and display portfolio report
-    report = portfolio_service.generate_portfolio_report(metrics)
-    
-    st.markdown("### Portfolio Summary")
-    st.write(report['summary'])
-    
-    st.markdown("### Risk Analysis")
-    st.write(report['risk_analysis'])
-    
-    st.markdown("### Performance Analysis")
-    st.write(report['performance_analysis'])
-    
-    if report['recommendations']:
-        st.markdown("### Recommendations")
-        for rec in report['recommendations']:
-            st.write(f"- {rec}")
+    try:
+        # Create a sample portfolio with the current stock
+        positions = [{
+            'symbol': result['symbol'],
+            'shares': 100,  # Sample position size
+            'cost_basis': result.get('metrics', {}).get('current_price', 0),
+            'sector': result.get('info', {}).get('sector', 'Unknown')
+        }]
+        
+        prices = {result['symbol']: history_df}
+        
+        # Calculate portfolio metrics
+        metrics = portfolio_service.calculate_portfolio_metrics(positions, prices)
+        
+        # Generate and display portfolio report
+        report = portfolio_service.generate_portfolio_report(metrics)
+        
+        st.markdown("### Portfolio Summary")
+        st.write(report['summary'])
+        
+        st.markdown("### Risk Analysis")
+        st.write(report['risk_analysis'])
+        
+        st.markdown("### Performance Analysis")
+        st.write(report['performance_analysis'])
+        
+        if report['recommendations']:
+            st.markdown("### Recommendations")
+            for rec in report['recommendations']:
+                st.write(f"- {rec}")
+                
+    except Exception as e:
+        DebugUtils.log_error(e, f"Error in portfolio analysis for {result['symbol']}")
+        st.error(f"Error performing portfolio analysis: {str(e)}")
 
 def display_download_options(result: Dict[str, Any], output_dir: Path) -> None:
     """Display download options for reports."""

@@ -14,7 +14,29 @@ from constants.Constants import (
     FINANCIAL_STATEMENT_FILTER_KEYS,
     FINANCIAL_SHEET_NAMES,
     FINANCIAL_STATEMENT_TYPES,
-    FINANCIAL_METRICS_KEYS
+    FINANCIAL_METRICS_KEYS,
+    BALANCE_SHEET_EXPORT_KEYS,
+    INCOME_STATEMENT_EXPORT_KEYS,
+    CASHFLOW_EXPORT_KEYS,
+    # File and directory constants
+    REPORTS_DIR,
+    EXCEL_EXTENSION,
+    WORD_EXTENSION,
+    REPORT_FILE_PATTERN,
+    ANALYSIS_REPORT_FILE_PATTERN,
+    # Sheet names
+    SHEET_COMPANY_INFO,
+    SHEET_KEY_METRICS,
+    SHEET_TECHNICAL_ANALYSIS,
+    SHEET_FUNDAMENTAL_ANALYSIS,
+    SHEET_PORTFOLIO_ANALYSIS,
+    # Column names
+    COLUMN_METRIC,
+    COLUMN_VALUE,
+    COLUMN_ATTRIBUTE,
+    COLUMN_INDICATOR,
+    # Messages
+    NOT_AVAILABLE
 )
 import os
 
@@ -23,111 +45,193 @@ class ReportService:
     
     def __init__(self):
         """Initialize the report service."""
-        self.reports_dir = "reports"
+        self.reports_dir = REPORTS_DIR
         if not os.path.exists(self.reports_dir):
             os.makedirs(self.reports_dir)
     
     def generate_excel_report(self, symbol: str, data: Dict[str, Any]) -> str:
-        """Generate an Excel report for a stock."""
-        try:
-            # Create Excel file path
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            excel_path = os.path.join(self.reports_dir, f"{symbol}_report_{timestamp}.xlsx")
+        """Generate Excel report for stock analysis."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        excel_path = os.path.join(self.reports_dir, f"{REPORT_FILE_PATTERN.format(symbol=symbol, timestamp=timestamp)}{EXCEL_EXTENSION}")
+        with pd.ExcelWriter(excel_path) as writer:
+            # Write company information
+            if 'info' in data:
+                self._write_company_info(writer, data['info'])
             
-            with pd.ExcelWriter(excel_path) as writer:
-                # Write company information
-                if 'info' in data:
-                    self._write_company_info(writer, data['info'])
-                
-                # Write key metrics
-                if 'metrics' in data:
-                    self._write_metrics(writer, data['metrics'])
-                
-                # Write technical analysis
-                if 'technical_analysis' in data:
-                    self._write_technical_analysis(writer, data['technical_analysis'])
-                
-                # Write fundamental analysis
-                if 'fundamental_analysis' in data:
-                    self._write_fundamental_analysis(writer, data['fundamental_analysis'])
-                
-                # Write portfolio analysis
-                if 'portfolio_analysis' in data:
-                    self._write_portfolio_analysis(writer, data['portfolio_analysis'])
-                
-                # Write financial statements
-                if 'financials' in data:
-                    self._write_financial_statements(writer, data['financials'])
+            # Write key metrics
+            if 'metrics' in data:
+                self._write_metrics(writer, data['metrics'])
             
-            return excel_path
+            # Write technical analysis
+            if 'technical_analysis' in data:
+                self._write_technical_analysis(writer, data['technical_analysis'])
             
-        except Exception as e:
-            print(f"Error generating report for {symbol}: {str(e)}")
-            raise
-    
+            # Write fundamental analysis
+            if 'fundamental_analysis' in data:
+                self._write_fundamental_analysis(writer, data['fundamental_analysis'])
+            
+            # Write portfolio analysis
+            if 'portfolio_analysis' in data:
+                self._write_portfolio_analysis(writer, data['portfolio_analysis'])
+            
+            # Write financial statements
+            if 'financials' in data:
+                self._write_financial_statements(writer, data['financials'])
+        
+        return excel_path
+
     def _write_company_info(self, writer: pd.ExcelWriter, info: Dict[str, Any]) -> None:
         """Write company information to Excel."""
-        # Create a flat structure for nested dictionaries
+        # Flatten nested dictionaries
         flat_info = {}
         for key, value in info.items():
             if isinstance(value, dict):
-                for subkey, subvalue in value.items():
-                    flat_info[f"{key}_{subkey}"] = subvalue
+                for sub_key, sub_value in value.items():
+                    flat_info[f"{key}_{sub_key}"] = sub_value
             else:
                 flat_info[key] = value
         
         # Convert to DataFrame
-        df = pd.DataFrame(list(flat_info.items()), columns=['Metric', 'Value'])
-        df.to_excel(writer, sheet_name='Company Info', index=False)
-    
+        df = pd.DataFrame(list(flat_info.items()), columns=[COLUMN_METRIC, COLUMN_VALUE])
+        
+        # Clean and format for Excel
+        cleaned_df = self._clean_dataframe_for_excel(df, SHEET_COMPANY_INFO)
+        cleaned_df.to_excel(writer, sheet_name=SHEET_COMPANY_INFO, index=False)
+
     def _write_metrics(self, writer: pd.ExcelWriter, metrics: Dict[str, Any]) -> None:
         """Write key metrics to Excel."""
         # Convert metrics to DataFrame
-        df = pd.DataFrame(list(metrics.items()), columns=['Metric', 'Value'])
+        df = pd.DataFrame(list(metrics.items()), columns=[COLUMN_METRIC, COLUMN_VALUE])
         
         # Format numeric values
-        df['Value'] = pd.to_numeric(df['Value'], errors='ignore')
-        numeric_mask = pd.to_numeric(df['Value'], errors='coerce').notna()
-        df.loc[numeric_mask, 'Value'] = df.loc[numeric_mask, 'Value'].apply(
-            lambda x: f"{x:,.2f}" if abs(x) >= 1000 else f"{x:.2f}"
-        )
+        for idx, row in df.iterrows():
+            if isinstance(row[COLUMN_VALUE], (int, float)) and not pd.isna(row[COLUMN_VALUE]):
+                if abs(row[COLUMN_VALUE]) > 1000000:
+                    df.at[idx, COLUMN_VALUE] = f"{row[COLUMN_VALUE]:,.0f}"
+                elif abs(row[COLUMN_VALUE]) > 1000:
+                    df.at[idx, COLUMN_VALUE] = f"{row[COLUMN_VALUE]:,.2f}"
         
-        df.to_excel(writer, sheet_name='Key Metrics', index=False)
+        # Clean and export
+        cleaned_df = self._clean_dataframe_for_excel(df, SHEET_KEY_METRICS)
+        cleaned_df.to_excel(writer, sheet_name=SHEET_KEY_METRICS, index=False)
     
     def _write_technical_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
         """Write technical analysis to Excel."""
-        df = pd.DataFrame(list(analysis.items()), columns=['Indicator', 'Value'])
-        df.to_excel(writer, sheet_name='Technical Analysis', index=False)
+        df = pd.DataFrame(list(analysis.items()), columns=[COLUMN_INDICATOR, COLUMN_VALUE])
+        
+        # Clean and format for Excel
+        cleaned_df = self._clean_dataframe_for_excel(df, SHEET_TECHNICAL_ANALYSIS)
+        cleaned_df.to_excel(writer, sheet_name=SHEET_TECHNICAL_ANALYSIS, index=False)
     
     def _write_fundamental_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
         """Write fundamental analysis to Excel."""
-        df = pd.DataFrame(list(analysis.items()), columns=['Metric', 'Value'])
-        df.to_excel(writer, sheet_name='Fundamental Analysis', index=False)
+        df = pd.DataFrame(list(analysis.items()), columns=[COLUMN_METRIC, COLUMN_VALUE])
+        
+        # Clean and format for Excel
+        cleaned_df = self._clean_dataframe_for_excel(df, SHEET_FUNDAMENTAL_ANALYSIS)
+        cleaned_df.to_excel(writer, sheet_name=SHEET_FUNDAMENTAL_ANALYSIS, index=False)
     
     def _write_portfolio_analysis(self, writer: pd.ExcelWriter, analysis: Dict[str, Any]) -> None:
         """Write portfolio analysis to Excel."""
-        df = pd.DataFrame(list(analysis.items()), columns=['Metric', 'Value'])
-        df.to_excel(writer, sheet_name='Portfolio Analysis', index=False)
-    
-    def _write_financial_statements(self, writer: pd.ExcelWriter, financials: Dict[str, Any]) -> None:
-        """Write financial statements to Excel."""
-        # Write yearly statements
-        for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-            key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
-            if key in financials and not financials[key].empty:
-                financials[key].to_excel(
-                    writer,
-                    sheet_name=FINANCIAL_SHEET_NAMES['yearly'][statement_type]
-                )
+        df = pd.DataFrame(list(analysis.items()), columns=[COLUMN_METRIC, COLUMN_VALUE])
         
-        # Write quarterly statements
-        for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
-            key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
-            if key in financials and not financials[key].empty:
-                financials[key].to_excel(
-                    writer,
-                    sheet_name=FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
-                )
+        # Clean and format for Excel
+        cleaned_df = self._clean_dataframe_for_excel(df, SHEET_PORTFOLIO_ANALYSIS)
+        cleaned_df.to_excel(writer, sheet_name=SHEET_PORTFOLIO_ANALYSIS, index=False)
+    
+    def _clean_dataframe_for_excel(self, df: pd.DataFrame, sheet_name: str = "") -> pd.DataFrame:
+        """Clean DataFrame for Excel export by handling NaN values and formatting."""
+        if df is None or df.empty:
+            return pd.DataFrame()
+        
+        try:
+            # Create a copy to avoid modifying original
+            cleaned_df = df.copy()
+            
+            # Handle different data types
+            for col in cleaned_df.columns:
+                if cleaned_df[col].dtype in ['float64', 'int64']:
+                    # For numeric columns, replace NaN with 0 and format large numbers
+                    cleaned_df[col] = cleaned_df[col].fillna(0)
+                    
+                    # Format large numbers for better readability
+                    if cleaned_df[col].abs().max() > 1000000:
+                        # For millions, keep as numbers but round to 2 decimal places
+                        cleaned_df[col] = cleaned_df[col].round(2)
+                    elif cleaned_df[col].abs().max() > 1000:
+                        # For thousands, round to 2 decimal places
+                        cleaned_df[col] = cleaned_df[col].round(2)
+                    else:
+                        # For smaller numbers, round to 4 decimal places
+                        cleaned_df[col] = cleaned_df[col].round(4)
+                        
+                elif cleaned_df[col].dtype == 'object':
+                    # For text/object columns, replace NaN with empty string
+                    cleaned_df[col] = cleaned_df[col].fillna('')
+                    
+                    # Clean up any remaining NaN-like strings
+                    cleaned_df[col] = cleaned_df[col].replace(['nan', 'NaN', 'None', 'null'], '')
+                    
+                else:
+                    # For other data types, replace NaN with empty string
+                    cleaned_df[col] = cleaned_df[col].fillna('')
+            
+            # Clean up index if it contains timestamps or other problematic data
+            if hasattr(cleaned_df.index, 'dtype'):
+                if 'datetime' in str(cleaned_df.index.dtype) or 'timestamp' in str(cleaned_df.index.dtype):
+                    # Convert datetime index to string
+                    cleaned_df.index = cleaned_df.index.astype(str)
+            
+            return cleaned_df
+            
+        except Exception as e:
+            print(f"Error cleaning DataFrame for {sheet_name}: {str(e)}")
+            # Return a simplified version if cleaning fails
+            try:
+                simple_df = df.fillna('')
+                return simple_df
+            except:
+                return df  # Return original as last resort
+
+    def _write_financial_statements(self, writer: pd.ExcelWriter, financials: Dict[str, Any]) -> None:
+        """Write financial statements to Excel with proper formatting."""
+        try:
+            # Write yearly statements
+            for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                key = FINANCIAL_STATEMENT_FILTER_KEYS['yearly'][statement_type]
+                sheet_name = FINANCIAL_SHEET_NAMES['yearly'][statement_type]
+                
+                if key in financials and financials[key] is not None:
+                    df = financials[key]
+                    if isinstance(df, pd.DataFrame) and not df.empty:
+                        cleaned_df = self._clean_dataframe_for_excel(df, sheet_name)
+                        cleaned_df.to_excel(writer, sheet_name=sheet_name, na_rep='', float_format='%.2f')
+                    else:
+                        # Create empty DataFrame with message
+                        empty_df = pd.DataFrame({'Message': ['No data available']})
+                        empty_df.to_excel(writer, sheet_name=sheet_name, index=False)
+            
+            # Write quarterly statements
+            for statement_type in ['income_statement', 'balance_sheet', 'cashflow']:
+                key = FINANCIAL_STATEMENT_FILTER_KEYS['quarterly'][statement_type]
+                sheet_name = FINANCIAL_SHEET_NAMES['quarterly'][statement_type]
+                
+                if key in financials and financials[key] is not None:
+                    df = financials[key]
+                    if isinstance(df, pd.DataFrame) and not df.empty:
+                        cleaned_df = self._clean_dataframe_for_excel(df, sheet_name)
+                        cleaned_df.to_excel(writer, sheet_name=sheet_name, na_rep='', float_format='%.2f')
+                    else:
+                        # Create empty DataFrame with message
+                        empty_df = pd.DataFrame({'Message': ['No data available']})
+                        empty_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+        except Exception as e:
+            print(f"Error writing financial statements: {str(e)}")
+            # Create a simple error sheet
+            error_df = pd.DataFrame({'Error': [f'Error writing financial data: {str(e)}']})
+            error_df.to_excel(writer, sheet_name='Financial_Error', index=False)
+
 
     def generate_word_report(self, symbol: str, data: Dict[str, Any]) -> Path:
         """Generate a Word report for the stock analysis."""

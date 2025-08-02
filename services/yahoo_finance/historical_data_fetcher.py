@@ -1,42 +1,42 @@
-from typing import Optional
 import yfinance as yf
 import pandas as pd
+from typing import Dict, Any
 from utils.debug_utils import DebugUtils
-from .base_fetcher import BaseFetcher
+from services.fetcher.base_fetcher import BaseFetcher
 
 class HistoricalDataFetcher(BaseFetcher):
     """Class for fetching historical stock data."""
     
-    def fetch_historical_data(self, stock: yf.Ticker, symbol : str) -> pd.DataFrame:
+    def __init__(self):
+        """Initialize the historical data fetcher."""
+        BaseFetcher.__init__(self)  # Initialize BaseFetcher
+        self._debug = DebugUtils()
+    
+    def fetch_historical_data(self, stock: yf.Ticker, symbol: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
         """
         Fetch historical price data.
         
         Args:
             stock: Yahoo Finance Ticker object
+            symbol: Stock symbol for logging
+            period: Time period (e.g., "1y", "6mo", "1d")
+            interval: Data interval (e.g., "1d", "1h", "5m")
             
         Returns:
             DataFrame containing historical price data
         """
-        DebugUtils.info("\nFetching historical data...")
         try:
-            # Try with a shorter period first
-            hist_data = self.fetch_with_retry(
-                symbol,
-                stock.history,
-                period="6mo",
-                interval="1d"
-            )
+            DebugUtils.info(f"Fetching historical data for {symbol} (period={period}, interval={interval})")
+            
+            # Fetch historical data with retry logic
+            hist_data = self.fetch_with_retry(symbol, stock.history, period=period, interval=interval)
             
             if hist_data.empty:
-                DebugUtils.warning("Historical data is empty, trying with a shorter period...")
-                hist_data = self.fetch_with_retry(
-                    symbol,
-                    stock.history,
-                    period="1mo",
-                    interval="1d"
-                )
+                DebugUtils.warning(f"No historical data found for {symbol}")
+                return pd.DataFrame()
+            
             return hist_data
+            
         except Exception as e:
-            error_msg = f"Error fetching historical data: {str(e)}"
-            DebugUtils.error(error_msg)
+            DebugUtils.log_error(e, f"Error fetching historical data for {symbol}")
             return pd.DataFrame() 

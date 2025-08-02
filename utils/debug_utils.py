@@ -6,6 +6,7 @@ from enum import Enum
 
 class LogLevel(Enum):
     """Enum for log levels."""
+    TRACE = -1
     DEBUG = 0
     INFO = 1
     WARNING = 2
@@ -49,7 +50,7 @@ class DebugUtils:
                 
                 # Create formatter
                 formatter = logging.Formatter(
-                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                    '%(asctime)s - %(levelname)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s'
                 )
                 file_handler.setFormatter(formatter)
                 console_handler.setFormatter(formatter)
@@ -89,11 +90,11 @@ class DebugUtils:
         return cls._logger
     
     @classmethod
-    def log_api_call(cls, api_name: str, symbol: str = None, attempt: int = 1, total_attempts: int = 1, params: Optional[dict] = None) -> None:
-        """Log API call details in a standardized format."""
+    def log_api_call(cls, api_name: str, symbol: str = None, attempt: int = 1, total_attempts: int = 1, params: Optional[dict] = None, args: Any = None, kwargs: Any = None) -> None:
+        """Log API call details in a standardized format, including arguments."""
         if cls._debug_mode:
             logger = cls.get_logger()
-            logger.debug(f"API Call - {api_name} - Symbol: {symbol} - Attempt: {attempt}/{total_attempts} - Params: {params}")
+            logger.debug(f"API Call - {api_name} - Symbol: {symbol} - Attempt: {attempt}/{total_attempts} - Args: {args} - Kwargs: {kwargs} - Params: {params}")
     
     @classmethod
     def log_error(cls, error: Exception, context: Optional[str] = None) -> None:
@@ -142,40 +143,7 @@ class DebugUtils:
         """Check if debug mode is enabled."""
         return cls._debug_mode
     
-    @classmethod
-    def log_api_call(cls, api_name: str, symbol: str = None, attempt: int = 1, total_attempts: int = 1, params: Optional[dict] = None) -> None:
-        """Log API call details in a standardized format.
-        
-        Args:
-            api_name: Name of the API being called
-            symbol: Stock symbol being queried (optional)
-            attempt: Current attempt number (optional)
-            total_attempts: Total number of attempts allowed (optional)
-            params: Additional parameters for the API call (optional)
-        """
-        if cls._debug_mode:
-            logger = cls.get_logger()
-            
-            # Log basic API call info
-            logger.debug(f"\nAPI Call Details:")
-            logger.debug(f"API: {api_name}")
-            
-            # Log symbol if provided
-            if symbol:
-                logger.debug(f"Symbol: {symbol}")
-            
-            # Log attempt info if provided
-            if attempt and total_attempts:
-                logger.debug(f"Attempt: {attempt}/{total_attempts}")
-            
-            # Log timestamp
-            logger.debug(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # Log parameters if provided
-            if params:
-                logger.debug(f"Parameters: {params}")
-            
-            logger.debug("-" * 50)
+
     
     @classmethod
     def log_error(cls, error: Exception, context: Optional[str] = None) -> None:
@@ -328,3 +296,14 @@ class DebugUtils:
         """Log the total number of API calls made."""
         logger = cls.get_logger()
         logger.debug(f"Total API calls made: {count}") 
+
+    @classmethod
+    def trace(cls, error: Exception, context: Optional[str] = None) -> None:
+        """Log stack trace for exceptions at TRACE level."""
+        logger = cls.get_logger()
+        import traceback
+        trace_msg = traceback.format_exc()
+        if context:
+            logger.log(LogLevel.TRACE.value, f"TRACE: {context}\n{trace_msg}")
+        else:
+            logger.log(LogLevel.TRACE.value, f"TRACE:\n{trace_msg}") 

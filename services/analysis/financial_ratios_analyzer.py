@@ -68,7 +68,7 @@ class FinancialRatiosAnalyzer(BaseAnalyzer):
         """Calculate return on equity."""
         try:
             net_income = BaseAnalyzer._get_latest_value(income_stmt, 'Net Income')
-            total_equity = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Stockholder Equity')
+            total_equity = BaseAnalyzer._get_latest_value(balance_sheet, 'Stockholders Equity')
             if net_income and total_equity and total_equity != 0:
                 return (net_income / total_equity) * 100
             return 0.0
@@ -93,7 +93,7 @@ class FinancialRatiosAnalyzer(BaseAnalyzer):
     def _calculate_current_ratio(balance_sheet: pd.DataFrame) -> float:
         """Calculate current ratio."""
         try:
-            current_assets = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Current Assets')
+            current_assets = BaseAnalyzer._get_latest_value(balance_sheet, 'Current Assets')
             current_liabilities = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Current Liabilities')
             if current_assets and current_liabilities and current_liabilities != 0:
                 return current_assets / current_liabilities
@@ -106,7 +106,7 @@ class FinancialRatiosAnalyzer(BaseAnalyzer):
     def _calculate_quick_ratio(balance_sheet: pd.DataFrame) -> float:
         """Calculate quick ratio."""
         try:
-            current_assets = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Current Assets')
+            current_assets = BaseAnalyzer._get_latest_value(balance_sheet, 'Current Assets')
             inventory = BaseAnalyzer._get_latest_value(balance_sheet, 'Inventory')
             current_liabilities = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Current Liabilities')
             if current_assets and current_liabilities and current_liabilities != 0:
@@ -147,7 +147,7 @@ class FinancialRatiosAnalyzer(BaseAnalyzer):
         """Calculate debt to equity ratio."""
         try:
             total_debt = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Debt')
-            total_equity = BaseAnalyzer._get_latest_value(balance_sheet, 'Total Stockholder Equity')
+            total_equity = BaseAnalyzer._get_latest_value(balance_sheet, 'Stockholders Equity')
             if total_debt and total_equity and total_equity != 0:
                 return total_debt / total_equity
             return 0.0

@@ -12,7 +12,6 @@ class TechnicalAnalysisService:
     def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate technical indicators for the given DataFrame."""
         # Ensure we have the required columns
-        print("df ===========: ",df)
         if 'Close' not in df.columns or 'Volume' not in df.columns:
             return df
         
@@ -53,7 +52,6 @@ class TechnicalAnalysisService:
                            row_heights=[0.5, 0.25, 0.25, 0.25])
         
         # Candlestick chart
-        print("df ######## ",df)
         fig.add_trace(go.Candlestick(x=df.index,
                                     open=df['Open'],
                                     high=df['High'],

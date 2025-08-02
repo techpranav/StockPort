@@ -1,21 +1,29 @@
+import traceback
+
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List
+
+from utils.debug_utils import DebugUtils
+
 
 class FundamentalAnalysisService:
     def __init__(self):
         """Initialize fundamental analysis service."""
         pass
     
-    def calculate_financial_ratios(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_financial_ratios(self, data: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
         """Calculate key financial ratios."""
         ratios = {}
-        
+        financials = data.get('financials', {})
         # Get financial statements
-        income_statement = data.get('yearly_income_statement', pd.DataFrame())
-        balance_sheet = data.get('yearly_balance_sheet', pd.DataFrame())
-        cashflow = data.get('yearly_cashflow', pd.DataFrame())
-        
+        income_statement = financials.get('yearly', {}).get('income_statement', pd.DataFrame())
+        balance_sheet = financials.get('yearly', {}).get('balance_sheet', pd.DataFrame())
+
+        if income_statement.empty or balance_sheet.empty:
+            DebugUtils.warning("Missing financial statements for ratio calculation")
+            return ratios
+
         if income_statement.empty or balance_sheet.empty:
             return ratios
         
@@ -43,7 +51,7 @@ class FundamentalAnalysisService:
         try:
             # Return on Equity (ROE)
             net_income = income_statement.loc['Net Income'].iloc[0]
-            total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0]
+            total_equity = balance_sheet.loc['Stockholders Equity'].iloc[0]
             ratios['roe'] = (net_income / total_equity) * 100 if total_equity != 0 else 0
             
             # Return on Assets (ROA)
@@ -63,6 +71,7 @@ class FundamentalAnalysisService:
             ratios['net_margin'] = (net_income / revenue) * 100 if revenue != 0 else 0
             
         except Exception as e:
+            print(traceback.format_exc())
             print(f"Error calculating profitability ratios: {str(e)}")
         
         return ratios
@@ -73,7 +82,7 @@ class FundamentalAnalysisService:
         
         try:
             # Current Ratio
-            current_assets = balance_sheet.loc['Total Current Assets'].iloc[0]
+            current_assets = balance_sheet.loc['Current Assets'].iloc[0]
             current_liabilities = balance_sheet.loc['Total Current Liabilities'].iloc[0]
             ratios['current_ratio'] = current_assets / current_liabilities if current_liabilities != 0 else 0
             
@@ -123,7 +132,7 @@ class FundamentalAnalysisService:
         try:
             # Debt to Equity
             total_debt = balance_sheet.loc['Total Debt'].iloc[0]
-            total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0]
+            total_equity = balance_sheet.loc['Stockholders Equity'].iloc[0]
             ratios['debt_to_equity'] = total_debt / total_equity if total_equity != 0 else 0
             
             # Debt to Assets
