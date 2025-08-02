@@ -128,37 +128,16 @@ def main():
     
     if page == "Single Stock Analysis":
         # Single stock analysis
-        result = render_single_stock_analysis(config)
-        if result:
-            st.session_state.results = [result]
-    
+        analysis_params = render_single_stock_analysis(config)
+        if analysis_params and analysis_params.get("analyze") and analysis_params.get("symbol"):
+            process_stock(analysis_params.get("analyzer"), analysis_params.get("symbol"))
+
     else:  # Mass Stock Analysis
         # Get analysis parameters from render_mass_analysis
-        results = render_mass_analysis(config)
-        if results:
-            st.session_state.results = results
-        if results:
-            # Process each stock
-            for result in results:
-                print("result ####### ",result)
-                symbol = result['symbol']
-
-                try:
-                    st.write(f"\nProcessing {symbol}...")
-
-                    # if os.path.exists(report_path):
-                    #     st.success(f"Report generated for {symbol}")
-                    #     st.download_button(
-                    #         label=f"Download {symbol} Report",
-                    #         data=open(report_path, 'rb').read(),
-                    #         file_name=f"{symbol}_report.xlsx",
-                    #         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    #     )
-                    # else:
-                    #     st.error(f"Failed to generate report for {symbol}")
-                
-                except Exception as e:
-                    st.error(f"Error processing {symbol}: {str(e)}")
+        analysis_params = render_mass_analysis(config)
+        
+        if analysis_params and analysis_params.get("analyze") and analysis_params.get("symbols"):
+            process_multiple_stocks(analysis_params.get("analyzer"), analysis_params.get("symbols"))
     
     # Display results
     if st.session_state.results:
@@ -198,14 +177,24 @@ def render_single_stock_analysis(config: Dict[str, Any]) -> Optional[Dict[str, A
                 days_back=config['days_back'],
                 delay_between_calls=config['delay_between_calls']
             )
-            result = analyzer.process_stock(symbol)
-            return result
+            return {
+                "analyze": True,
+                "symbol": symbol,
+                "analyzer": analyzer
+            }
         except Exception as e:
             st.session_state.error = f"Error analyzing {symbol}: {str(e)}"
+            st.error("No valid stock symbol defined")
+
             print(traceback.format_exc())
-            return None
+            return {
+                "analyze": False,
+                "symbol": symbol
+            }
     
-    return None
+    return {    "analyze": False,
+                "symbol": symbol
+            }
 
 def render_mass_analysis(config: Dict[str, Any]) -> Dict[str, Any]:
     """Render mass analysis section."""
@@ -231,30 +220,25 @@ def render_mass_analysis(config: Dict[str, Any]) -> Dict[str, Any]:
                     days_back=config['days_back'],
                     delay_between_calls=config['delay_between_calls']
                 )
-                results=[]
-                for symbol in symbols:
-                    try:
-                        st.write(f"\nProcessing {symbol}...")
-
-                        results.append(analyzer.process_stock(symbol))
-                    except Exception as e:
-                        st.session_state.error = f"Error analyzing {symbol}: {str(e)}"
-                        print(traceback.format_exc())
-
-                return results
+                return {
+                    "analyze": True,
+                    "symbols": symbols,
+                    "analyzer": analyzer
+                }
             else:
                 st.error("No valid stock symbols found in the file")
-                return []
+                return {"analyze": False, "symbols": []}
             
         except Exception as e:
             st.session_state.error = f"Error in mass analysis: {str(e)}"
-            return []
+            return {"analyze": False, "symbols": []}
         finally:
             # Clean up temporary file
             if os.path.exists("temp_stocks.txt"):
                 os.remove("temp_stocks.txt")
     
-    return []
+    return {"analyze": False, "symbols": []}
+
 
 
 if __name__ == "__main__":
