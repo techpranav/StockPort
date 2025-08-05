@@ -38,6 +38,7 @@ ENV/
 *.docx
 output/
 input/
+reports/
 completed_symbols.txt
 failed_symbols.txt
 
