@@ -1,3 +1,10 @@
+"""
+Stock Analyzer Core Module
+
+This module provides the core functionality for analyzing stock data.
+It coordinates between different services to fetch, analyze, and export stock data.
+"""
+
 import traceback
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -6,87 +13,104 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
-from services.yahoo_finance.yahoo_finance_service import YahooFinanceService
-from services.ai_service import AIService
-from services.report_service import ReportService
+from services.stock_service import StockService
+from services.exporters.report_service import ReportService
 from utils.file_utils import FileUtils
-from utils.drive_utils import DriveUtils
-from core.config import (
-    ENABLE_AI_FEATURES,
-    ENABLE_GOOGLE_DRIVE,
-    INPUT_DIR,
-    OUTPUT_DIR,
+from utils.google_drive_utils import GoogleDriveManager
+from utils.debug_utils import DebugUtils
+
+from config.constants.StringConstants import (
     STOCK_FILE,
     COMPLETED_FILE,
-    FAILED_FILE
+    FAILED_FILE,
+    TEMP_STOCKS_FILE
 )
 from models.stock_data import (
     StockData, CompanyInfo, FinancialMetrics, TechnicalIndicators,
     TechnicalSignals, FinancialStatements, NewsItem
 )
 from exceptions.stock_data_exceptions import DataAnalysisException
-from utils.debug_utils import DebugUtils
+
+from config.settings import ENABLE_GOOGLE_DRIVE
 
 class StockAnalyzer:
     def __init__(self, input_dir: str, output_dir: str, ai_mode: str = None, days_back: int = 365, delay_between_calls: int = 60):
+        """Initialize the stock analyzer."""
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.ai_mode = ai_mode
         self.days_back = days_back
         self.delay_between_calls = delay_between_calls
         
-        # Initialize services
-        self.yahoo_finance = YahooFinanceService(skip_history=False)
-        self.ai_service = AIService(ai_mode=ai_mode) if ai_mode else None
-        self.report_service = ReportService()
-        self.file_utils = FileUtils(input_dir=str(self.input_dir), output_dir=str(self.output_dir))
-        self.drive_utils = DriveUtils() if ENABLE_GOOGLE_DRIVE else None
-        
         # Create directories if they don't exist
-        self.input_dir.mkdir(parents=True, exist_ok=True)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.input_dir.mkdir(exist_ok=True)
+        self.output_dir.mkdir(exist_ok=True)
+        
+        # Initialize services with days_back parameter
+        self.stock_service = StockService(days_back=days_back)
+        self.report_service = ReportService(days_back=days_back)
+        self.file_utils = FileUtils(str(self.input_dir), str(self.output_dir))
+        
+        # Initialize Google Drive if enabled
+        if ENABLE_GOOGLE_DRIVE:
+            self.drive_utils = GoogleDriveManager()
+        
+        DebugUtils.info(f"Initialized StockAnalyzer with days_back={days_back}, delay_between_calls={delay_between_calls}")
     
     def process_stock(self, symbol: str) -> Dict[str, Any]:
         """Process a single stock symbol."""
         try:
-            # Fetch and filter data
-            stock_data = self.yahoo_finance.fetch_stock_data(symbol)
-            print("\n\n\n stock_data ######### ", stock_data )
-            print("\n\n\n ############################# \n\n ")
-            filtered_data = self.yahoo_finance.filter_stock_data(stock_data)
-
-            # Save filtered data
-            self.file_utils.save_filtered_data(symbol, filtered_data, self.output_dir)
+            DebugUtils.info(f"Processing stock: {symbol} with {self.days_back} days of historical data")
             
-            # Generate reports
-            word_report_path = self.report_service.generate_word_report(symbol, filtered_data)
-            excel_report_path = self.report_service.generate_excel_report(symbol, filtered_data)
+            # Fetch standardized stock data
+            stock_data = self.stock_service.fetch_stock_data(symbol)
+            DebugUtils.info(f"Successfully fetched standardized data for {symbol}")
+            
+            # Convert StockData to dictionary format for legacy compatibility
+            stock_dict = stock_data.to_dict()
+            
+            # Save filtered data (using legacy format for now)
+            self.file_utils.save_filtered_data(symbol, stock_dict, self.output_dir)
+            
+            # Generate reports with days_back information
+            word_report_path = self.report_service.generate_word_report(symbol, stock_dict, days_back=self.days_back)
+            excel_report_path = self.report_service.generate_excel_report(symbol, stock_dict, days_back=self.days_back)
             
             # Upload to Google Drive if enabled
             if ENABLE_GOOGLE_DRIVE:
                 self.drive_utils.upload_file(word_report_path)
                 self.drive_utils.upload_file(excel_report_path)
             
-            # Get AI summary if enabled
-            summary = None
-            if ENABLE_AI_FEATURES and self.ai_service:
-                summary = self.ai_service.get_stock_summary(symbol, filtered_data)
-
-            return {
+            # Return comprehensive result
+            result = {
                 'symbol': symbol,
-                'history': stock_data.get('history'),
-                'info': stock_data.get('info'),
-                'financials': stock_data.get('financials'),
-                'filtered_data': filtered_data,
-                'word_report_path': str(word_report_path),
-                'excel_report_path': str(excel_report_path),
-                'summary': summary,
-                'metrics': filtered_data.get('metrics', {})
+                'status': 'success',
+                'word_report_path': word_report_path,
+                'excel_report_path': excel_report_path,
+                'analysis_date': datetime.now().isoformat(),
+                'days_back': self.days_back,
+                'data_summary': {
+                    'has_history': not stock_dict.get('history', pd.DataFrame()).empty,
+                    'has_financials': bool(stock_dict.get('financials')),
+                    'has_company_info': bool(stock_dict.get('info')),
+                    'has_news': bool(stock_dict.get('news'))
+                },
+                **stock_dict,  # Include all stock data
+                'stock_data_object': stock_data  # Include the full StockData object for future use
             }
             
+            DebugUtils.info(f"Successfully processed stock: {symbol}")
+            return result
+            
         except Exception as e:
-            print(traceback.format_exc())
-            raise Exception(f"Error processing {symbol}: {str(e)}")
+            DebugUtils.log_error(e, f"Error processing stock: {symbol}")
+            return {
+                'symbol': symbol,
+                'status': 'error',
+                'error': str(e),
+                'analysis_date': datetime.now().isoformat(),
+                'days_back': self.days_back
+            }
     
     def process_multiple_stocks(self, symbols: List[str]) -> List[Dict[str, Any]]:
         """Process multiple stock symbols."""
