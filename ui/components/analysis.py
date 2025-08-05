@@ -48,6 +48,61 @@ from config.constants.Messages import (
     PLACEHOLDER_UPLOAD_FILE
 )
 import numpy as np
+import zipfile
+import tempfile
+
+@st.cache_data
+def get_file_download_data(file_path: str) -> bytes:
+    """Get file data for download, with caching to prevent repeated reads."""
+    try:
+        if not os.path.exists(file_path):
+            return None
+        
+        with open(file_path, 'rb') as f:
+            return f.read()
+    except Exception as e:
+        DebugUtils.log_error(e, f"Error reading file for download: {file_path}")
+        return None
+
+def create_reports_zip_data(successful_analyses: List[Dict[str, Any]], report_type: str):
+    """Create ZIP data containing all reports of the specified type."""
+    try:
+        # Create ZIP data in memory
+        import io
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            files_added = 0
+            
+            for result in successful_analyses:
+                symbol = result.get('symbol', 'Unknown')
+                
+                # Get the appropriate report path
+                if report_type == "excel":
+                    report_path = result.get('excel_report_path')
+                    file_extension = '.xlsx'
+                else:  # word
+                    report_path = result.get('word_report_path')
+                    file_extension = '.docx'
+                
+                if report_path and os.path.exists(report_path):
+                    # Add file to ZIP with a clean name
+                    archive_name = f"{symbol}_{report_type}_report{file_extension}"
+                    zipf.write(report_path, archive_name)
+                    files_added += 1
+            
+            if files_added == 0:
+                return None, 0
+        
+        # Get ZIP data
+        zip_data = zip_buffer.getvalue()
+        zip_buffer.close()
+        
+        return zip_data, files_added
+        
+    except Exception as e:
+        DebugUtils.log_error(e, f"Error creating ZIP data for {report_type} reports")
+        return None, 0
 
 def display_single_stock_analysis():
     """Display single stock analysis interface."""
@@ -63,6 +118,12 @@ def display_single_stock_analysis():
     # Analysis button
     if st.button(BUTTON_ANALYZE, key="analyze_single_stock"):
         if symbol:
+            # Clear any existing results for this symbol before starting new analysis
+            if f'analysis_result_{symbol}' in st.session_state:
+                del st.session_state[f'analysis_result_{symbol}']
+            # Clear download visibility flag
+            if f'show_downloads_{symbol}' in st.session_state:
+                del st.session_state[f'show_downloads_{symbol}']
             with st.spinner(f"Analyzing {symbol}..."):
                 try:
                     # Import here to avoid circular imports
@@ -87,19 +148,45 @@ def display_single_stock_analysis():
                     if result['status'] == 'success':
                         st.success(MSG_ANALYSIS_COMPLETE)
                         display_analysis_results(result)
+                        # Store result after display to persist across download interactions
+                        st.session_state[f'analysis_result_{symbol}'] = result
                     else:
                         st.error(f"{ERROR_ANALYZING_SYMBOL} {symbol}: {result.get('error', 'Unknown error')}")
-                        
+
                 except Exception as e:
                     DebugUtils.log_error(e, f"Error in single stock analysis for {symbol}")
                     st.error(f"{ERROR_ANALYZING_SYMBOL} {symbol}: {str(e)}")
         else:
             st.warning("Please enter a stock symbol.")
 
+    # Show stored results if available (for download interactions)
+    elif symbol and f'analysis_result_{symbol}' in st.session_state:
+        stored_result = st.session_state[f'analysis_result_{symbol}']
+        display_analysis_results(stored_result)
+
+        # Add Clear Results button
+        if st.button("🗑️ Clear Results", key="clear_single_analysis"):
+            del st.session_state[f'analysis_result_{symbol}']
+            # Also clear the download visibility flag
+            if f'show_downloads_{symbol}' in st.session_state:
+                del st.session_state[f'show_downloads_{symbol}']
+            st.rerun()
+
+
 def display_mass_stock_analysis():
     """Display mass stock analysis interface."""
     st.header(HEADER_MASS_STOCK_ANALYSIS)
-    
+
+    # Add Clear Results button if there are stored results
+    if 'mass_analysis_successful' in st.session_state or 'mass_analysis_failed' in st.session_state:
+        if st.button("🗑️ Clear Mass Analysis Results", key="clear_mass_analysis"):
+            # Clear all mass analysis results from session state
+            keys_to_remove = ['mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols']
+            for key in keys_to_remove:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+
     # File upload with custom styling
     st.markdown("""
     <style>
@@ -125,7 +212,7 @@ def display_mass_stock_analysis():
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
     # File uploader
     uploaded_file = st.file_uploader(
         "Upload a text file with stock symbols (one per line):",
@@ -133,26 +220,26 @@ def display_mass_stock_analysis():
         help="Upload a .txt file containing stock symbols, one symbol per line",
         key="mass_analysis_file_uploader"
     )
-    
+
     if uploaded_file is not None:
         # Display file preview
         try:
             content = uploaded_file.read().decode('utf-8')
             symbols = [line.strip().upper() for line in content.splitlines() if line.strip()]
-            
+
             st.success(f"✅ File uploaded successfully! Found {len(symbols)} symbols.")
-            
+
             # Show preview of symbols
             with st.expander("📋 Preview symbols", expanded=False):
                 st.write(", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
-            
+
             # Analysis button
             if st.button(BUTTON_ANALYZE, key="analyze_mass_stocks"):
                 if symbols:
                     process_mass_analysis(symbols)
                 else:
                     st.warning("No valid symbols found in the uploaded file.")
-                    
+
         except Exception as e:
             st.error(f"Error reading file: {str(e)}")
 
@@ -162,10 +249,10 @@ def process_mass_analysis(symbols: List[str]):
         # Import here to avoid circular imports
         from core.stock_analyzer import StockAnalyzer
         from config.constants.StringConstants import input_dir, output_dir
-        
+
         # Get configuration from session state
         config = st.session_state.get('config', {})
-        
+
         # Initialize analyzer with configuration
         analyzer = StockAnalyzer(
             input_dir=input_dir,
@@ -174,24 +261,24 @@ def process_mass_analysis(symbols: List[str]):
             days_back=config.get('days_back', 365),
             delay_between_calls=config.get('delay_between_calls', 60)
         )
-        
+
         # Progress tracking
         progress_bar = st.progress(0)
         status_text = st.empty()
         results_container = st.container()
-        
+
         successful_analyses = []
         failed_analyses = []
-        
+
         # Process each symbol
         for i, symbol in enumerate(symbols):
             try:
                 status_text.text(f"Processing {symbol} ({i+1}/{len(symbols)})...")
                 progress_bar.progress((i + 1) / len(symbols))
-                
+
                 # Process the stock
                 result = analyzer.process_stock(symbol)
-                
+
                 if result['status'] == 'success':
                     successful_analyses.append(result)
                     with results_container:
@@ -200,50 +287,94 @@ def process_mass_analysis(symbols: List[str]):
                     failed_analyses.append({'symbol': symbol, 'error': result.get('error', 'Unknown error')})
                     with results_container:
                         st.error(f"❌ {symbol}: {result.get('error', 'Analysis failed')}")
-                        
+
             except Exception as e:
                 DebugUtils.log_error(e, f"Error processing {symbol} in mass analysis")
                 failed_analyses.append({'symbol': symbol, 'error': str(e)})
                 with results_container:
                     st.error(f"❌ {symbol}: {str(e)}")
-        
+
         # Final summary
         status_text.text(MSG_PROCESSING_COMPLETE)
-        
+
+        # Store results in session state for persistence
+        st.session_state['mass_analysis_successful'] = successful_analyses
+        st.session_state['mass_analysis_failed'] = failed_analyses
+        st.session_state['mass_analysis_symbols'] = symbols
+
         st.markdown("---")
         st.subheader("📊 Analysis Summary")
-        
+
         col1, col2 = st.columns(2)
         with col1:
             st.metric("✅ Successful", len(successful_analyses))
         with col2:
             st.metric("❌ Failed", len(failed_analyses))
-        
+
         # Display results for successful analyses
         if successful_analyses:
             st.subheader("✅ Successful Analyses")
+
+            # Add "Download All Reports" section
+            st.markdown("---")
+            st.subheader("📥 Download All Reports")
+
+            # Create ZIP files for download
+            excel_zip_data, excel_count = create_reports_zip_data(successful_analyses, "excel")
+            word_zip_data, word_count = create_reports_zip_data(successful_analyses, "word")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if excel_zip_data:
+                    st.download_button(
+                        label=f"📊 Download All Excel Reports ({excel_count} files)",
+                        data=excel_zip_data,
+                        file_name="mass_analysis_excel_reports.zip",
+                        mime="application/zip",
+                        key="download_all_excel_zip"
+                    )
+                else:
+                    st.info("No Excel reports available")
+
+            with col2:
+                if word_zip_data:
+                    st.download_button(
+                        label=f"📄 Download All Word Reports ({word_count} files)",
+                        data=word_zip_data,
+                        file_name="mass_analysis_word_reports.zip",
+                        mime="application/zip",
+                        key="download_all_word_zip"
+                    )
+                else:
+                    st.info("No Word reports available")
+
+            st.markdown("---")
+
             for result in successful_analyses:
                 with st.expander(f"📈 {result['symbol']} - View Details"):
                     display_analysis_results(result)
-        
+
         # Display failed analyses
         if failed_analyses:
             st.subheader("❌ Failed Analyses")
             for failed in failed_analyses:
                 st.error(f"**{failed['symbol']}**: {failed['error']}")
-                
+
     except Exception as e:
         DebugUtils.log_error(e, "Error in mass stock analysis")
         st.error(f"{ERROR_MASS_ANALYSIS}: {str(e)}")
+
+
 
 def display_analysis_results(result: Dict[str, Any]):
     """Display comprehensive analysis results."""
     if not result or result.get('status') != 'success':
         st.error("No valid analysis results to display.")
         return
-    
+
     symbol = result.get('symbol', 'Unknown')
-    
+
     # Create tabs for different analysis types
     tabs = st.tabs([
         TAB_OVERVIEW,
@@ -251,65 +382,83 @@ def display_analysis_results(result: Dict[str, Any]):
         TAB_FUNDAMENTAL_ANALYSIS,
         TAB_PORTFOLIO
     ])
-    
+
     # Overview Tab
     with tabs[0]:
         display_overview(result)
-    
+
     # Technical Analysis Tab
     with tabs[1]:
         if ENABLE_TECHNICAL_ANALYSIS:
             display_technical_analysis(result)
         else:
             st.info("Technical analysis is disabled in configuration.")
-    
+
     # Fundamental Analysis Tab
     with tabs[2]:
         if ENABLE_FUNDAMENTAL_ANALYSIS:
             display_fundamental_analysis(result)
         else:
             st.info("Fundamental analysis is disabled in configuration.")
-    
+
     # Portfolio Analysis Tab
     with tabs[3]:
         if ENABLE_PORTFOLIO_ANALYSIS:
             display_portfolio_analysis(result)
         else:
             st.info("Portfolio analysis is disabled in configuration.")
-    
-    # Download buttons
-    st.markdown("---")
-    st.subheader("📥 Download Reports")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if result.get('excel_report_path'):
-            try:
-                with open(result['excel_report_path'], 'rb') as f:
-                    st.download_button(
-                        label=f"📊 {BUTTON_DOWNLOAD_EXCEL}",
-                        data=f.read(),
-                        file_name=f"{symbol}_analysis.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        key=f"download_excel_{symbol}"
-                    )
-            except Exception as e:
-                st.error(f"Error loading Excel report: {str(e)}")
-    
-    with col2:
-        if result.get('word_report_path'):
-            try:
-                with open(result['word_report_path'], 'rb') as f:
-                    st.download_button(
-                        label=f"📄 {BUTTON_DOWNLOAD_WORD}",
-                        data=f.read(),
-                        file_name=f"{symbol}_analysis.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"download_word_{symbol}"
-                    )
-            except Exception as e:
-                st.error(f"Error loading Word report: {str(e)}")
+
+    # Download buttons (only show if downloads are enabled for this symbol)
+    if st.session_state.get(f'show_downloads_{symbol}', False):
+        st.markdown("---")
+        st.subheader("📥 Download Reports")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if result.get('excel_report_path') and os.path.exists(result['excel_report_path']):
+                try:
+                    # Read file data only when creating the download button
+                    excel_data = get_file_download_data(result['excel_report_path'])
+                    if excel_data:
+                        st.download_button(
+                            label=f"📊 {BUTTON_DOWNLOAD_EXCEL}",
+                            data=excel_data,
+                            file_name=f"{symbol}_analysis.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"download_excel_{symbol}_{hash(result['excel_report_path'])}"
+                        )
+                    else:
+                        st.error("Excel report file not found or empty")
+                except Exception as e:
+                    st.error(f"Error preparing Excel download: {str(e)}")
+            else:
+                st.info("Excel report not available")
+
+        with col2:
+            if result.get('word_report_path') and os.path.exists(result['word_report_path']):
+                try:
+                    # Read file data only when creating the download button
+                    word_data = get_file_download_data(result['word_report_path'])
+                    if word_data:
+                        st.download_button(
+                            label=f"📄 {BUTTON_DOWNLOAD_WORD}",
+                            data=word_data,
+                            file_name=f"{symbol}_analysis.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"download_word_{symbol}_{hash(result['word_report_path'])}"
+                        )
+                    else:
+                        st.error("Word report file not found or empty")
+                except Exception as e:
+                    st.error(f"Error preparing Word download: {str(e)}")
+            else:
+                st.info("Word report not available")
+    else:
+        # Add a button to show downloads when they're hidden
+        if st.button("📥 Show Download Options", key=f"show_downloads_button_{symbol}"):
+            st.session_state[f'show_downloads_{symbol}'] = True
+            st.rerun()
 
 def display_overview(result: Dict[str, Any]):
     """Display comprehensive overview of stock analysis."""

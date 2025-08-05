@@ -101,7 +101,17 @@ class ReportManager:
             # Sort by analysis date (newest first)
             valid_reports.sort(key=lambda x: x.get("analysis_date", ""), reverse=True)
             
-            return valid_reports
+            # Transform field names for UI compatibility
+            transformed_reports = []
+            for report in valid_reports:
+                transformed_report = report.copy()
+                # Transform field names to match UI expectations
+                transformed_report['created_date'] = datetime.fromisoformat(report.get('created_at', ''))
+                transformed_report['size'] = report.get('file_size', 0)
+                transformed_report['path'] = report.get('file_path', '')
+                transformed_reports.append(transformed_report)
+            
+            return transformed_reports
             
         except Exception as e:
             DebugUtils.log_error(e, "Error retrieving reports")
