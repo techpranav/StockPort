@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from utils.debug_utils import DebugUtils
 from exceptions.stock_data_exceptions import DataProcessingException
+from config.constants import *
 from .financial_ratios_analyzer import FinancialRatiosAnalyzer
 from .growth_analyzer import GrowthAnalyzer
 from .returns_analyzer import ReturnsAnalyzer

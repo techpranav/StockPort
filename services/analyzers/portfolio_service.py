@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, Any, List, Tuple
 from datetime import datetime, timedelta
 import yfinance as yf
+from config.constants import *
 
 class PortfolioService:
     def __init__(self):
@@ -26,7 +27,7 @@ class PortfolioService:
             cost_basis = position['cost_basis']
             
             if symbol in prices:
-                current_price = prices[symbol]['Close'].iloc[-1]
+                current_price = prices[symbol][COLUMN_CLOSE].iloc[-1]
                 # Calculate position return
                 if cost_basis > 0:
                     position_return = (current_price - cost_basis) / cost_basis * 100
@@ -77,7 +78,7 @@ class PortfolioService:
         for position in positions:
             symbol = position['symbol']
             if symbol in prices:
-                price_data = prices[symbol]['Close']
+                price_data = prices[symbol][COLUMN_CLOSE]
                 # Ensure price data is timezone-naive
                 if price_data.index.tz is not None:
                     price_data.index = price_data.index.tz_localize(None)
@@ -131,7 +132,7 @@ class PortfolioService:
         for position in positions:
             symbol = position['symbol']
             if symbol in prices:
-                price_data = prices[symbol]['Close'].tail(30)
+                price_data = prices[symbol][COLUMN_CLOSE].tail(30)
                 position_returns = price_data.pct_change().dropna()
                 daily_returns.append(position_returns * (position['position_value'] / sum(p['position_value'] for p in positions)))
         
@@ -169,7 +170,7 @@ class PortfolioService:
                 return pd.Series()
             
             # Calculate daily returns and ensure 1-dimensional
-            market_returns = sp500['Close'].pct_change().dropna().squeeze()
+            market_returns = sp500[COLUMN_CLOSE].pct_change().dropna().squeeze()
             
             # Convert to timezone-naive
             market_returns.index = market_returns.index.tz_localize(None)

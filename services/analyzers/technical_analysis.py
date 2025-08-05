@@ -3,6 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from typing import Dict, Any, Tuple, List
+from config.constants import *
 
 class TechnicalAnalysisService:
     def __init__(self):
@@ -12,36 +13,35 @@ class TechnicalAnalysisService:
     def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate technical indicators for the given DataFrame."""
         # Ensure we have the required columns
-        print("df ===========: ",df)
-        if 'Close' not in df.columns or 'Volume' not in df.columns:
+        if COLUMN_CLOSE not in df.columns or COLUMN_VOLUME not in df.columns:
             return df
         
         # Calculate Moving Averages
-        df['SMA_20'] = df['Close'].rolling(window=20).mean()
-        df['SMA_50'] = df['Close'].rolling(window=50).mean()
-        df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
+        df['SMA_20'] = df[COLUMN_CLOSE].rolling(window=SMA_SHORT_PERIOD).mean()
+        df['SMA_50'] = df[COLUMN_CLOSE].rolling(window=SMA_LONG_PERIOD).mean()
+        df['EMA_20'] = df[COLUMN_CLOSE].ewm(span=SMA_SHORT_PERIOD, adjust=False).mean()
         
         # Calculate RSI
-        delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        delta = df[COLUMN_CLOSE].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=RSI_PERIOD).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=RSI_PERIOD).mean()
         rs = gain / loss
-        df['RSI'] = 100 - (100 / (1 + rs))
+        df[INDICATOR_RSI] = 100 - (100 / (1 + rs))
         
         # Calculate MACD
-        exp1 = df['Close'].ewm(span=12, adjust=False).mean()
-        exp2 = df['Close'].ewm(span=26, adjust=False).mean()
-        df['MACD'] = exp1 - exp2
-        df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        exp1 = df[COLUMN_CLOSE].ewm(span=MACD_FAST_PERIOD, adjust=False).mean()
+        exp2 = df[COLUMN_CLOSE].ewm(span=MACD_SLOW_PERIOD, adjust=False).mean()
+        df[INDICATOR_MACD] = exp1 - exp2
+        df['Signal_Line'] = df[INDICATOR_MACD].ewm(span=MACD_SIGNAL_PERIOD, adjust=False).mean()
         
         # Calculate Bollinger Bands
-        df['BB_Middle'] = df['Close'].rolling(window=20).mean()
-        bb_std = df['Close'].rolling(window=20).std()
-        df['BB_Upper'] = df['BB_Middle'] + (bb_std * 2)
-        df['BB_Lower'] = df['BB_Middle'] - (bb_std * 2)
+        df['BB_Middle'] = df[COLUMN_CLOSE].rolling(window=BOLLINGER_PERIOD).mean()
+        bb_std = df[COLUMN_CLOSE].rolling(window=BOLLINGER_PERIOD).std()
+        df['BB_Upper'] = df['BB_Middle'] + (bb_std * BOLLINGER_STD_DEV)
+        df['BB_Lower'] = df['BB_Middle'] - (bb_std * BOLLINGER_STD_DEV)
         
         # Calculate Volume indicators
-        df['Volume_SMA'] = df['Volume'].rolling(window=20).mean()
+        df['Volume_SMA'] = df[COLUMN_VOLUME].rolling(window=SMA_SHORT_PERIOD).mean()
         
         return df
     
@@ -53,22 +53,21 @@ class TechnicalAnalysisService:
                            row_heights=[0.5, 0.25, 0.25, 0.25])
         
         # Candlestick chart
-        print("df ######## ",df)
         fig.add_trace(go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'],
-                                    name='Price'),
+                                    open=df[COLUMN_OPEN],
+                                    high=df[COLUMN_HIGH],
+                                    low=df[COLUMN_LOW],
+                                    close=df[COLUMN_CLOSE],
+                                    name=LABEL_PRICE),
                      row=1, col=1)
         
         # Add moving averages
         fig.add_trace(go.Scatter(x=df.index, y=df['SMA_20'],
-                               name='SMA 20',
+                               name=f'{INDICATOR_SMA} {SMA_SHORT_PERIOD}',
                                line=dict(color='blue')),
                      row=1, col=1)
         fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'],
-                               name='SMA 50',
+                               name=f'{INDICATOR_SMA} {SMA_LONG_PERIOD}',
                                line=dict(color='orange')),
                      row=1, col=1)
         
@@ -83,25 +82,25 @@ class TechnicalAnalysisService:
                      row=1, col=1)
         
         # Volume chart
-        fig.add_trace(go.Bar(x=df.index, y=df['Volume'],
-                           name='Volume'),
+        fig.add_trace(go.Bar(x=df.index, y=df[COLUMN_VOLUME],
+                           name=LABEL_VOLUME),
                      row=2, col=1)
         fig.add_trace(go.Scatter(x=df.index, y=df['Volume_SMA'],
-                               name='Volume SMA',
+                               name=f'{LABEL_VOLUME} {INDICATOR_SMA}',
                                line=dict(color='orange')),
                      row=2, col=1)
         
         # RSI chart
-        fig.add_trace(go.Scatter(x=df.index, y=df['RSI'],
-                               name='RSI',
+        fig.add_trace(go.Scatter(x=df.index, y=df[INDICATOR_RSI],
+                               name=INDICATOR_RSI,
                                line=dict(color='purple')),
                      row=3, col=1)
-        fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
+        fig.add_hline(y=RSI_OVERBOUGHT_THRESHOLD, line_dash="dash", line_color="red", row=3, col=1)
+        fig.add_hline(y=RSI_OVERSOLD_THRESHOLD, line_dash="dash", line_color="green", row=3, col=1)
         
         # MACD chart
-        fig.add_trace(go.Scatter(x=df.index, y=df['MACD'],
-                               name='MACD',
+        fig.add_trace(go.Scatter(x=df.index, y=df[INDICATOR_MACD],
+                               name=INDICATOR_MACD,
                                line=dict(color='blue')),
                      row=4, col=1)
         fig.add_trace(go.Scatter(x=df.index, y=df['Signal_Line'],
@@ -111,12 +110,12 @@ class TechnicalAnalysisService:
         
         # Update layout
         fig.update_layout(
-            title=f'Technical Analysis for {symbol}',
-            xaxis_title='Date',
-            yaxis_title='Price',
-            yaxis2_title='Volume',
-            yaxis3_title='RSI',
-            yaxis4_title='MACD',
+            title=f'{STR_TECHNICAL_ANALYSIS} for {symbol}',
+            xaxis_title=LABEL_DATE,
+            yaxis_title=LABEL_PRICE,
+            yaxis2_title=LABEL_VOLUME,
+            yaxis3_title=INDICATOR_RSI,
+            yaxis4_title=INDICATOR_MACD,
             height=1000,
             showlegend=True
         )
