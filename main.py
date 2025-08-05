@@ -6,7 +6,8 @@ import json
 import pandas as pd
 import time
 import os
-from constants.Constants import *
+from constants.StringConstants import output_dir, input_dir
+from constants.Messages import MSG_PROCESSING_SYMBOL
 from util.Utils import *
 from util.googledrive import *
 import traceback

@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 from pathlib import Path
 import pandas as pd
 from core.config import OUTPUT_DIR, ENABLE_AI_FEATURES
-from constants.Constants import (
+from constants.StringConstants import (
     FINANCIAL_STATEMENT_FILTER_KEYS,
     FINANCIAL_SHEET_NAMES,
     FINANCIAL_STATEMENT_TYPES,
@@ -35,8 +35,18 @@ from constants.Constants import (
     COLUMN_VALUE,
     COLUMN_ATTRIBUTE,
     COLUMN_INDICATOR,
-    # Messages
+    # Formatting
     NOT_AVAILABLE
+)
+from constants.Messages import (
+    # Word document headers
+    DOC_HEADER_COMPANY_INFO,
+    DOC_HEADER_INCOME_STATEMENT,
+    DOC_HEADER_BALANCE_SHEET,
+    DOC_HEADER_CASH_FLOW,
+    DOC_HEADER_AI_SUMMARY,
+    # Messages
+    MSG_NO_DATA_AVAILABLE
 )
 import os
 
@@ -242,30 +252,30 @@ class ReportService:
         
         # Add company info
         if "info" in data:
-            doc.add_heading("Company Information", level=1)
+            doc.add_heading(DOC_HEADER_COMPANY_INFO, level=1)
             for key, value in data["info"].items():
                 doc.add_paragraph(f"{key}: {value}")
         
         # Add financial statements
         if "income_statement" in data and not data["income_statement"].empty:
-            doc.add_heading("Income Statement", level=1)
+            doc.add_heading(DOC_HEADER_INCOME_STATEMENT, level=1)
             self._add_dataframe_to_doc(doc, data["income_statement"])
         
         if "balance_sheet" in data and not data["balance_sheet"].empty:
-            doc.add_heading("Balance Sheet", level=1)
+            doc.add_heading(DOC_HEADER_BALANCE_SHEET, level=1)
             self._add_dataframe_to_doc(doc, data["balance_sheet"])
         
         if "cashflow" in data and not data["cashflow"].empty:
-            doc.add_heading("Cash Flow Statement", level=1)
+            doc.add_heading(DOC_HEADER_CASH_FLOW, level=1)
             self._add_dataframe_to_doc(doc, data["cashflow"])
         
         # Add AI summary if available
         if ENABLE_AI_FEATURES and "summary" in data and data["summary"]:
-            doc.add_heading("AI Analysis Summary", level=1)
+            doc.add_heading(DOC_HEADER_AI_SUMMARY, level=1)
             doc.add_paragraph(data["summary"])
         
         # Save the document
-        output_path = os.path.join(self.reports_dir, f"{symbol}_Analysis_Report.docx")
+        output_path = os.path.join(self.reports_dir, f"{ANALYSIS_REPORT_FILE_PATTERN.format(symbol=symbol)}{WORD_EXTENSION}")
 
         doc.save(str(output_path))
         
@@ -274,7 +284,7 @@ class ReportService:
     def _add_dataframe_to_doc(self, doc: Document, df: pd.DataFrame) -> None:
         """Add a DataFrame to a Word document."""
         if df.empty:
-            doc.add_paragraph("No data available")
+            doc.add_paragraph(MSG_NO_DATA_AVAILABLE)
             return
         
         # Convert DataFrame to table

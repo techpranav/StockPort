@@ -1,20 +1,17 @@
-from constants.Constants import *
 import os
+from constants.StringConstants import output_dir
 from datetime import datetime
 
 outputDirectory = None
 
 def getSymbolOutputDirectory(stock_symbol):
-    ticker_dir = f"{getOutputDirectory()}\\{stock_symbol}"
+    ticker_dir = f"{output_dir}\\{stock_symbol}"
     os.makedirs(ticker_dir, exist_ok=True)
     return ticker_dir
 
 def getOutputDirectory():
-    global outputDirectory
-    if outputDirectory is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Assumes 'output_dir' is defined in constants.Constants.
-        outputDirectory = f"{output_dir}_{timestamp}"
-        os.makedirs(outputDirectory, exist_ok=True)
-
-    return outputDirectory
+    """
+    Create and return the output directory path.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    return output_dir

@@ -1,3 +1,6 @@
+# Technical String Constants and Configuration Keys
+# This file contains technical constants, API keys, file patterns, and configuration values
+
 # Directory paths
 output_dir="D:\\OneDrive - Technia AB\\Pranav\\Development\\Projects\\Upwork\\StockAnalyzer\\output\\output"
 input_dir="D:\\OneDrive - Technia AB\\Pranav\\Development\\Projects\\Upwork\\StockAnalyzer\\input"
@@ -21,12 +24,11 @@ REPORTS_DIR = "reports"
 INPUT_DIR_NAME = "input"
 OUTPUT_DIR_NAME = "output"
 
-# File Names
-STOCKS_FILE = "stocks.txt"
+# File Names (consolidated - removed duplicates)
+STOCK_FILE = "stocks.txt"
 COMPLETED_FILE = "completed.txt"
 FAILED_FILE = "failed.txt"
-COMPLETED_STOCKS_FILE = "completed_stocks.txt"
-FAILED_STOCKS_FILE = "failed_stocks.txt"
+TEMP_STOCKS_FILE = "temp_stocks.txt"
 
 # Excel Sheet Names
 SHEET_COMPANY_INFO = "Company Info"
@@ -41,19 +43,6 @@ TAB_TECHNICAL_ANALYSIS = "Technical Analysis"
 TAB_FUNDAMENTAL_ANALYSIS = "Fundamental Analysis"
 TAB_PORTFOLIO = "Portfolio"
 
-# UI Headers and Titles
-HEADER_SINGLE_STOCK_ANALYSIS = "Single Stock Analysis"
-HEADER_MASS_ANALYSIS = "Mass Analysis"
-HEADER_MASS_STOCK_ANALYSIS = "Mass Stock Analysis"
-
-# UI Section Headers (with emojis)
-SECTION_FINANCIAL_METRICS = "#### 📊 Financial Metrics"
-SECTION_COMPANY_INFO = "#### 🏢 Company Information"
-SECTION_TECHNICAL_ANALYSIS = "#### 📈 Technical Analysis"
-SECTION_BALANCE_SHEET = "#### 💰 Balance Sheet Summary"
-SECTION_CASH_FLOW = "#### 💸 Cash Flow Summary"
-SECTION_AI_ANALYSIS = "#### 🤖 AI Analysis"
-
 # DataFrame Column Names
 COLUMN_METRIC = "Metric"
 COLUMN_VALUE = "Value"
@@ -64,14 +53,6 @@ COLUMN_STOCK_NAME = "Stock Name"
 COLUMN_OVERVIEW = "Overview"
 COLUMN_SUMMARY = "Summary"
 COLUMN_DECISION = "Decision"
-
-# Status Messages
-MSG_NO_FINANCIAL_METRICS = "No financial metrics available"
-MSG_NO_COMPANY_INFO = "No company information available"
-MSG_NO_TECHNICAL_DATA = "No technical analysis data available"
-MSG_NO_FUNDAMENTAL_DATA = "No fundamental analysis data available"
-MSG_NO_PORTFOLIO_DATA = "No portfolio analysis data available"
-MSG_ANALYSIS_COMPLETE = "Analysis complete for {total_stocks} stocks"
 
 # Currency and Formatting
 CURRENCY_SYMBOL = "$"
@@ -294,32 +275,23 @@ CASHFLOW_EXPORT_KEYS = [
     "Cash Dividends Paid"
 ]
 
-# API Related Constants
+# API Related Constants (consolidated - removed duplicates)
 API_RETRY_ATTEMPTS = 5
-API_DELAY_SECONDS = 60
+DELAY_BETWEEN_CALLS = 60  # seconds between API calls (was also API_DELAY_SECONDS)
 RATE_LIMIT_DELAY = 10
 
-# Log Messages
-LOG_FETCHING_DATA = "Fetching data for {symbol}"
-LOG_DATA_FETCHED = "Successfully fetched data for {symbol}"
-LOG_ERROR_FETCHING = "Error fetching data for {symbol}: {error}"
-LOG_PROCESSING_STOCK = "Processing stock: {symbol}"
-LOG_STOCK_PROCESSED = "Successfully processed stock: {symbol}"
-LOG_ERROR_PROCESSING = "Error processing stock {symbol}: {error}"
+# AI Configuration
+CHATGPT = "chatgpt"
+OLLAMA = "ollama"
+DEFAULT_AI_MODE = CHATGPT
 
-# Error Messages
-ERROR_SYMBOL_NOT_FOUND = "Symbol not found: {symbol}"
-ERROR_DATA_FETCH_FAILED = "Failed to fetch data for {symbol}"
-ERROR_RATE_LIMIT = "Rate limit exceeded. Please try again later."
-ERROR_INVALID_SYMBOL = "Invalid symbol: {symbol}"
-ERROR_NO_DATA_AVAILABLE = "No data available for {symbol}"
-
-# Success Messages
-SUCCESS_DATA_SAVED = "Data saved successfully for {symbol}"
-SUCCESS_REPORT_GENERATED = "Report generated successfully for {symbol}"
-SUCCESS_ANALYSIS_COMPLETE = "Analysis completed successfully"
+# API Configuration
+OPENAI_API_KEY = ""  # Add your OpenAI API key here
 
 # Default Values
 DEFAULT_PERIOD = "1y"
 DEFAULT_INTERVAL = "1d"
 DEFAULT_LIMIT = 5
+
+# Options
+AI_MODEL_OPTIONS = ["ChatGPT", "Ollama"] 

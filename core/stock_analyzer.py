@@ -16,7 +16,9 @@ from core.config import (
     ENABLE_AI_FEATURES,
     ENABLE_GOOGLE_DRIVE,
     INPUT_DIR,
-    OUTPUT_DIR,
+    OUTPUT_DIR
+)
+from constants.StringConstants import (
     STOCK_FILE,
     COMPLETED_FILE,
     FAILED_FILE

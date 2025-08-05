@@ -2,7 +2,7 @@ import os
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from pydrive2.auth import ServiceAccountCredentials
-from constants.Constants import *
+from constants.StringConstants import input_dir
 
 def authenticate_drive():
     """Authenticate with Google Drive using a service account."""
