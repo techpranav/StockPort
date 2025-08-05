@@ -495,6 +495,51 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             DebugUtils.log_error(e, "Error generating technical signals")
             return TechnicalSignals()
     
+    def _normalize_technical_analysis(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize technical analysis from provider-specific format."""
+        try:
+            # Extract historical data from raw_data
+            history = raw_data.get('history', pd.DataFrame())
+            
+            if history.empty:
+                return {
+                    'indicators': {},
+                    'signals': {}
+                }
+            
+            # Get technical indicators and signals
+            indicators = self._normalize_technical_indicators(history)
+            signals = self._normalize_technical_signals(history)
+            
+            # Return as dictionary format
+            return {
+                'indicators': {
+                    'sma_20': getattr(indicators, 'sma_20', None),
+                    'sma_50': getattr(indicators, 'sma_50', None),
+                    'ema_12': getattr(indicators, 'ema_12', None),
+                    'ema_26': getattr(indicators, 'ema_26', None),
+                    'rsi': getattr(indicators, 'rsi', None),
+                    'macd': getattr(indicators, 'macd', None),
+                    'macd_signal': getattr(indicators, 'macd_signal', None),
+                    'macd_histogram': getattr(indicators, 'macd_histogram', None),
+                    'bollinger_upper': getattr(indicators, 'bollinger_upper', None),
+                    'bollinger_lower': getattr(indicators, 'bollinger_lower', None),
+                    'bollinger_middle': getattr(indicators, 'bollinger_middle', None)
+                },
+                'signals': {
+                    'trend': getattr(signals, 'trend', TREND_SIDEWAYS),
+                    'momentum': getattr(signals, 'momentum', MOMENTUM_NEUTRAL),
+                    'volatility': getattr(signals, 'volatility', VOLATILITY_NORMAL),
+                    'volume': getattr(signals, 'volume', VOLUME_NORMAL)
+                }
+            }
+        except Exception as e:
+            DebugUtils.log_error(e, "Error normalizing technical analysis")
+            return {
+                'indicators': {},
+                'signals': {}
+            }
+    
     def _normalize_financial_statements(self, financials_dict: Dict[str, Any]) -> FinancialStatements:
         """Normalize financial statements to FinancialStatements dataclass."""
         try:
