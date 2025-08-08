@@ -71,7 +71,7 @@ class FinancialAnalyzer:
                 revenue = income_stmt.loc['Total Revenue', latest_year]
                 net_income = income_stmt.loc['Net Income', latest_year]
                 total_assets = balance_sheet.loc['Total Assets', latest_year]
-                current_assets = balance_sheet.loc['Total Current Assets', latest_year]
+                current_assets = balance_sheet.loc['Current Assets', latest_year]
                 current_liabilities = balance_sheet.loc['Total Current Liabilities', latest_year]
                 
                 # Profit margin
