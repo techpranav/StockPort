@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import pandas as pd
 import json
-from constants.StringConstants import (
-    FINANCIAL_STATEMENT_FILTER_KEYS
-)
+
 @dataclass
 class CompanyInfo:
     """Standardized company information."""
@@ -154,13 +152,12 @@ class StockData:
             'technical_analysis': self.technical_analysis.__dict__,
             'technical_signals': self.technical_signals.__dict__,
             'financials': {
-
-                FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['income_statement']: self.financials.yearly_income_statement,
-                FINANCIAL_STATEMENT_FILTER_KEYS['quarterly']['income_statement']: self.financials.quarterly_income_statement,
-                FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['balance_sheet']: self.financials.yearly_balance_sheet,
-                FINANCIAL_STATEMENT_FILTER_KEYS['quarterly']['balance_sheet']: self.financials.quarterly_balance_sheet,
-                FINANCIAL_STATEMENT_FILTER_KEYS['yearly']['cashflow']: self.financials.yearly_cash_flow,
-                FINANCIAL_STATEMENT_FILTER_KEYS['quarterly']['cashflow']: self.financials.quarterly_cash_flow,
+                'yearly_balance_sheet': self.financials.yearly_balance_sheet,
+                'quarterly_balance_sheet': self.financials.quarterly_balance_sheet,
+                'yearly_income_statement': self.financials.yearly_income_statement,
+                'quarterly_income_statement': self.financials.quarterly_income_statement,
+                'yearly_cash_flow': self.financials.yearly_cash_flow,
+                'quarterly_cash_flow': self.financials.quarterly_cash_flow,
             },
             'news': [news.__dict__ for news in self.news],
             'raw_data': self.raw_data,
