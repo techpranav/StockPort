@@ -144,6 +144,27 @@ provider = StockDataFactory.get_default_provider()
 stock_data = provider.fetch_stock_data('AAPL')
 ```
 
+## Google Drive
+
+The app can upload generated reports to Google Drive.
+
+See: [Google Drive Setup](./GOOGLE_DRIVE_SETUP.md)
+
+Supported auth modes:
+
+- User OAuth (Desktop) – interactive sign-in on first run
+- Service Account – headless, for servers/CI
+
+Environment variables:
+
+```
+GOOGLE_DRIVE_USE_SERVICE_ACCOUNT=false  # or true
+GOOGLE_DRIVE_CREDENTIALS_FILE=config/credentials/client_secret.json
+GOOGLE_APPLICATION_CREDENTIALS=config/credentials/service_account.json
+GOOGLE_DRIVE_FOLDER_ID=<folder_id>
+GOOGLE_DRIVE_SCOPES=https://www.googleapis.com/auth/drive.file
+```
+
 ## Best Practices
 
 1. Always implement rate limiting

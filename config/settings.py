@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 
 # Feature Flags
-ENABLE_AI_FEATURES = True
-ENABLE_GOOGLE_DRIVE = False  # Set to True to enable Google Drive integration
+ENABLE_AI_FEATURES = False
+ENABLE_GOOGLE_DRIVE = True  # Set to True to enable Google Drive integration
 ENABLE_TECHNICAL_ANALYSIS = True
 ENABLE_FUNDAMENTAL_ANALYSIS = True
 ENABLE_PORTFOLIO_ANALYSIS = True
@@ -60,7 +60,20 @@ DEFAULT_AI_MODEL = "gpt-3.5-turbo"
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Google Drive Settings
-GOOGLE_DRIVE_CREDENTIALS_FILE = INPUT_DIR / "Service Account.json"
+# End-user friendly default: User OAuth (Desktop)
+GOOGLE_DRIVE_USE_SERVICE_ACCOUNT = os.getenv("GOOGLE_DRIVE_USE_SERVICE_ACCOUNT", "false").lower() == "true"
+GOOGLE_DRIVE_SCOPES = os.getenv("GOOGLE_DRIVE_SCOPES", "https://www.googleapis.com/auth/drive.file")
+GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")  # optional default upload folder
+
+# OAuth client secret JSON (for User OAuth)
+GOOGLE_DRIVE_CREDENTIALS_FILE = Path(
+    os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE", str(BASE_DIR / "config" / "credentials" / "client_secret.json"))
+)
+
+# Service Account JSON (for headless mode)
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
+    "GOOGLE_APPLICATION_CREDENTIALS", str(BASE_DIR / "config" / "credentials" / "service_account.json")
+)
 
 class Settings:
     """Configuration management for the application."""

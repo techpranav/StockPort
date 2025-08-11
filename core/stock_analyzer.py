@@ -34,13 +34,28 @@ from exceptions.stock_data_exceptions import DataAnalysisException
 from config.settings import ENABLE_GOOGLE_DRIVE
 
 class StockAnalyzer:
-    def __init__(self, input_dir: str, output_dir: str, ai_mode: str = None, days_back: int = 365, delay_between_calls: int = 60):
+    def __init__(
+        self,
+        input_dir: str,
+        output_dir: str,
+        ai_mode: str = None,
+        days_back: int = 365,
+        delay_between_calls: int = 60,
+        drive_folder_id: str = None,
+        create_date_folders: bool = False,
+        generate_word_report: bool = True,
+        generate_excel_report: bool = True,
+    ):
         """Initialize the stock analyzer."""
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
         self.ai_mode = ai_mode
         self.days_back = days_back
         self.delay_between_calls = delay_between_calls
+        self.drive_folder_id = drive_folder_id
+        self.create_date_folders = create_date_folders
+        self.generate_word_report = generate_word_report
+        self.generate_excel_report = generate_excel_report
         
         # Create directories if they don't exist
         self.input_dir.mkdir(exist_ok=True)
@@ -55,7 +70,11 @@ class StockAnalyzer:
         if ENABLE_GOOGLE_DRIVE:
             self.drive_utils = GoogleDriveManager()
         
-        DebugUtils.info(f"Initialized StockAnalyzer with days_back={days_back}, delay_between_calls={delay_between_calls}")
+        DebugUtils.info(
+            f"Initialized StockAnalyzer with days_back={days_back}, delay_between_calls={delay_between_calls}, "
+            f"drive_folder_id={drive_folder_id}, create_date_folders={create_date_folders}, "
+            f"generate_word_report={generate_word_report}, generate_excel_report={generate_excel_report}"
+        )
     
     def process_stock(self, symbol: str) -> Dict[str, Any]:
         """Process a single stock symbol."""
@@ -72,14 +91,34 @@ class StockAnalyzer:
             # Save filtered data (using legacy format for now)
             self.file_utils.save_filtered_data(symbol, stock_dict, self.output_dir)
             
-            # Generate reports with days_back information
-            word_report_path = self.report_service.generate_word_report(symbol, stock_dict, days_back=self.days_back)
-            excel_report_path = self.report_service.generate_excel_report(symbol, stock_dict, days_back=self.days_back)
+            # Generate reports with days_back information based on selected types
+            word_report_path = None
+            excel_report_path = None
+            if self.generate_word_report:
+                word_report_path = self.report_service.generate_word_report(
+                    symbol, stock_dict, days_back=self.days_back
+                )
+            if self.generate_excel_report:
+                excel_report_path = self.report_service.generate_excel_report(
+                    symbol, stock_dict, days_back=self.days_back
+                )
             
             # Upload to Google Drive if enabled
             if ENABLE_GOOGLE_DRIVE:
-                self.drive_utils.upload_file(word_report_path)
-                self.drive_utils.upload_file(excel_report_path)
+                if word_report_path:
+                    self.drive_utils.upload_file(
+                        word_report_path,
+                        folder_id=self.drive_folder_id,
+                        create_date_folder=self.create_date_folders,
+                        symbol=symbol,
+                    )
+                if excel_report_path:
+                    self.drive_utils.upload_file(
+                        excel_report_path,
+                        folder_id=self.drive_folder_id,
+                        create_date_folder=self.create_date_folders,
+                        symbol=symbol,
+                    )
             
             # Return comprehensive result
             result = {
@@ -89,6 +128,8 @@ class StockAnalyzer:
                 'excel_report_path': excel_report_path,
                 'analysis_date': datetime.now().isoformat(),
                 'days_back': self.days_back,
+                'drive_folder_id': self.drive_folder_id,
+                'create_date_folders': self.create_date_folders,
                 'data_summary': {
                     'has_history': not stock_dict.get('history', pd.DataFrame()).empty,
                     'has_financials': bool(stock_dict.get('financials')),
