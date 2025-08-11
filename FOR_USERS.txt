@@ -1,0 +1,42 @@
+========================================
+   STOCK ANALYSIS TOOL - FOR USERS
+========================================
+
+🎯 QUICK START:
+1. Double-click "EASY_INSTALL.bat" (Windows) or run "install_and_run.sh" (Mac/Linux)
+2. Wait for installation (5-15 minutes, includes Python if needed)
+3. Tool opens automatically in your browser
+4. Start analyzing stocks!
+
+📊 WHAT YOU CAN DO:
+- Analyze individual stocks (AAPL, MSFT, GOOGL, etc.)
+- Analyze multiple stocks at once from a text file
+- Generate Excel and Word reports
+- Upload reports to Google Drive (optional)
+
+🚀 AFTER FIRST INSTALLATION:
+- Use "launch_tool.bat" (Windows) or "launch_tool.sh" (Mac/Linux)
+- Tool opens at: http://localhost:8501
+
+📁 YOUR REPORTS:
+- Saved in the "output" folder
+- Automatically organized by date and symbol
+- Can be uploaded to Google Drive if configured
+
+🐍 PYTHON INSTALLATION:
+- The tool automatically installs Python if needed
+- No manual Python installation required
+- First run takes longer (10-15 minutes)
+- Subsequent runs are faster (5-10 minutes)
+
+🆘 NEED HELP?
+- Check "QUICK_START.md" for detailed instructions
+- Look in the "logs" folder for error messages
+- Common issues and solutions are in the guides
+
+📖 READ THE GUIDES:
+- QUICK_START.md - Complete user guide
+- README.md - Technical documentation
+- SERVER_DEPLOYMENT.md - For server setup
+
+Happy Analyzing! 📈
