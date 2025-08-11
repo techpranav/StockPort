@@ -50,6 +50,12 @@ from config.constants.Messages import (
 import numpy as np
 import zipfile
 import tempfile
+import os
+import time
+
+# Import StockAnalyzer for analysis functionality
+from core.stock_analyzer import StockAnalyzer
+from utils.google_drive_utils import GoogleDriveManager
 
 @st.cache_data
 def get_file_download_data(file_path: str) -> bytes:
@@ -104,79 +110,96 @@ def create_reports_zip_data(successful_analyses: List[Dict[str, Any]], report_ty
         DebugUtils.log_error(e, f"Error creating ZIP data for {report_type} reports")
         return None, 0
 
-def display_single_stock_analysis():
-    """Display single stock analysis interface."""
-    st.header(HEADER_SINGLE_STOCK_ANALYSIS)
+def display_single_stock_analysis(symbol: str, days_back: int = 365):
+    """Display single stock analysis with results."""
     
-    # Stock symbol input
-    symbol = st.text_input(
-        "Enter Stock Symbol:",
-        placeholder=PLACEHOLDER_STOCK_SYMBOL,
-        key="single_stock_symbol"
-    ).upper().strip()
+    # Check if analysis is running
+    analysis_running_key = f'analysis_running_{symbol}'
+    if analysis_running_key not in st.session_state:
+        st.session_state[analysis_running_key] = False
     
-    # Analysis button
-    if st.button(BUTTON_ANALYZE, key="analyze_single_stock"):
-        if symbol:
-            # Clear any existing results for this symbol before starting new analysis
-            if f'analysis_result_{symbol}' in st.session_state:
-                del st.session_state[f'analysis_result_{symbol}']
-            # Set flag to indicate analysis is running (hide any existing results)
-            st.session_state[f'analysis_running_{symbol}'] = True
-            with st.spinner(f"Analyzing {symbol}..."):
-                try:
-                    # Import here to avoid circular imports
-                    from core.stock_analyzer import StockAnalyzer
-                    from config.constants.StringConstants import input_dir, output_dir
-
-                    # Get configuration from session state
-                    config = st.session_state.get('config', {})
-
-                    # Initialize analyzer with configuration
-                    analyzer = StockAnalyzer(
-                        input_dir=input_dir,
-                        output_dir=output_dir,
-                        ai_mode=config.get('ai_model'),
-                        days_back=config.get('days_back', 365),
-                        delay_between_calls=config.get('delay_between_calls', 60)
-                    )
-
-                    # Process the stock
-                    result = analyzer.process_stock(symbol)
-
-                    if result['status'] == 'success':
-                        st.success(MSG_ANALYSIS_COMPLETE)
-                        display_analysis_results(result)
-                        # Store result after display to persist across download interactions
-                        st.session_state[f'analysis_result_{symbol}'] = result
-                    else:
-                        st.error(f"{ERROR_ANALYZING_SYMBOL} {symbol}: {result.get('error', 'Unknown error')}")
-                    
-                    # Clear the analysis running flag
-                    if f'analysis_running_{symbol}' in st.session_state:
-                        del st.session_state[f'analysis_running_{symbol}']
-
-                except Exception as e:
-                    DebugUtils.log_error(e, f"Error in single stock analysis for {symbol}")
-                    st.error(f"{ERROR_ANALYZING_SYMBOL} {symbol}: {str(e)}")
-                    # Clear the analysis running flag even on error
-                    if f'analysis_running_{symbol}' in st.session_state:
-                        del st.session_state[f'analysis_running_{symbol}']
-        else:
-            st.warning("Please enter a stock symbol.")
-
-    # Show stored results if available (for download interactions, not during analysis)
-    elif symbol and f'analysis_result_{symbol}' in st.session_state and not st.session_state.get(f'analysis_running_{symbol}', False):
-        # Show stored results for download interactions
-        stored_result = st.session_state[f'analysis_result_{symbol}']
+    # Check if analysis result is visible
+    analysis_result_visible_key = f'analysis_result_visible_{symbol}'
+    if analysis_result_visible_key not in st.session_state:
+        st.session_state[analysis_result_visible_key] = False
+    
+    # Get stored result
+    result_key = f'analysis_result_{symbol}'
+    stored_result = st.session_state.get(result_key)
+    
+    # Display analysis form
+    with st.form(key=f"analysis_form_{symbol}"):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            days_back = st.slider(
+                "Days of historical data:",
+                min_value=30,
+                max_value=1095,  # 3 years
+                value=days_back,
+                key=f"days_back_{symbol}"
+            )
+        with col2:
+            analyze_button = st.form_submit_button("🔍 Analyze", use_container_width=True)
+        
+        if analyze_button:
+            # Clear previous results and set running state
+            st.session_state[analysis_running_key] = True
+            st.session_state[analysis_result_visible_key] = False
+            
+            # Clear stored result
+            if result_key in st.session_state:
+                del st.session_state[result_key]
+            
+            # Clear all analysis-related session state for this symbol
+            keys_to_clear = [key for key in st.session_state.keys() if key.startswith(f'analysis_') and symbol in key and key != analysis_running_key]
+            for key in keys_to_clear:
+                del st.session_state[key]
+            
+            st.rerun()
+    
+    # Show loading if analysis is running
+    if st.session_state.get(analysis_running_key, False):
+        with st.spinner(f"Analyzing {symbol}..."):
+            try:
+                # Get drive settings from saved configuration
+                mgr = GoogleDriveManager()
+                drive_folder_id = mgr.get_saved_folder_id()
+                create_date_folders = mgr.get_saved_date_folder_preference()
+                
+                # Initialize analyzer with drive settings
+                analyzer = StockAnalyzer(
+                    input_dir="input",
+                    output_dir="output", 
+                    days_back=days_back,
+                    drive_folder_id=drive_folder_id,
+                    create_date_folders=create_date_folders
+                )
+                
+                # Process the stock
+                result = analyzer.process_stock(symbol)
+                
+                # Store result and update state
+                st.session_state[result_key] = result
+                st.session_state[analysis_running_key] = False
+                st.session_state[analysis_result_visible_key] = True
+                
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Error analyzing {symbol}: {str(e)}")
+                st.session_state[analysis_running_key] = False
+                st.session_state[analysis_result_visible_key] = False
+    
+    # Display stored results if available and visible
+    elif stored_result and st.session_state.get(analysis_result_visible_key, False):
         display_analysis_results(stored_result)
-
-        # Add Clear Results button
-        if st.button("🗑️ Clear Results", key="clear_single_analysis"):
-            del st.session_state[f'analysis_result_{symbol}']
-            # Clear all related flags
-            if f'analysis_running_{symbol}' in st.session_state:
-                del st.session_state[f'analysis_running_{symbol}']
+        
+        # Clear results button
+        if st.button("🗑️ Clear Results", key=f"clear_results_{symbol}"):
+            # Clear all analysis-related session state for this symbol
+            keys_to_clear = [key for key in st.session_state.keys() if key.startswith(f'analysis_') and symbol in key]
+            for key in keys_to_clear:
+                del st.session_state[key]
             st.rerun()
 
 
@@ -184,8 +207,12 @@ def display_mass_stock_analysis():
     """Display mass stock analysis interface."""
     st.header(HEADER_MASS_STOCK_ANALYSIS)
 
-    # Add Clear Results button if there are stored results
-    if 'mass_analysis_successful' in st.session_state or 'mass_analysis_failed' in st.session_state:
+    # Determine if analysis is running or results are present
+    analysis_running = st.session_state.get('mass_analysis_running', False)
+    results_present = 'mass_analysis_successful' in st.session_state or 'mass_analysis_failed' in st.session_state
+
+    # Show Clear Results button if results are present
+    if results_present:
         if st.button("🗑️ Clear Mass Analysis Results", key="clear_mass_analysis"):
             # Clear all mass analysis results from session state
             keys_to_remove = ['mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols']
@@ -194,71 +221,81 @@ def display_mass_stock_analysis():
                     del st.session_state[key]
             st.rerun()
 
-    # File upload with custom styling
-    st.markdown("""
-    <style>
-    .uploadedFile {
-        background-color: #f0f2f6;
-        border: 2px dashed #cccccc;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
-        margin: 20px 0;
-    }
-    .uploadedFile:hover {
-        border-color: #1f77b4;
-        background-color: #e8f4fd;
-    }
-    .results-container {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Only show uploader and analyze controls if not running and no results
+    if not analysis_running and not results_present:
+        st.markdown("""
+        <style>
+        .uploadedFile {
+            background-color: #f0f2f6;
+            border: 2px dashed #cccccc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .uploadedFile:hover {
+            border-color: #1f77b4;
+            background-color: #e8f4fd;
+        }
+        .results-container {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
-    # File uploader
-    uploaded_file = st.file_uploader(
-        "Upload a text file with stock symbols (one per line):",
-        type=['txt'],
-        help="Upload a .txt file containing stock symbols, one symbol per line",
-        key="mass_analysis_file_uploader"
-    )
+        # File uploader
+        uploaded_file = st.file_uploader(
+            "Upload a text file with stock symbols (one per line):",
+            type=['txt'],
+            help="Upload a .txt file containing stock symbols, one symbol per line",
+            key="mass_analysis_file_uploader"
+        )
 
-    if uploaded_file is not None:
-        # Display file preview
-        try:
-            content = uploaded_file.read().decode('utf-8')
-            symbols = [line.strip().upper() for line in content.splitlines() if line.strip()]
+        if uploaded_file is not None:
+            # Display file preview
+            try:
+                content = uploaded_file.read().decode('utf-8')
+                symbols = [line.strip().upper() for line in content.splitlines() if line.strip()]
 
-            st.success(f"✅ File uploaded successfully! Found {len(symbols)} symbols.")
+                st.success(f"✅ File uploaded successfully! Found {len(symbols)} symbols.")
 
-            # Show preview of symbols
-            with st.expander("📋 Preview symbols", expanded=False):
-                st.write(", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
+                # Show preview of symbols
+                with st.expander("📋 Preview symbols", expanded=False):
+                    st.write(", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
 
-            # Analysis button
-            if st.button(BUTTON_ANALYZE, key="analyze_mass_stocks"):
-                if symbols:
-                    # Clear any existing mass analysis results before starting new analysis
-                    keys_to_remove = ['mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols']
-                    for key in keys_to_remove:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    # Set flag to indicate mass analysis is running
-                    st.session_state['mass_analysis_running'] = True
-                    process_mass_analysis(symbols)
-                else:
-                    st.warning("No valid symbols found in the uploaded file.")
+                # History duration slider
+                days_back_val = st.slider(
+                    "Days of historical data:",
+                    min_value=30,
+                    max_value=1095,
+                    value=st.session_state.get('mass_days_back', 365),
+                    key="mass_days_back"
+                )
 
-        except Exception as e:
-            st.error(f"Error reading file: {str(e)}")
-    
+                # Analyze All button
+                if st.button("🔍 Analyze All", key="analyze_mass_stocks"):
+                    if symbols:
+                        # Clear any existing mass analysis results before starting new analysis
+                        keys_to_remove = ['mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols']
+                        for key in keys_to_remove:
+                            if key in st.session_state:
+                                del st.session_state[key]
+                        # Set flag to indicate mass analysis is running
+                        st.session_state['mass_analysis_running'] = True
+                        process_mass_analysis(symbols, days_back=st.session_state.get('mass_days_back', 365))
+                    else:
+                        st.warning("No valid symbols found in the uploaded file.")
+
+            except Exception as e:
+                st.error(f"Error reading file: {str(e)}")
+
     # Display stored mass analysis results if available (for download interactions, not during analysis)
-    if ('mass_analysis_successful' in st.session_state or 'mass_analysis_failed' in st.session_state) and not st.session_state.get('mass_analysis_running', False):
+    if results_present and not analysis_running:
         successful_analyses = st.session_state.get('mass_analysis_successful', [])
         failed_analyses = st.session_state.get('mass_analysis_failed', [])
         symbols = st.session_state.get('mass_analysis_symbols', [])
@@ -323,78 +360,85 @@ def display_mass_stock_analysis():
                 for failed in failed_analyses:
                     st.error(f"**{failed['symbol']}**: {failed['error']}")
 
-def process_mass_analysis(symbols: List[str]):
-    """Process multiple stock symbols for analysis."""
-    try:
-        # Import here to avoid circular imports
-        from core.stock_analyzer import StockAnalyzer
-        from config.constants.StringConstants import input_dir, output_dir
-
-        # Get configuration from session state
-        config = st.session_state.get('config', {})
-
-        # Initialize analyzer with configuration
-        analyzer = StockAnalyzer(
-            input_dir=input_dir,
-            output_dir=output_dir,
-            ai_mode=config.get('ai_model'),
-            days_back=config.get('days_back', 365),
-            delay_between_calls=config.get('delay_between_calls', 60)
-        )
-
-        # Progress tracking
+def process_mass_analysis(symbols: List[str], days_back: int = 365):
+    """Process mass analysis for multiple symbols."""
+    # Ensure flags exist
+    if 'mass_analysis_running' not in st.session_state:
+        st.session_state['mass_analysis_running'] = False
+    if 'mass_analysis_result_visible' not in st.session_state:
+        st.session_state['mass_analysis_result_visible'] = False
+    
+    # Show loading if mass analysis is running
+    if st.session_state.get('mass_analysis_running', False):
         progress_bar = st.progress(0)
         status_text = st.empty()
-        results_container = st.container()
-
-        successful_analyses = []
-        failed_analyses = []
-
-        # Process each symbol
-        for i, symbol in enumerate(symbols):
-            try:
-                status_text.text(f"Processing {symbol} ({i+1}/{len(symbols)})...")
-                progress_bar.progress((i + 1) / len(symbols))
-
-                # Process the stock
-                result = analyzer.process_stock(symbol)
-
-                if result['status'] == 'success':
-                    successful_analyses.append(result)
-                    with results_container:
-                        st.success(f"✅ {symbol}: Analysis completed")
-                else:
-                    failed_analyses.append({'symbol': symbol, 'error': result.get('error', 'Unknown error')})
-                    with results_container:
-                        st.error(f"❌ {symbol}: {result.get('error', 'Analysis failed')}")
-
-            except Exception as e:
-                DebugUtils.log_error(e, f"Error processing {symbol} in mass analysis")
-                failed_analyses.append({'symbol': symbol, 'error': str(e)})
-                with results_container:
-                    st.error(f"❌ {symbol}: {str(e)}")
-
-        # Final summary
-        status_text.text(MSG_PROCESSING_COMPLETE)
-
-        # Store results in session state for persistence
-        st.session_state['mass_analysis_successful'] = successful_analyses
-        st.session_state['mass_analysis_failed'] = failed_analyses
-        st.session_state['mass_analysis_symbols'] = symbols
+        live_results_container = st.container()
+        live_failed_container = st.container()
         
-        # Clear the mass analysis running flag
-        if 'mass_analysis_running' in st.session_state:
-            del st.session_state['mass_analysis_running']
-
-        # Results are now stored in session state and will be displayed by display_mass_stock_analysis
-
-    except Exception as e:
-        DebugUtils.log_error(e, "Error in mass stock analysis")
-        st.error(f"{ERROR_MASS_ANALYSIS}: {str(e)}")
-        # Clear the mass analysis running flag even on error
-        if 'mass_analysis_running' in st.session_state:
-            del st.session_state['mass_analysis_running']
-
+        successful = []
+        failed = []
+        
+        try:
+            # Get drive settings from saved configuration
+            mgr = GoogleDriveManager()
+            drive_folder_id = mgr.get_saved_folder_id()
+            create_date_folders = mgr.get_saved_date_folder_preference()
+            
+            # Initialize analyzer with drive settings
+            analyzer = StockAnalyzer(
+                input_dir="input",
+                output_dir="output",
+                days_back=days_back,
+                drive_folder_id=drive_folder_id,
+                create_date_folders=create_date_folders
+            )
+            
+            total_symbols = len(symbols)
+            for i, symbol in enumerate(symbols):
+                symbol = symbol.strip().upper()
+                if not symbol:
+                    continue
+                
+                # Update progress
+                progress = (i + 1) / total_symbols
+                progress_bar.progress(progress)
+                status_text.text(f"Analyzing {symbol}... ({i + 1}/{total_symbols})")
+                
+                try:
+                    result = analyzer.process_stock(symbol)
+                    if result['status'] == 'success':
+                        successful.append(result)
+                        # Render live result for this symbol
+                        with live_results_container.expander(f"📈 {result['symbol']} - View Details (live)"):
+                            display_analysis_results(result)
+                    else:
+                        failed.append({'symbol': symbol, 'error': result.get('error', 'Unknown error')})
+                        with live_failed_container:
+                            st.error(f"{symbol}: {result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    failed.append({'symbol': symbol, 'error': str(e)})
+                    with live_failed_container:
+                        st.error(f"{symbol}: {str(e)}")
+                
+                # Small delay between calls
+                time.sleep(1)
+            
+            # Store results
+            st.session_state['mass_analysis_successful'] = successful
+            st.session_state['mass_analysis_failed'] = failed
+            st.session_state['mass_analysis_symbols'] = symbols
+            st.session_state['mass_analysis_running'] = False
+            st.session_state['mass_analysis_result_visible'] = True
+            
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error in mass analysis: {str(e)}")
+            st.session_state['mass_analysis_running'] = False
+            st.session_state['mass_analysis_result_visible'] = False
+    
+    # Do not render any additional UI in this function; rendering is handled by display_mass_stock_analysis
+    # Only processing happens here; results will be rendered on the next rerun by display_mass_stock_analysis
 
 
 def display_analysis_results(result: Dict[str, Any]):

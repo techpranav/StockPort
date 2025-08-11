@@ -11,6 +11,7 @@ A Python-based tool for fetching, analyzing, and exporting stock market data usi
 - Rate limiting and retry logic
 - Comprehensive error handling
 - Debug logging system
+- Optional Google Drive upload for reports
 
 ## Installation
 
@@ -94,12 +95,24 @@ DataExporter.export_to_excel("AAPL", data['financials']['yearly'])
 
 ## Configuration
 
-The application can be configured through the `config/settings.py` file:
+The application can be configured through the `config/settings.py` file and environment variables:
 
 - API settings (rate limits, retries)
 - File paths
 - Logging settings
 - Analysis parameters
+
+### Google Drive (optional)
+
+Follow the docs guide to enable Google Drive uploads:
+
+- Docs: `docs/GOOGLE_DRIVE_SETUP.md`
+- Summary of env vars:
+  - `GOOGLE_DRIVE_USE_SERVICE_ACCOUNT` (true|false)
+  - `GOOGLE_DRIVE_CREDENTIALS_FILE` (OAuth client JSON)
+  - `GOOGLE_APPLICATION_CREDENTIALS` (Service Account JSON)
+  - `GOOGLE_DRIVE_FOLDER_ID`
+  - `GOOGLE_DRIVE_SCOPES` (default: `https://www.googleapis.com/auth/drive.file`)
 
 ## Error Handling
 

@@ -5,7 +5,6 @@ import pandas as pd
 
 # Feature Flags
 ENABLE_AI_FEATURES = False  # Set to True to enable AI analysis
-ENABLE_GOOGLE_DRIVE = False  # Set to True to enable Google Drive integration
 ENABLE_TECHNICAL_ANALYSIS = True  # Set to True to enable technical analysis features
 ENABLE_FUNDAMENTAL_ANALYSIS = True  # Set to True to enable fundamental analysis features
 ENABLE_PORTFOLIO_ANALYSIS = True  # Set to True to enable portfolio analysis features
