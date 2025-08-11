@@ -1,13 +1,15 @@
 pipelines:
   branches:
-    develop:
+    "release/develop":
       - step:
-          name: Mirror develop branch to GitHub
+          name: Mirror release/develop branch to GitHub
           image: atlassian/default-image:3
           script:
             - apt-get update && apt-get install -y git
             - git config --global user.name "$GITHUB_USERNAME"
             - git config --global user.email "$GITHUB_USERNAME@users.noreply.github.com"
+            # Add GitHub remote with authentication
             - git remote add mirror https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/StockPort.git
-            - git push mirror develop --force
+            # Push this branch and tags to GitHub
+            - git push mirror release/develop --force
             - git push mirror --tags --force
