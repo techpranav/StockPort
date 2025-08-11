@@ -167,12 +167,18 @@ def display_single_stock_analysis(symbol: str, days_back: int = 365):
                 create_date_folders = mgr.get_saved_date_folder_preference()
                 
                 # Initialize analyzer with drive settings
+                # Respect export options from sidebar configuration
+                config = st.session_state.get('config', {})
+                single_gen_excel = config.get('export_excel', True)
+                single_gen_word = config.get('export_word', True)
                 analyzer = StockAnalyzer(
                     input_dir="input",
                     output_dir="output", 
                     days_back=days_back,
                     drive_folder_id=drive_folder_id,
-                    create_date_folders=create_date_folders
+                    create_date_folders=create_date_folders,
+                    generate_excel_report=single_gen_excel,
+                    generate_word_report=single_gen_word,
                 )
                 
                 # Process the stock
@@ -277,22 +283,47 @@ def display_mass_stock_analysis():
                     key="mass_days_back"
                 )
 
+                # Use export options from sidebar configuration
+                config = st.session_state.get('config', {})
+                gen_excel = config.get('export_excel', True)
+                gen_word = config.get('export_word', True)
+
                 # Analyze All button
                 if st.button("🔍 Analyze All", key="analyze_mass_stocks"):
                     if symbols:
                         # Clear any existing mass analysis results before starting new analysis
-                        keys_to_remove = ['mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols']
+                        keys_to_remove = [
+                            'mass_analysis_successful', 'mass_analysis_failed', 'mass_analysis_symbols',
+                            'mass_analysis_index', 'mass_analysis_result_visible'
+                        ]
                         for key in keys_to_remove:
                             if key in st.session_state:
                                 del st.session_state[key]
-                        # Set flag to indicate mass analysis is running
+                        # Initialize session state for stepwise processing
                         st.session_state['mass_analysis_running'] = True
-                        process_mass_analysis(symbols, days_back=st.session_state.get('mass_days_back', 365))
+                        st.session_state['mass_analysis_symbols'] = symbols
+                        st.session_state['mass_analysis_index'] = 0
+                        st.session_state['mass_analysis_successful'] = []
+                        st.session_state['mass_analysis_failed'] = []
+                        st.session_state['mass_generate_excel'] = gen_excel
+                        st.session_state['mass_generate_word'] = gen_word
+                        # Do NOT modify the widget key 'mass_days_back'; store separately
+                        st.session_state['mass_days_back_selected'] = days_back_val
+                        st.rerun()
                     else:
                         st.warning("No valid symbols found in the uploaded file.")
 
             except Exception as e:
                 st.error(f"Error reading file: {str(e)}")
+
+    # When analysis is running, render the processing/progress UI
+    if analysis_running:
+        process_mass_analysis(
+            [],
+            days_back=st.session_state.get('mass_days_back_selected', st.session_state.get('mass_days_back', 365)),
+            generate_excel=st.session_state.get('mass_generate_excel', True),
+            generate_word=st.session_state.get('mass_generate_word', True),
+        )
 
     # Display stored mass analysis results if available (for download interactions, not during analysis)
     if results_present and not analysis_running:
@@ -318,14 +349,23 @@ def display_mass_stock_analysis():
                 st.markdown("---")
                 st.subheader("📥 Download All Reports")
                 
-                # Create ZIP files for download
-                excel_zip_data, excel_count = create_reports_zip_data(successful_analyses, "excel")
-                word_zip_data, word_count = create_reports_zip_data(successful_analyses, "word")
+                # Respect sidebar export settings for mass combined downloads
+                cfg = st.session_state.get('config', {})
+                allow_excel_all = cfg.get('export_excel', True)
+                allow_word_all = cfg.get('export_word', True)
+
+                # Create ZIP files for download based on allowed types
+                excel_zip_data, excel_count = (None, 0)
+                word_zip_data, word_count = (None, 0)
+                if allow_excel_all:
+                    excel_zip_data, excel_count = create_reports_zip_data(successful_analyses, "excel")
+                if allow_word_all:
+                    word_zip_data, word_count = create_reports_zip_data(successful_analyses, "word")
                 
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    if excel_zip_data:
+                    if allow_excel_all and excel_zip_data:
                         st.download_button(
                             label=f"📊 Download All Excel Reports ({excel_count} files)",
                             data=excel_zip_data,
@@ -333,11 +373,11 @@ def display_mass_stock_analysis():
                             mime="application/zip",
                             key="download_all_excel_zip_stored"
                         )
-                    else:
+                    elif allow_excel_all:
                         st.info("No Excel reports available")
                 
                 with col2:
-                    if word_zip_data:
+                    if allow_word_all and word_zip_data:
                         st.download_button(
                             label=f"📄 Download All Word Reports ({word_count} files)",
                             data=word_zip_data,
@@ -345,7 +385,7 @@ def display_mass_stock_analysis():
                             mime="application/zip",
                             key="download_all_word_zip_stored"
                         )
-                    else:
+                    elif allow_word_all:
                         st.info("No Word reports available")
                 
                 st.markdown("---")
@@ -360,7 +400,7 @@ def display_mass_stock_analysis():
                 for failed in failed_analyses:
                     st.error(f"**{failed['symbol']}**: {failed['error']}")
 
-def process_mass_analysis(symbols: List[str], days_back: int = 365):
+def process_mass_analysis(symbols: List[str], days_back: int = 365, generate_excel: bool = True, generate_word: bool = True):
     """Process mass analysis for multiple symbols."""
     # Ensure flags exist
     if 'mass_analysis_running' not in st.session_state:
@@ -368,74 +408,86 @@ def process_mass_analysis(symbols: List[str], days_back: int = 365):
     if 'mass_analysis_result_visible' not in st.session_state:
         st.session_state['mass_analysis_result_visible'] = False
     
-    # Show loading if mass analysis is running
+    # Show loading and live results if mass analysis is running (stepwise processing resilient to reruns)
     if st.session_state.get('mass_analysis_running', False):
+        # Pull current state
+        symbols = st.session_state.get('mass_analysis_symbols', [])
+        idx = st.session_state.get('mass_analysis_index', 0)
+        successful = st.session_state.get('mass_analysis_successful', [])
+        failed = st.session_state.get('mass_analysis_failed', [])
+        total_symbols = len(symbols)
+
+        # Progress UI
         progress_bar = st.progress(0)
         status_text = st.empty()
         live_results_container = st.container()
         live_failed_container = st.container()
-        
-        successful = []
-        failed = []
-        
-        try:
-            # Get drive settings from saved configuration
-            mgr = GoogleDriveManager()
-            drive_folder_id = mgr.get_saved_folder_id()
-            create_date_folders = mgr.get_saved_date_folder_preference()
-            
-            # Initialize analyzer with drive settings
-            analyzer = StockAnalyzer(
-                input_dir="input",
-                output_dir="output",
-                days_back=days_back,
-                drive_folder_id=drive_folder_id,
-                create_date_folders=create_date_folders
-            )
-            
-            total_symbols = len(symbols)
-            for i, symbol in enumerate(symbols):
-                symbol = symbol.strip().upper()
-                if not symbol:
-                    continue
-                
-                # Update progress
-                progress = (i + 1) / total_symbols
-                progress_bar.progress(progress)
-                status_text.text(f"Analyzing {symbol}... ({i + 1}/{total_symbols})")
-                
-                try:
+
+        progress = (idx / total_symbols) if total_symbols > 0 else 0
+        progress_bar.progress(progress)
+        if idx < total_symbols:
+            status_text.text(f"Analyzing {symbols[idx]}... ({idx + 1}/{total_symbols})")
+        else:
+            status_text.text("Finalizing...")
+
+        # Render already completed results so they persist across reruns and downloads
+        if successful:
+            for res in successful:
+                with live_results_container.expander(f"📈 {res['symbol']} - View Details (live)", expanded=False):
+                    display_analysis_results(res)
+        if failed:
+            with live_failed_container:
+                for f in failed:
+                    st.error(f"{f['symbol']}: {f['error']}")
+
+        # Process next symbol (one per rerun)
+        if idx < total_symbols:
+            try:
+                # Drive settings and analyzer
+                mgr = GoogleDriveManager()
+                drive_folder_id = mgr.get_saved_folder_id()
+                create_date_folders = mgr.get_saved_date_folder_preference()
+                gen_excel = st.session_state.get('mass_generate_excel', True)
+                gen_word = st.session_state.get('mass_generate_word', True)
+                days_back = st.session_state.get('mass_days_back_selected', st.session_state.get('mass_days_back', 365))
+
+                analyzer = StockAnalyzer(
+                    input_dir="input",
+                    output_dir="output",
+                    days_back=days_back,
+                    drive_folder_id=drive_folder_id,
+                    create_date_folders=create_date_folders,
+                    generate_excel_report=gen_excel,
+                    generate_word_report=gen_word,
+                )
+
+                symbol = symbols[idx].strip().upper()
+                if symbol:
                     result = analyzer.process_stock(symbol)
-                    if result['status'] == 'success':
+                    if result.get('status') == 'success':
                         successful.append(result)
-                        # Render live result for this symbol
-                        with live_results_container.expander(f"📈 {result['symbol']} - View Details (live)"):
+                        st.session_state['mass_analysis_successful'] = successful
+                        # Immediately show this symbol expanded with downloads
+                        with live_results_container.expander(f"📈 {result['symbol']} - View Details (live)", expanded=True):
                             display_analysis_results(result)
                     else:
                         failed.append({'symbol': symbol, 'error': result.get('error', 'Unknown error')})
+                        st.session_state['mass_analysis_failed'] = failed
                         with live_failed_container:
                             st.error(f"{symbol}: {result.get('error', 'Unknown error')}")
-                except Exception as e:
-                    failed.append({'symbol': symbol, 'error': str(e)})
-                    with live_failed_container:
-                        st.error(f"{symbol}: {str(e)}")
-                
-                # Small delay between calls
-                time.sleep(1)
-            
-            # Store results
-            st.session_state['mass_analysis_successful'] = successful
-            st.session_state['mass_analysis_failed'] = failed
-            st.session_state['mass_analysis_symbols'] = symbols
+                # Advance index and rerun
+                st.session_state['mass_analysis_index'] = idx + 1
+                st.rerun()
+            except Exception as e:
+                failed.append({'symbol': symbols[idx], 'error': str(e)})
+                st.session_state['mass_analysis_failed'] = failed
+                st.session_state['mass_analysis_index'] = idx + 1
+                st.rerun()
+        else:
+            # Completed
             st.session_state['mass_analysis_running'] = False
             st.session_state['mass_analysis_result_visible'] = True
-            
             st.rerun()
-            
-        except Exception as e:
-            st.error(f"Error in mass analysis: {str(e)}")
-            st.session_state['mass_analysis_running'] = False
-            st.session_state['mass_analysis_result_visible'] = False
     
     # Do not render any additional UI in this function; rendering is handled by display_mass_stock_analysis
     # Only processing happens here; results will be rendered on the next rerun by display_mass_stock_analysis
@@ -482,51 +534,61 @@ def display_analysis_results(result: Dict[str, Any]):
         else:
             st.info("Portfolio analysis is disabled in configuration.")
 
-    # Download buttons
+    # Download buttons: always show after results are rendered. They will be hidden again only when a new analysis starts.
+    # Respect sidebar export settings so only selected formats appear.
+    config = st.session_state.get('config', {})
+    allow_excel = config.get('export_excel', True)
+    allow_word = config.get('export_word', True)
     st.markdown("---")
     st.subheader("📥 Download Reports")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if result.get('excel_report_path') and os.path.exists(result['excel_report_path']):
+        if allow_excel and result.get('excel_report_path'):
             try:
-                # Read file data only when creating the download button
-                excel_data = get_file_download_data(result['excel_report_path'])
-                if excel_data:
-                    st.download_button(
-                        label=f"📊 {BUTTON_DOWNLOAD_EXCEL}",
-                        data=excel_data,
-                        file_name=f"{symbol}_analysis.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        key=f"download_excel_{symbol}_{hash(result['excel_report_path'])}"
-                    )
+                if os.path.exists(result['excel_report_path']):
+                    excel_data = get_file_download_data(result['excel_report_path'])
+                    if excel_data:
+                        st.download_button(
+                            label=f"📊 {BUTTON_DOWNLOAD_EXCEL}",
+                            data=excel_data,
+                            file_name=f"{symbol}_analysis.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"download_excel_{symbol}"
+                        )
+                    else:
+                        st.error("Excel report file not found or empty")
                 else:
-                    st.error("Excel report file not found or empty")
+                    st.info("Excel report not available")
             except Exception as e:
                 st.error(f"Error preparing Excel download: {str(e)}")
         else:
-            st.info("Excel report not available")
+            if allow_excel:
+                st.info("Excel report not selected/generated")
 
     with col2:
-        if result.get('word_report_path') and os.path.exists(result['word_report_path']):
+        if allow_word and result.get('word_report_path'):
             try:
-                # Read file data only when creating the download button
-                word_data = get_file_download_data(result['word_report_path'])
-                if word_data:
-                    st.download_button(
-                        label=f"📄 {BUTTON_DOWNLOAD_WORD}",
-                        data=word_data,
-                        file_name=f"{symbol}_analysis.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"download_word_{symbol}_{hash(result['word_report_path'])}"
-                    )
+                if os.path.exists(result['word_report_path']):
+                    word_data = get_file_download_data(result['word_report_path'])
+                    if word_data:
+                        st.download_button(
+                            label=f"📄 {BUTTON_DOWNLOAD_WORD}",
+                            data=word_data,
+                            file_name=f"{symbol}_analysis.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"download_word_{symbol}"
+                        )
+                    else:
+                        st.error("Word report file not found or empty")
                 else:
-                    st.error("Word report file not found or empty")
+                    st.info("Word report not available")
             except Exception as e:
                 st.error(f"Error preparing Word download: {str(e)}")
         else:
-            st.info("Word report not available")
+            if allow_word:
+                st.info("Word report not selected/generated")
 
 def display_overview(result: Dict[str, Any]):
     """Display comprehensive overview of stock analysis."""
