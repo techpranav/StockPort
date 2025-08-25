@@ -31,7 +31,7 @@ from models.stock_data import (
 )
 from exceptions.stock_data_exceptions import DataAnalysisException
 
-from config.settings import ENABLE_GOOGLE_DRIVE
+from config import ENABLE_GOOGLE_DRIVE
 
 class StockAnalyzer:
     def __init__(
@@ -68,6 +68,10 @@ class StockAnalyzer:
         
         # Initialize Google Drive if enabled
         if ENABLE_GOOGLE_DRIVE:
+            # Use UserSettingsManager for Google Drive operations
+            from utils.user_settings_manager import UserSettingsManager
+            self.user_settings = UserSettingsManager()
+            # Also keep the old manager for compatibility with existing upload_file method
             self.drive_utils = GoogleDriveManager()
         
         DebugUtils.info(
@@ -105,18 +109,27 @@ class StockAnalyzer:
             
             # Upload to Google Drive if enabled
             if ENABLE_GOOGLE_DRIVE:
+                # Get folder settings from UserSettingsManager if not provided
+                upload_folder_id = self.drive_folder_id
+                upload_create_date_folders = self.create_date_folders
+                
+                if upload_folder_id is None:
+                    upload_folder_id = self.user_settings.get_google_drive_folder_id()
+                if upload_create_date_folders is None:
+                    upload_create_date_folders = self.user_settings.get_google_drive_date_folders()
+                
                 if word_report_path:
                     self.drive_utils.upload_file(
                         word_report_path,
-                        folder_id=self.drive_folder_id,
-                        create_date_folder=self.create_date_folders,
+                        folder_id=upload_folder_id,
+                        create_date_folder=upload_create_date_folders,
                         symbol=symbol,
                     )
                 if excel_report_path:
                     self.drive_utils.upload_file(
                         excel_report_path,
-                        folder_id=self.drive_folder_id,
-                        create_date_folder=self.create_date_folders,
+                        folder_id=upload_folder_id,
+                        create_date_folder=upload_create_date_folders,
                         symbol=symbol,
                     )
             

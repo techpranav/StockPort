@@ -116,7 +116,7 @@ Stockport/
 ├── config/                 # Configuration files
 │   ├── constants/         # Application constants
 │   ├── credentials/       # API keys and credentials
-│   └── settings.py        # Application settings
+│   └── app_config.py      # Unified application settings (single source of truth)
 ├── core/                  # Core analysis logic
 ├── services/              # Data and analysis services
 ├── ui/                    # User interface components

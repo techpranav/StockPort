@@ -15,7 +15,7 @@ from services.stock_data_provider import StockDataProvider
 from exceptions.stock_data_exceptions import (
     DataFetchException, InvalidSymbolException, RateLimitException
 )
-from config.settings import Settings
+# Settings are now centralized in config; import specific flags if needed
 from utils.debug_utils import DebugUtils
 from services.fetcher.base_fetcher import BaseFetcher
 

@@ -15,7 +15,7 @@ from services.data_providers.stock_data_provider import StockDataProvider
 from exceptions.stock_data_exceptions import (
     DataFetchException, InvalidSymbolException, RateLimitException
 )
-from config.settings import Settings
+# Settings are centralized; specific constants should be read from config or UI
 from config.constants import *
 from utils.debug_utils import DebugUtils
 from services.data_providers.fetcher.base_fetcher import BaseFetcher

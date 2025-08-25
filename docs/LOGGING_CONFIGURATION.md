@@ -11,7 +11,7 @@
 
 **Primary Location (Permanent Changes):**
 ```python
-# File: config/settings.py
+# File: config/app_config.py
 LOG_LEVEL = "DEBUG"  # Change this value
 ```
 
@@ -35,13 +35,13 @@ DebugUtils.set_log_level(LogLevel.ERROR)  # Change during execution
 
 **Debugging Financial Ratios:**
 ```python
-# config/settings.py
+# config/app_config.py
 LOG_LEVEL = "DEBUG"  # See all ratio calculations
 ```
 
 **Production Environment:**
 ```python
-# config/settings.py  
+# config/app_config.py  
 LOG_LEVEL = "INFO"   # Balanced: status + problems
 ```
 
@@ -73,4 +73,4 @@ DebugUtils.test_logging()  # Shows sample messages at all levels
 
 ---
 
-*For detailed implementation, see comments in `config/settings.py` and `utils/debug_utils.py`*
+*For detailed implementation, see comments in `config/app_config.py` and `utils/debug_utils.py`*

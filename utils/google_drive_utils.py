@@ -20,7 +20,7 @@ except ImportError:
 
 from config.constants.StringConstants import input_dir
 from utils.debug_utils import DebugUtils
-from config.settings import (
+from config import (
     ENABLE_GOOGLE_DRIVE,
     GOOGLE_DRIVE_USE_SERVICE_ACCOUNT,
     GOOGLE_DRIVE_SCOPES,

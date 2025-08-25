@@ -3,7 +3,7 @@ import os
 from typing import Any, Optional
 from datetime import datetime
 from enum import Enum
-from config.settings import LOG_LEVEL
+from config.app_config import LOG_LEVEL
 
 class LogLevel(Enum):
     """
@@ -22,7 +22,7 @@ class LogLevel(Enum):
     - Production: Use INFO or WARNING to reduce console noise
     - Error Monitoring: Use ERROR to see only problems
 
-    Note: The primary log level is configured in config/settings.py LOG_LEVEL setting.
+    Note: The primary log level is configured in config/app_config.py LOG_LEVEL setting.
     """
     TRACE = -1      # Most verbose: custom detailed tracing
     DEBUG = 0       # Debug info: calculations, data processing, API calls
@@ -40,7 +40,7 @@ class DebugUtils:
 
     PRIMARY CONFIGURATION (Permanent):
     ----------------------------------
-    Edit config/settings.py and change LOG_LEVEL value:
+    Edit config/app_config.py and change LOG_LEVEL value:
 
         LOG_LEVEL = "DEBUG"    # Shows all messages (most verbose)
         LOG_LEVEL = "INFO"     # Shows info, warnings, errors
@@ -198,7 +198,7 @@ class DebugUtils:
         Set the minimum log level programmatically (runtime override).
 
         This method allows you to change the log level at runtime without
-        modifying the config/settings.py file. This is useful for:
+        modifying the config/app_config.py file. This is useful for:
         - Temporary debugging sessions
         - Testing different log levels
         - Dynamic log level adjustment based on conditions
@@ -216,7 +216,7 @@ class DebugUtils:
             DebugUtils.set_log_level(LogLevel.ERROR)
 
         Note: This override is temporary and will be reset when the application restarts.
-        For permanent changes, modify LOG_LEVEL in config/settings.py
+        For permanent changes, modify LOG_LEVEL in config/app_config.py
         """
         # Ensure logger is initialized
         if cls._instance is None:

@@ -1,0 +1,197 @@
+---
+description: KLA Project Development 
+alwaysApply: false
+---
+## Project context
+
+- **Stack**: Java 11, Gradle, 3DSpace V6R2023x, TVC libraries, JSP + XSLT (legacy), Helium UI.
+- **Primary module to edit**: `kla/modules/**` (especially `modules/default/**`).
+- **Legacy/vendor areas (do not modify)**: `WEB-INF/**`, `tvc-*/**`, `helium-*/**`, `tvc-core-*/**`, `tvc-structurebrowser-*/**`, `jars/**`, generated artifacts and 3rd-party code.
+
+## Critical guardrails
+
+- **Secrets**: Never print, move, or modify authorization tokens or credentials inside `build.gradle` or elsewhere. Treat Bearer tokens as secrets; do not include them in chat, logs, or diffs.
+- **Edit scope**: Avoid edits outside `kla/modules/**` unless explicitly requested. Never change files under `WEB-INF/lib`, `WEB-INF/classes`, or any checked-in vendor bundles.
+- **Java version**: Target Java 11 features only. Do not introduce APIs or syntax requiring later Java.
+- **No broad reformatting**: Do not mass-reformat or reorder imports across large files unless you are actively editing logic in that file.
+- **Binary/large files**: Do not touch images, archives, `.jar`, `.war`, or `msgcatalog` assets.
+
+## Code style and design
+
+- **Naming**: Prefer descriptive, full-word identifiers. Methods as verbs; variables as nouns. Avoid abbreviations.
+- **Method size**: Aim for ≤30 lines per method. Decompose responsibilities (see `REFACTORING_SUMMARY.md`).
+- **Collections**: Prefer generics and modern `List`/`Map` where possible; keep Matrix `MapList` only when required for API compatibility.
+- **Constants**: Eliminate magic strings. Centralize constants with clear names.
+- **Logging**: Use `com.technia.tvc.log4j.Logger`. Log at info/debug for flow, warn/error for failures. No `System.out`.
+- **Error handling**: Use the functional validation pattern from `REFACTORING_SUMMARY.md` (e.g., `executeValidation(() -> ..., i18nKey)`) and return error XML via the existing helpers.
+- **Transactions**: Ensure `ContextUtil` transaction state is respected. Use `TVCSystem.execFromJPO` for JPO-safe execution patterns.
+- **I18n**: Never hardcode user-visible strings. Add keys under `modules/default/src/main/webapp/WEB-INF/classes/emxEngineeringCentralStringResource.properties` using `kt_emxEngineeringCentral.*` namespace, then reference keys in Java/JSP.
+
+## File-specific guidance
+
+- `com/technia/kla/cr/report/CRValidationReport.java`
+  - Follow the refactored architecture: small methods, inner helper classes for building and XML generation, centralized XML utilities (`toXML`, `toXMLRow`, `toXMLColumn`).
+  - Keep validation flow consistent: details → approvals → why changing → proposed changes → BOM checks → plant status → find numbers.
+  - When adding a validation, add a dedicated method with clear inputs, collect invalid rows into `List<Map<String, String>>`, and use the shared XML generator.
+  - Use `SelectUtil`, `Statement`, and `StatementBuilder` consistently for data selection; avoid manual string concatenation of selects.
+  - Prefer descriptive constant names. If touching legacy constants (e.g., `S_TAB_ATTR`), migrate to a clearer name only if refactoring the surrounding block fully.
+
+- `com/technia/kla/cr/util/ChangeRequestUtil.java`
+  - Keep role/relationship maps immutable and initialized in static blocks.
+  - Extend the `CR_COPIED_ATTRS` list using schema constants; do not inline attribute names.
+  - Preserve `BUS_SELECTS`/`REL_SELECTS` patterns with `Statement` constants.
+
+- JSP `engineeringcentral/klaValidationReport.jsp`
+  - Maintain the current server-side flow and the print mode optimization (hidden `<textarea>`, then XSL transform on client).
+  - Do not introduce new IE-only/ActiveX features. Avoid adding scriptlets unless necessary for compatibility.
+  - Keep references to `klaValidationReport.xsl` and existing utility scripts intact.
+
+- XSLT `engineeringcentral/klaValidationReport.xsl`
+  - Preserve template structure, IDs, and CSS class names expected by existing JS (e.g., `expandTable`).
+  - Do not change semantics of `printMode` handling or table class naming (`tblhG`/`tblhR`, etc.).
+
+## Allowed vs. prohibited changes
+
+- Allowed
+  - Add/modify Java in `kla/modules/**` following the patterns above.
+  - Add i18n keys and consume them in code.
+  - Add small utility classes under `com.technia.kla.*` with clear cohesion.
+
+- Prohibited (without explicit approval)
+  - Edits to `build.gradle` credentials/tokens, repository URLs, or plugin IDs.
+  - Vendor or generated sources and resources (see vendor areas above).
+  - Large-scale UI rewrites (JSP → modern stack) or removing legacy browser compatibility.
+
+## Build/run
+
+- Use project Gradle tasks. Avoid running full deployments from the assistant automatically.
+- Default to compile-only checks when needed; prefer not to execute long-running tasks without user request.
+- Encoding is UTF-8. Ensure source files and XML/XSLT remain UTF-8.
+
+## Review checklist (apply before proposing edits)
+
+- Changes are confined to `kla/modules/**` and avoid vendor directories.
+- No secrets or tokens leaked in code, messages, or diffs.
+- New strings externalized to i18n properties with `kt_emxEngineeringCentral.*` keys.
+- Java code follows: small methods, clear names, centralized constants, proper logging, and validation pattern.
+- JSP/XSL changes preserve existing IDs, classes, and client-side behavior.
+
+## Playbooks
+
+- Add a new validation to `CRValidationReport`
+  1. Create a method `private String validateXyz(...) throws Exception` that gathers data using `SelectUtil` and `Statement`.
+  2. Accumulate invalid rows as `List<Map<String, String>>` with keys matching expected XML columns.
+  3. Generate XML with `ReportXMLGenerator` utilities and an i18n title key.
+  4. Wire it into `getReport(...)` using the `executeValidation`/error pattern; add a new i18n key.
+
+- Add a new i18n message
+  1. Add the key to `modules/default/src/main/webapp/WEB-INF/classes/emxEngineeringCentralStringResource.properties`.
+  2. Reference it from Java via constants; do not hardcode.
+
+- Extend copied CR attributes
+  1. Add schema constant to `CR_COPIED_ATTRS`.
+  2. Ensure any UI or report relies on constants, not inline strings.
+
+## Assistant behavior in this repo
+
+- Prefer high-signal diffs limited to the touched logic. Do not auto-refactor unrelated areas.
+- When unsure about schema/statement constants, search existing usages first and mirror them.
+- If a change would affect multiple legacy surfaces (Java + JSP + XSL), propose the minimal viable change and call out cross-file dependencies.
+
+ ## Project context
+
+- **Stack**: Java 11, Gradle, 3DSpace V6R2023x, TVC libraries, JSP + XSLT (legacy), Helium UI.
+- **Primary module to edit**: `kla/modules/**` (especially `modules/default/**`).
+- **Legacy/vendor areas (do not modify)**: `WEB-INF/**`, `tvc-*/**`, `helium-*/**`, `tvc-core-*/**`, `tvc-structurebrowser-*/**`, `jars/**`, generated artifacts and 3rd-party code.
+
+## Critical guardrails
+
+- **Secrets**: Never print, move, or modify authorization tokens or credentials inside `build.gradle` or elsewhere. Treat Bearer tokens as secrets; do not include them in chat, logs, or diffs.
+- **Edit scope**: Avoid edits outside `kla/modules/**` unless explicitly requested. Never change files under `WEB-INF/lib`, `WEB-INF/classes`, or any checked-in vendor bundles.
+- **Java version**: Target Java 11 features only. Do not introduce APIs or syntax requiring later Java.
+- **No broad reformatting**: Do not mass-reformat or reorder imports across large files unless you are actively editing logic in that file.
+- **Binary/large files**: Do not touch images, archives, `.jar`, `.war`, or `msgcatalog` assets.
+
+## Code style and design
+
+- **Naming**: Prefer descriptive, full-word identifiers. Methods as verbs; variables as nouns. Avoid abbreviations.
+- **Method size**: Aim for ≤30 lines per method. Decompose responsibilities (see `REFACTORING_SUMMARY.md`).
+- **Collections**: Prefer generics and modern `List`/`Map` where possible; keep Matrix `MapList` only when required for API compatibility.
+- **Constants**: Eliminate magic strings. Centralize constants with clear names.
+- **Logging**: Use `com.technia.tvc.log4j.Logger`. Log at info/debug for flow, warn/error for failures. No `System.out`.
+- **Error handling**: Use the functional validation pattern from `REFACTORING_SUMMARY.md` (e.g., `executeValidation(() -> ..., i18nKey)`) and return error XML via the existing helpers.
+- **Transactions**: Ensure `ContextUtil` transaction state is respected. Use `TVCSystem.execFromJPO` for JPO-safe execution patterns.
+- **I18n**: Never hardcode user-visible strings. Add keys under `modules/default/src/main/webapp/WEB-INF/classes/emxEngineeringCentralStringResource.properties` using `kt_emxEngineeringCentral.*` namespace, then reference keys in Java/JSP.
+
+## File-specific guidance
+
+- `com/technia/kla/cr/report/CRValidationReport.java`
+  - Follow the refactored architecture: small methods, inner helper classes for building and XML generation, centralized XML utilities (`toXML`, `toXMLRow`, `toXMLColumn`).
+  - Keep validation flow consistent: details → approvals → why changing → proposed changes → BOM checks → plant status → find numbers.
+  - When adding a validation, add a dedicated method with clear inputs, collect invalid rows into `List<Map<String, String>>`, and use the shared XML generator.
+  - Use `SelectUtil`, `Statement`, and `StatementBuilder` consistently for data selection; avoid manual string concatenation of selects.
+  - Prefer descriptive constant names. If touching legacy constants (e.g., `S_TAB_ATTR`), migrate to a clearer name only if refactoring the surrounding block fully.
+
+- `com/technia/kla/cr/util/ChangeRequestUtil.java`
+  - Keep role/relationship maps immutable and initialized in static blocks.
+  - Extend the `CR_COPIED_ATTRS` list using schema constants; do not inline attribute names.
+  - Preserve `BUS_SELECTS`/`REL_SELECTS` patterns with `Statement` constants.
+
+- JSP `engineeringcentral/klaValidationReport.jsp`
+  - Maintain the current server-side flow and the print mode optimization (hidden `<textarea>`, then XSL transform on client).
+  - Do not introduce new IE-only/ActiveX features. Avoid adding scriptlets unless necessary for compatibility.
+  - Keep references to `klaValidationReport.xsl` and existing utility scripts intact.
+
+- XSLT `engineeringcentral/klaValidationReport.xsl`
+  - Preserve template structure, IDs, and CSS class names expected by existing JS (e.g., `expandTable`).
+  - Do not change semantics of `printMode` handling or table class naming (`tblhG`/`tblhR`, etc.).
+
+## Allowed vs. prohibited changes
+
+- Allowed
+  - Add/modify Java in `kla/modules/**` following the patterns above.
+  - Add i18n keys and consume them in code.
+  - Add small utility classes under `com.technia.kla.*` with clear cohesion.
+
+- Prohibited (without explicit approval)
+  - Edits to `build.gradle` credentials/tokens, repository URLs, or plugin IDs.
+  - Vendor or generated sources and resources (see vendor areas above).
+  - Large-scale UI rewrites (JSP → modern stack) or removing legacy browser compatibility.
+
+## Build/run
+
+- Use project Gradle tasks. Avoid running full deployments from the assistant automatically.
+- Default to compile-only checks when needed; prefer not to execute long-running tasks without user request.
+- Encoding is UTF-8. Ensure source files and XML/XSLT remain UTF-8.
+
+## Review checklist (apply before proposing edits)
+
+- Changes are confined to `kla/modules/**` and avoid vendor directories.
+- No secrets or tokens leaked in code, messages, or diffs.
+- New strings externalized to i18n properties with `kt_emxEngineeringCentral.*` keys.
+- Java code follows: small methods, clear names, centralized constants, proper logging, and validation pattern.
+- JSP/XSL changes preserve existing IDs, classes, and client-side behavior.
+
+## Playbooks
+
+- Add a new validation to `CRValidationReport`
+  1. Create a method `private String validateXyz(...) throws Exception` that gathers data using `SelectUtil` and `Statement`.
+  2. Accumulate invalid rows as `List<Map<String, String>>` with keys matching expected XML columns.
+  3. Generate XML with `ReportXMLGenerator` utilities and an i18n title key.
+  4. Wire it into `getReport(...)` using the `executeValidation`/error pattern; add a new i18n key.
+
+- Add a new i18n message
+  1. Add the key to `modules/default/src/main/webapp/WEB-INF/classes/emxEngineeringCentralStringResource.properties`.
+  2. Reference it from Java via constants; do not hardcode.
+
+- Extend copied CR attributes
+  1. Add schema constant to `CR_COPIED_ATTRS`.
+  2. Ensure any UI or report relies on constants, not inline strings.
+
+## Assistant behavior in this repo
+
+- Prefer high-signal diffs limited to the touched logic. Do not auto-refactor unrelated areas.
+- When unsure about schema/statement constants, search existing usages first and mirror them.
+- If a change would affect multiple legacy surfaces (Java + JSP + XSL), propose the minimal viable change and call out cross-file dependencies.
+
+ 
