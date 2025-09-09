@@ -23,6 +23,8 @@ class SimpleMicrosoftOAuth:
         self.client_secret = MICROSOFT_OAUTH_CLIENT_SECRET
         self.redirect_uri = MICROSOFT_OAUTH_REDIRECT_URI
         self.authority = "https://login.microsoftonline.com/common"
+        # Include Graph delegated permission for /me
+        self.scope = "openid profile email offline_access User.Read"
         
         logger.info(f"Simple Microsoft OAuth initialized for client: {self.client_id[:8]}...")
     
@@ -32,7 +34,7 @@ class SimpleMicrosoftOAuth:
             params = {
                 'client_id': self.client_id,
                 'redirect_uri': self.redirect_uri,
-                'scope': 'openid email profile',
+                'scope': self.scope,
                 'response_type': 'code',
                 'response_mode': 'query',
                 'prompt': 'select_account',
@@ -60,7 +62,7 @@ class SimpleMicrosoftOAuth:
                 'code': code,
                 'redirect_uri': self.redirect_uri,
                 'grant_type': 'authorization_code',
-                'scope': 'openid email profile'
+                'scope': self.scope
             }
             
             logger.info(f"Exchanging code for token: redirect_uri={self.redirect_uri}")
@@ -97,6 +99,8 @@ class SimpleMicrosoftOAuth:
             if response.status_code != 200:
                 logger.error(f"User info request failed: {response.status_code}")
                 logger.error(f"Response: {response.text}")
+                if response.status_code in (401, 403):
+                    logger.error("Microsoft Graph /me requires User.Read delegated permission. Ensure it is added and admin consent granted in Azure Portal.")
                 return None
             
             user_info = response.json()
@@ -105,6 +109,7 @@ class SimpleMicrosoftOAuth:
             # Normalize user info to match our expected format
             normalized_info = {
                 'id': user_info.get('id'),
+                'sub': user_info.get('id'),
                 'email': user_info.get('mail') or user_info.get('userPrincipalName'),
                 'name': user_info.get('displayName'),
                 'first_name': user_info.get('givenName'),

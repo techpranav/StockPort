@@ -207,8 +207,9 @@ def render_login_page():
                         st.session_state['oauth_initiated'] = True
                         st.session_state['oauth_expected_provider'] = 'google'
                         auth_url = oauth_service.get_google_auth_url()
-                        webbrowser.open(auth_url)
-                        st.info("Please complete the Google login in your browser")
+                        st.info("Redirecting to Google sign-in...")
+                        st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
+                        st.markdown(f"<a href='{auth_url}' target='_self'>Click here if not redirected</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Google OAuth not configured: {e}")
             else:
@@ -222,8 +223,9 @@ def render_login_page():
                         st.session_state['oauth_initiated'] = True
                         st.session_state['oauth_expected_provider'] = 'microsoft'
                         auth_url = oauth_service.get_microsoft_auth_url()
-                        webbrowser.open(auth_url)
-                        st.info("Please complete the Microsoft login in your browser")
+                        st.info("Redirecting to Microsoft sign-in...")
+                        st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
+                        st.markdown(f"<a href='{auth_url}' target='_self'>Click here if not redirected</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Microsoft OAuth not configured: {e}")
             else:
