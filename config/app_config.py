@@ -9,6 +9,13 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, use system environment variables
+
 # ============================================================================
 # ENVIRONMENT DETECTION
 # ============================================================================
@@ -46,6 +53,13 @@ ENABLE_CLOUD_GOOGLE_DRIVE = True
 ENABLE_CACHING = True
 ENABLE_BATCH_DOWNLOADS = True
 SHOW_ANALYSIS_PROGRESS = True
+
+# Authentication and Licensing Features
+# Default enabled via config, overridable by env
+ENABLE_AUTHENTICATION = os.getenv("ENABLE_AUTHENTICATION", "true").lower() == "true"
+ENABLE_STRIPE_PAYMENTS = os.getenv("ENABLE_STRIPE_PAYMENTS", "false").lower() == "true"
+ENABLE_SOCIAL_LOGIN = os.getenv("ENABLE_SOCIAL_LOGIN", "true").lower() == "true"
+ENABLE_ADMIN_PANEL = os.getenv("ENABLE_ADMIN_PANEL", "false").lower() == "true"
 
 # ============================================================================
 # PATHS AND DIRECTORIES
@@ -229,6 +243,116 @@ class AppConfig:
             "fundamental_analysis": ENABLE_FUNDAMENTAL_ANALYSIS,
             "portfolio_analysis": ENABLE_PORTFOLIO_ANALYSIS
         }
+    
+    @classmethod
+    def get_auth_settings(cls) -> Dict[str, Any]:
+        """Get authentication and licensing settings."""
+        return {
+            "enabled": ENABLE_AUTHENTICATION,
+            "stripe_enabled": ENABLE_STRIPE_PAYMENTS,
+            "social_login_enabled": ENABLE_SOCIAL_LOGIN,
+            "admin_panel_enabled": ENABLE_ADMIN_PANEL,
+            "database_path": str(AUTH_DATABASE_PATH),
+            "session_timeout_hours": SESSION_TIMEOUT_HOURS,
+            "session_secret_key": SESSION_SECRET_KEY,
+            "remember_me_days": REMEMBER_ME_DAYS,
+            "stripe_secret_key": STRIPE_SECRET_KEY,
+            "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+            "stripe_webhook_secret": STRIPE_WEBHOOK_SECRET,
+            "license_plans": LICENSE_PLANS,
+            "google_oauth_client_id": GOOGLE_OAUTH_CLIENT_ID,
+            "google_oauth_client_secret": GOOGLE_OAUTH_CLIENT_SECRET,
+            "google_oauth_redirect_uri": GOOGLE_OAUTH_REDIRECT_URI,
+            "microsoft_oauth_client_id": MICROSOFT_OAUTH_CLIENT_ID,
+            "microsoft_oauth_client_secret": MICROSOFT_OAUTH_CLIENT_SECRET,
+            "microsoft_oauth_redirect_uri": MICROSOFT_OAUTH_REDIRECT_URI,
+            "microsoft_oauth_tenant_id": MICROSOFT_OAUTH_TENANT_ID,
+            "csrf_secret_key": CSRF_SECRET_KEY,
+            "rate_limit_requests": RATE_LIMIT_REQUESTS,
+            "rate_limit_window": RATE_LIMIT_WINDOW
+        }
+
+# ============================================================================
+# AUTHENTICATION AND LICENSING CONFIGURATION
+# ============================================================================
+
+# Database
+AUTH_DATABASE_PATH = BASE_DIR / "data" / "auth.db"
+
+# Session Configuration
+SESSION_TIMEOUT_HOURS = 24
+SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "your-secret-key-change-in-production")
+REMEMBER_ME_DAYS = int(os.getenv("REMEMBER_ME_DAYS", "30"))
+
+# Stripe Configuration
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# Razorpay Configuration (India)
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+
+# PayPal Configuration (Global)
+PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
+PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET")
+PAYPAL_MODE = os.getenv("PAYPAL_MODE", "sandbox")  # sandbox or live
+
+# Payment Gateway Selection
+PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "auto")  # auto, razorpay, stripe, paypal
+
+# License Plans
+LICENSE_PLANS = {
+    "basic_monthly": {
+        "name": "Basic Monthly",
+        "price": 9.99,
+        "currency": "usd",
+        "stripe_price_id": os.getenv("STRIPE_BASIC_MONTHLY_PRICE_ID"),
+        "features": ["Stock Analysis", "Basic Reports", "Google Drive Export"],
+        "expiry_days": 30
+    },
+    "basic_yearly": {
+        "name": "Basic Yearly",
+        "price": 99.99,
+        "currency": "usd",
+        "stripe_price_id": os.getenv("STRIPE_BASIC_YEARLY_PRICE_ID"),
+        "features": ["Stock Analysis", "Basic Reports", "Google Drive Export"],
+        "expiry_days": 365
+    },
+    "pro_monthly": {
+        "name": "Pro Monthly",
+        "price": 19.99,
+        "currency": "usd",
+        "stripe_price_id": os.getenv("STRIPE_PRO_MONTHLY_PRICE_ID"),
+        "features": ["Stock Analysis", "Advanced Reports", "Google Drive Export", "AI Insights", "Portfolio Analysis"],
+        "expiry_days": 30
+    },
+    "pro_yearly": {
+        "name": "Pro Yearly",
+        "price": 199.99,
+        "currency": "usd",
+        "stripe_price_id": os.getenv("STRIPE_PRO_YEARLY_PRICE_ID"),
+        "features": ["Stock Analysis", "Advanced Reports", "Google Drive Export", "AI Insights", "Portfolio Analysis"],
+        "expiry_days": 365
+    }
+}
+
+# Social Login Configuration
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "http://localhost:8501")
+
+# Microsoft OAuth Configuration
+MICROSOFT_OAUTH_CLIENT_ID = os.getenv("MICROSOFT_OAUTH_CLIENT_ID")
+MICROSOFT_OAUTH_CLIENT_SECRET = os.getenv("MICROSOFT_OAUTH_CLIENT_SECRET")
+MICROSOFT_OAUTH_REDIRECT_URI = os.getenv("MICROSOFT_OAUTH_REDIRECT_URI", "http://localhost:8501")
+MICROSOFT_OAUTH_TENANT_ID = os.getenv("MICROSOFT_OAUTH_TENANT_ID", "common")
+
+# Security Configuration
+CSRF_SECRET_KEY = os.getenv("CSRF_SECRET_KEY", "your-csrf-secret-key-change-in-production")
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))  # requests per hour
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "3600"))  # 1 hour in seconds
 
 # ============================================================================
 # LEGACY COMPATIBILITY (for existing imports)

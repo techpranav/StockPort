@@ -19,3 +19,17 @@ markdown==3.7
 beautifulsoup4==4.12.2
 python-dateutil==2.8.2  
 requests==2.32.3
+
+# Authentication and Payment Dependencies
+stripe==7.11.0
+flask==3.0.2
+bcrypt==4.1.2
+extra-streamlit-components==0.1.71
+
+# OAuth and Security Dependencies
+msal==1.26.0
+cryptography==42.0.5
+itsdangerous==2.1.2
+
+# Payment Gateway Dependencies
+razorpay==1.4.1
