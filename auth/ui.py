@@ -22,6 +22,7 @@ from auth.constants import (
     SSK_OAUTH_PROCESSED, SSK_OAUTH_TIME, SSK_OAUTH_LAST_CODE,
     SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE,
     SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY, SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL,
+    SSK_UPGRADE_MODE, SSK_UPGRADE_PLAN,
 )
 from config import ENABLE_STRIPE_PAYMENTS, ENABLE_SOCIAL_LOGIN, STRIPE_PUBLISHABLE_KEY, AppConfig
 from datetime import datetime, timedelta
@@ -369,9 +370,19 @@ def render_register_page():
         else:
             st.error(message)
 
-def render_license_purchase():
+def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
     """Render the license purchase page."""
-    st.title(TITLE_PURCHASE)
+    if upgrade_mode:
+        st.title("🚀 Upgrade License")
+        st.info("Upgrade your current Basic license to Pro for advanced features!")
+        
+        # Add back button to exit upgrade mode
+        if st.button("← Back to Profile", key="back_to_profile"):
+            st.session_state.pop(SSK_UPGRADE_MODE, None)
+            st.session_state.pop(SSK_UPGRADE_PLAN, None)
+            st.rerun()
+    else:
+        st.title(TITLE_PURCHASE)
     st.markdown("---")
     # Handle pending payment redirect from previous click
     pending_redirect = st.session_state.get(SSK_PAYMENT_REDIRECT_URL)
@@ -445,23 +456,29 @@ def render_license_purchase():
     st.subheader("Available Plans")
     
     # Display plans in columns
-    cols = st.columns(len(plans))
-    selected_plan = None
-    
-    for i, (plan_key, plan) in enumerate(plans.items()):
-        with cols[i]:
-            st.markdown(f"### {plan['name']}")
-            st.markdown(f"**${plan['price']}** / {plan.get('period', 'month')}")
-            
-            # Features
-            for feature in plan.get('features', []):
-                st.markdown(f"✅ {feature}")
-            
-            if st.button(LABEL_SELECT_PLAN.format(plan_name=plan['name']), key=f"plan_{plan_key}"):
-                selected_plan = plan_key
-                st.session_state[SSK_SELECTED_PLAN] = selected_plan
-    
-    selected_plan = selected_plan or st.session_state.get(SSK_SELECTED_PLAN)
+    if upgrade_mode and upgrade_plan:
+        # In upgrade mode, pre-select the upgrade plan
+        selected_plan = upgrade_plan
+        st.session_state[SSK_SELECTED_PLAN] = selected_plan
+        st.success(f"Selected: {plans[upgrade_plan]['name']} - ${plans[upgrade_plan]['price']}")
+    else:
+        cols = st.columns(len(plans))
+        selected_plan = None
+        
+        for i, (plan_key, plan) in enumerate(plans.items()):
+            with cols[i]:
+                st.markdown(f"### {plan['name']}")
+                st.markdown(f"**${plan['price']}** / {plan.get('period', 'month')}")
+                
+                # Features
+                for feature in plan.get('features', []):
+                    st.markdown(f"✅ {feature}")
+                
+                if st.button(LABEL_SELECT_PLAN.format(plan_name=plan['name']), key=f"plan_{plan_key}"):
+                    selected_plan = plan_key
+                    st.session_state[SSK_SELECTED_PLAN] = selected_plan
+        
+        selected_plan = selected_plan or st.session_state.get(SSK_SELECTED_PLAN)
     if selected_plan:
         st.markdown("---")
         st.subheader(f"Purchase {plans[selected_plan]['name']}")
@@ -606,15 +623,39 @@ def render_user_profile():
             st.markdown(f"**License Status:** ✅ Active")
             st.markdown(f"**Plan:** {license_info['plan_type']}")
             st.markdown(f"**Expires:** {license_info['expires_at']}")
+            
+            # Show upgrade option for basic license holders
+            if license_info['plan_type'] in ['basic_monthly', 'basic_yearly']:
+                st.markdown("---")
+                st.subheader("🚀 Upgrade to Pro")
+                st.info("You have a Basic license. Upgrade to Pro for advanced features like AI Insights and Portfolio Analysis!")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Upgrade to Pro Monthly", key="upgrade_pro_monthly"):
+                        st.session_state[SSK_UPGRADE_PLAN] = 'pro_monthly'
+                        st.session_state[SSK_UPGRADE_MODE] = True
+                        st.rerun()
+                
+                with col2:
+                    if st.button("Upgrade to Pro Yearly", key="upgrade_pro_yearly"):
+                        st.session_state[SSK_UPGRADE_PLAN] = 'pro_yearly'
+                        st.session_state[SSK_UPGRADE_MODE] = True
+                        st.rerun()
         else:
             st.markdown("**License Status:** ❌ No active license")
             st.markdown(f"**Message:** {license_message}")
     
     # License purchase section
-    if not license_valid:
+    if not license_valid or st.session_state.get(SSK_UPGRADE_MODE, False):
         st.markdown("---")
-        st.subheader(TITLE_PURCHASE)
-        render_license_purchase()
+        if st.session_state.get(SSK_UPGRADE_MODE, False):
+            st.subheader("🚀 Upgrade License")
+            # Show upgrade-specific purchase interface
+            render_license_purchase(upgrade_mode=True, upgrade_plan=st.session_state.get(SSK_UPGRADE_PLAN))
+        else:
+            st.subheader(TITLE_PURCHASE)
+            render_license_purchase()
     
     # Profile actions
     st.markdown("---")

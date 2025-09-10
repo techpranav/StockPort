@@ -73,3 +73,7 @@ SSK_SELECTED_PLAN = "auth_selected_plan"
 SSK_PAYMENT_SESSION = "auth_payment_session"
 SSK_PAYMENT_GATEWAY = "auth_payment_gateway"
 SSK_PAYMENT_REDIRECT_URL = "auth_payment_redirect_url"
+
+# Upgrade mode session keys
+SSK_UPGRADE_MODE = "upgrade_mode"
+SSK_UPGRADE_PLAN = "upgrade_plan"
