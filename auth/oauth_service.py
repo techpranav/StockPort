@@ -21,6 +21,10 @@ from config import (
     MICROSOFT_OAUTH_REDIRECT_URI, MICROSOFT_OAUTH_TENANT_ID
 )
 from auth.simple_microsoft_oauth import SimpleMicrosoftOAuth
+from auth.constants import (
+    PROVIDER_GOOGLE, PROVIDER_MICROSOFT,
+    GOOGLE_SCOPE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +52,11 @@ class OAuthService:
         params = {
             'client_id': self.google_client_id,
             'redirect_uri': self.google_redirect_uri,
-            'scope': 'openid email profile',
+            'scope': GOOGLE_SCOPE,
             'response_type': 'code',
             'access_type': 'offline',
             'prompt': 'consent',
-            'state': 'google'  # Add state parameter to identify the provider
+            'state': PROVIDER_GOOGLE  # Identify the provider
         }
         
         return f"https://accounts.google.com/o/oauth2/auth?{urlencode(params)}"
@@ -114,7 +118,7 @@ class OAuthService:
             user_info = response.json()
             
             # Add provider identifier
-            user_info['provider'] = 'google'
+            user_info['provider'] = PROVIDER_GOOGLE
             user_info['sub'] = user_info.get('id')  # Use 'id' as 'sub' for consistency
             
             return user_info
@@ -143,7 +147,7 @@ class OAuthService:
             )
             
             # Add provider identifier
-            idinfo['provider'] = 'google'
+            idinfo['provider'] = PROVIDER_GOOGLE
             idinfo['sub'] = idinfo.get('sub')
             
             return idinfo
@@ -155,12 +159,12 @@ class OAuthService:
     def handle_oauth_callback(self, provider: str, code: str) -> Optional[Dict[str, Any]]:
         """Handle OAuth callback and return user information."""
         try:
-            if provider == 'google':
+            if provider == PROVIDER_GOOGLE:
                 token_data = self.exchange_google_code_for_token(code)
                 if token_data and 'access_token' in token_data:
                     return self.get_google_user_info(token_data['access_token'])
                     
-            elif provider == 'microsoft':
+            elif provider == PROVIDER_MICROSOFT:
                 # Use simple service for complete Microsoft OAuth flow
                 return self.simple_microsoft_service.handle_oauth_callback(code)
             
@@ -172,8 +176,8 @@ class OAuthService:
     
     def is_configured(self, provider: str) -> bool:
         """Check if OAuth provider is properly configured."""
-        if provider == 'google':
+        if provider == PROVIDER_GOOGLE:
             return bool(self.google_client_id and self.google_client_secret)
-        elif provider == 'microsoft':
+        elif provider == PROVIDER_MICROSOFT:
             return bool(self.microsoft_client_id and self.microsoft_client_secret)
         return False

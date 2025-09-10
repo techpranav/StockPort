@@ -16,12 +16,57 @@ from auth.license_service import LicenseService
 from auth.oauth_service import OAuthService
 from auth.payment_service import PaymentService
 from auth.security_service import SecurityService
+from auth.constants import (
+    PROVIDER_GOOGLE, PROVIDER_MICROSOFT,
+    SSK_SESSION_TOKEN, SSK_CURRENT_USER, SSK_AUTH_REDIRECT,
+    SSK_OAUTH_PROCESSED, SSK_OAUTH_TIME, SSK_OAUTH_LAST_CODE,
+    SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE,
+)
 from config import ENABLE_STRIPE_PAYMENTS, ENABLE_SOCIAL_LOGIN, STRIPE_PUBLISHABLE_KEY, AppConfig
 from datetime import datetime, timedelta
 try:
     import extra_streamlit_components as stx
 except Exception:
     stx = None
+
+from auth.constants import (
+    TITLE_LOGIN,
+    TITLE_REGISTER,
+    TITLE_PURCHASE,
+    TITLE_PROFILE,
+    TITLE_ADMIN,
+    SUBHEADER_OR_LOGIN_WITH,
+    SUBHEADER_ACCOUNT_INFO,
+    SUBHEADER_ACCOUNT_ACTIONS,
+    SUBHEADER_CHANGE_PASSWORD,
+    LABEL_EMAIL,
+    PLACEHOLDER_EMAIL,
+    LABEL_PASSWORD,
+    PLACEHOLDER_PASSWORD,
+    LABEL_REMEMBER_ME,
+    LABEL_SELECT_PLAN,
+    LABEL_REDIRECT_FALLBACK,
+    BUTTON_LOGIN,
+    BUTTON_REGISTER,
+    BUTTON_BACK_TO_LOGIN,
+    BUTTON_LOGIN_GOOGLE,
+    BUTTON_LOGIN_MICROSOFT,
+    BUTTON_CHANGE_PASSWORD,
+    BUTTON_LOGOUT,
+    SUCCESS_LOGIN,
+    SUCCESS_LOGGED_OUT,
+    INFO_REDIRECT_GOOGLE,
+    INFO_REDIRECT_MICROSOFT,
+    INFO_CONTACT_SUPPORT,
+    ERROR_ENTER_EMAIL_PASSWORD,
+    ERROR_TOO_MANY_ATTEMPTS,
+    ERROR_INVALID_EMAIL,
+    ERROR_FILL_ALL_FIELDS,
+    ERROR_PASSWORDS_DONT_MATCH,
+    ERROR_LOGOUT_FAILED,
+    CAPTION_GOOGLE_NOT_CONFIGURED,
+    CAPTION_MS_NOT_CONFIGURED,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,22 +86,22 @@ def handle_oauth_callback() -> bool:
         
         # Check if we've already processed this specific OAuth callback
         current_code = query_params.get('code', '')
-        if st.session_state.get('last_processed_code') == current_code:
+        if st.session_state.get(SSK_OAUTH_LAST_CODE) == current_code:
             logger.info("OAuth callback already processed for this code, skipping")
             return False
         
         # Check if the code is too old (authorization codes expire in 10 minutes)
         import time
         current_time = time.time()
-        if st.session_state.get('oauth_callback_time', 0) > 0:
-            if current_time - st.session_state.get('oauth_callback_time', 0) > 600:  # 10 minutes
+        if st.session_state.get(SSK_OAUTH_TIME, 0) > 0:
+            if current_time - st.session_state.get(SSK_OAUTH_TIME, 0) > 600:  # 10 minutes
                 logger.info("OAuth callback too old, clearing session state")
-                for key in ['oauth_callback_processed', 'last_processed_code', 'oauth_callback_time']:
+                for key in [SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME]:
                     if key in st.session_state:
                         del st.session_state[key]
         
         # Additional check: if we're already authenticated, don't process OAuth
-        if st.session_state.get('current_user'):
+        if st.session_state.get(SSK_CURRENT_USER):
             logger.info("User already authenticated, skipping OAuth callback")
             return False
         
@@ -67,28 +112,28 @@ def handle_oauth_callback() -> bool:
             # Debug logging
             logger.info(f"OAuth callback received: provider='{provider}', code_length={len(code)}")
             # Handle OAuth callback based on provider
-            if provider in ['google', 'microsoft']:
+            if provider in [PROVIDER_GOOGLE, PROVIDER_MICROSOFT]:
                 # Valid provider, proceed with OAuth
                 pass
             elif provider == 'g' or (provider.startswith('g') and len(provider) < 10):
                 # Google OAuth state parameter is truncated to 'g'
-                provider = 'google'
+                provider = PROVIDER_GOOGLE
             elif provider.startswith('m') and len(provider) < 10:
                 # Only treat as Microsoft if it's clearly truncated (short and starts with 'm')
-                provider = 'microsoft'
+                provider = PROVIDER_MICROSOFT
             else:
                 # Unknown provider, skip
                 logger.warning(f"Unknown OAuth provider: {provider}")
                 # Clear flags and query params to avoid loops
                 st.query_params.clear()
-                st.session_state.pop('oauth_initiated', None)
-                st.session_state.pop('oauth_expected_provider', None)
+                st.session_state.pop(SSK_OAUTH_INITIATED, None)
+                st.session_state.pop(SSK_OAUTH_EXPECTED_PROVIDER, None)
                 return False
             
             # Mark this specific code as processed immediately to prevent loops
-            st.session_state['last_processed_code'] = code
-            st.session_state['oauth_callback_processed'] = True
-            st.session_state['oauth_callback_time'] = current_time
+            st.session_state[SSK_OAUTH_LAST_CODE] = code
+            st.session_state[SSK_OAUTH_PROCESSED] = True
+            st.session_state[SSK_OAUTH_TIME] = current_time
             
             with st.spinner(f"Completing {provider.title()} login..."):
                 oauth_service = OAuthService()
@@ -105,9 +150,9 @@ def handle_oauth_callback() -> bool:
                         logger.info(f"Social login successful: {message}")
                         
                         # Set session state
-                        st.session_state['session_token'] = session_info['session_token']
-                        st.session_state['current_user'] = session_info
-                        st.session_state['auth_redirect'] = False
+                        st.session_state[SSK_SESSION_TOKEN] = session_info['session_token']
+                        st.session_state[SSK_CURRENT_USER] = session_info
+                        st.session_state[SSK_AUTH_REDIRECT] = False
                         # Persist session in cookie (7 days) to survive reruns/browser refreshes
                         try:
                             mgr = _get_cookie_manager()
@@ -123,8 +168,8 @@ def handle_oauth_callback() -> bool:
                         # Clear the query parameters to avoid reprocessing
                         st.query_params.clear()
                         # Clear OAuth initiation flags
-                        st.session_state.pop('oauth_initiated', None)
-                        st.session_state.pop('oauth_expected_provider', None)
+                        st.session_state.pop(SSK_OAUTH_INITIATED, None)
+                        st.session_state.pop(SSK_OAUTH_EXPECTED_PROVIDER, None)
                         
                         # Show success message
                         st.success(f"✅ {provider.title()} login successful! Welcome, {user_info.get('name', user_info.get('email', 'User'))}!")
@@ -162,8 +207,8 @@ def handle_oauth_callback() -> bool:
                 except Exception:
                     pass
                 # Clear OAuth initiation flags regardless of outcome
-                st.session_state.pop('oauth_initiated', None)
-                st.session_state.pop('oauth_expected_provider', None)
+                st.session_state.pop(SSK_OAUTH_INITIATED, None)
+                st.session_state.pop(SSK_OAUTH_EXPECTED_PROVIDER, None)
                 # Do not rerun here unconditionally; guard variables already prevent loops
             return True
     except Exception as e:
@@ -173,7 +218,7 @@ def handle_oauth_callback() -> bool:
 
 def render_login_page():
     """Render the login page."""
-    st.title("🔐 Login to Stockport")
+    st.title(TITLE_LOGIN)
     st.markdown("---")
     
     user_service = UserService()
@@ -182,20 +227,20 @@ def render_login_page():
     
     # Login form
     with st.form("login_form"):
-        email = st.text_input("Email", placeholder="Enter your email")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        remember = st.checkbox("Remember me", value=True)
+        email = st.text_input(LABEL_EMAIL, placeholder=PLACEHOLDER_EMAIL)
+        password = st.text_input(LABEL_PASSWORD, type="password", placeholder=PLACEHOLDER_PASSWORD)
+        remember = st.checkbox(LABEL_REMEMBER_ME, value=True)
         
         col1, col2 = st.columns([1, 1])
         with col1:
-            login_button = st.form_submit_button("Login", type="primary")
+            login_button = st.form_submit_button(BUTTON_LOGIN, type="primary")
         with col2:
-            st.form_submit_button("Register", on_click=lambda: st.session_state.update({'auth_mode': 'register'}))
+            st.form_submit_button(BUTTON_REGISTER, on_click=lambda: st.session_state.update({'auth_mode': 'register'}))
     
     # Social login
     if ENABLE_SOCIAL_LOGIN:
         st.markdown("---")
-        st.subheader("Or login with:")
+        st.subheader(SUBHEADER_OR_LOGIN_WITH)
         
         col1, col2 = st.columns([1, 1])
         
@@ -204,50 +249,50 @@ def render_login_page():
                 if st.button(BUTTON_LOGIN_GOOGLE, use_container_width=True):
                     try:
                         # Mark OAuth as user-initiated and expected provider
-                        st.session_state['oauth_initiated'] = True
-                        st.session_state['oauth_expected_provider'] = 'google'
+                        st.session_state[SSK_OAUTH_INITIATED] = True
+                        st.session_state[SSK_OAUTH_EXPECTED_PROVIDER] = PROVIDER_GOOGLE
                         auth_url = oauth_service.get_google_auth_url()
                         st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
                         st.markdown(f"<a href='{auth_url}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Google OAuth not configured: {e}")
             else:
-                st.button("🔍 Login with Google", use_container_width=True, disabled=True)
-                st.caption("Google OAuth not configured")
+                st.button(BUTTON_LOGIN_GOOGLE, use_container_width=True, disabled=True)
+                st.caption(CAPTION_GOOGLE_NOT_CONFIGURED)
         
         with col2:
             if oauth_service.is_configured('microsoft'):
                 if st.button(BUTTON_LOGIN_MICROSOFT, use_container_width=True):
                     try:
-                        st.session_state['oauth_initiated'] = True
-                        st.session_state['oauth_expected_provider'] = 'microsoft'
+                        st.session_state[SSK_OAUTH_INITIATED] = True
+                        st.session_state[SSK_OAUTH_EXPECTED_PROVIDER] = PROVIDER_MICROSOFT
                         auth_url = oauth_service.get_microsoft_auth_url()
                         st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
                         st.markdown(f"<a href='{auth_url}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Microsoft OAuth not configured: {e}")
             else:
-                st.button("📧 Login with Microsoft", use_container_width=True, disabled=True)
-                st.caption("Microsoft OAuth not configured")
+                st.button(BUTTON_LOGIN_MICROSOFT, use_container_width=True, disabled=True)
+                st.caption(CAPTION_MS_NOT_CONFIGURED)
     
     # Handle login
     if login_button:
         if not email or not password:
-            st.error("Please enter both email and password")
+            st.error(ERROR_ENTER_EMAIL_PASSWORD)
             return
         
         # Rate limiting
         client_ip = "127.0.0.1"  # In production, get from request
         allowed, remaining, reset_time = security_service.check_rate_limit(f"login:{client_ip}")
         if not allowed:
-            st.error(f"Too many login attempts. Please try again later.")
+            st.error(ERROR_TOO_MANY_ATTEMPTS)
             return
         
         security_service.record_request(f"login:{client_ip}")
         
         # Input validation
         if not security_service.validate_email(email):
-            st.error("Please enter a valid email address")
+            st.error(ERROR_INVALID_EMAIL)
             return
         
         success, message, user_info = user_service.login_user(email, password)
@@ -260,14 +305,14 @@ def render_login_page():
                 mgr = stx.CookieManager(key="login_cookie_manager")
                 days = AppConfig.get_auth_settings().get('remember_me_days', 30)
                 mgr.set("session_token", user_info['session_token'], expires_at=(datetime.utcnow() + timedelta(days=days)))
-            st.success("Login successful!")
+            st.success(SUCCESS_LOGIN)
             st.rerun()
         else:
             st.error(message)
 
 def render_register_page():
     """Render the registration page."""
-    st.title("📝 Register for Stockport")
+    st.title(TITLE_REGISTER)
     st.markdown("---")
     
     user_service = UserService()
@@ -276,24 +321,24 @@ def render_register_page():
     # Registration form
     with st.form("register_form"):
         username = st.text_input("Username", placeholder="Choose a username")
-        email = st.text_input("Email", placeholder="Enter your email")
-        password = st.text_input("Password", type="password", placeholder="Choose a password")
+        email = st.text_input(LABEL_EMAIL, placeholder=PLACEHOLDER_EMAIL)
+        password = st.text_input(LABEL_PASSWORD, type="password", placeholder="Choose a password")
         confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
         
         col1, col2 = st.columns([1, 1])
         with col1:
-            register_button = st.form_submit_button("Register", type="primary")
+            register_button = st.form_submit_button(BUTTON_REGISTER, type="primary")
         with col2:
-            st.form_submit_button("Back to Login", on_click=lambda: st.session_state.update({'auth_mode': 'login'}))
+            st.form_submit_button(BUTTON_BACK_TO_LOGIN, on_click=lambda: st.session_state.update({'auth_mode': 'login'}))
     
     # Handle registration
     if register_button:
         if not username or not email or not password:
-            st.error("Please fill in all fields")
+            st.error(ERROR_FILL_ALL_FIELDS)
             return
         
         if password != confirm_password:
-            st.error("Passwords do not match")
+            st.error(ERROR_PASSWORDS_DONT_MATCH)
             return
         
         # Input validation
@@ -303,7 +348,7 @@ def render_register_page():
             return
         
         if not security_service.validate_email(email):
-            st.error("Please enter a valid email address")
+            st.error(ERROR_INVALID_EMAIL)
             return
         
         password_valid, password_error = security_service.validate_password_strength(password)
@@ -325,7 +370,7 @@ def render_register_page():
 
 def render_license_purchase():
     """Render the license purchase page."""
-    st.title("💳 Purchase License")
+    st.title(TITLE_PURCHASE)
     st.markdown("---")
     
     payment_service = PaymentService()
@@ -350,7 +395,7 @@ def render_license_purchase():
             for feature in plan.get('features', []):
                 st.markdown(f"✅ {feature}")
             
-            if st.button(f"Select {plan['name']}", key=f"plan_{plan_key}"):
+            if st.button(LABEL_SELECT_PLAN.format(plan_name=plan['name']), key=f"plan_{plan_key}"):
                 selected_plan = plan_key
     
     if selected_plan:
@@ -389,11 +434,11 @@ def render_license_purchase():
                     st.error("Failed to create payment session")
             else:
                 st.error("Payment processing is not configured")
-                st.info("Please contact support to purchase a license")
+                st.info(INFO_CONTACT_SUPPORT)
 
 def render_user_profile():
     """Render the user profile page."""
-    st.title("👤 User Profile")
+    st.title(TITLE_PROFILE)
     st.markdown("---")
     
     current_user = st.session_state.get('current_user')
@@ -405,7 +450,7 @@ def render_user_profile():
     license_service = LicenseService()
     
     # User info
-    st.subheader("Account Information")
+    st.subheader(SUBHEADER_ACCOUNT_INFO)
     col1, col2 = st.columns(2)
     
     with col1:
@@ -428,32 +473,32 @@ def render_user_profile():
     # License purchase section
     if not license_valid:
         st.markdown("---")
-        st.subheader("Purchase License")
+        st.subheader(TITLE_PURCHASE)
         render_license_purchase()
     
     # Profile actions
     st.markdown("---")
-    st.subheader("Account Actions")
+    st.subheader(SUBHEADER_ACCOUNT_ACTIONS)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("🔑 Change Password"):
+        if st.button(BUTTON_CHANGE_PASSWORD):
             st.session_state['profile_action'] = 'change_password'
     
     with col2:
-        if st.button("🚪 Logout"):
+        if st.button(BUTTON_LOGOUT):
             if user_service.logout_user(current_user['session_token']):
                 st.session_state.clear()
-                st.success("Logged out successfully")
+                st.success(SUCCESS_LOGGED_OUT)
                 st.rerun()
             else:
-                st.error("Logout failed")
+                st.error(ERROR_LOGOUT_FAILED)
     
     # Change password form
     if st.session_state.get('profile_action') == 'change_password':
         st.markdown("---")
-        st.subheader("Change Password")
+        st.subheader(SUBHEADER_CHANGE_PASSWORD)
         
         with st.form("change_password_form"):
             current_password = st.text_input("Current Password", type="password")
@@ -462,7 +507,7 @@ def render_user_profile():
             
             if st.form_submit_button("Change Password"):
                 if new_password != confirm_new_password:
-                    st.error("New passwords do not match")
+                    st.error(ERROR_PASSWORDS_DONT_MATCH)
                 else:
                     success, message = user_service.change_password(
                         current_user['id'], current_password, new_password
@@ -577,7 +622,7 @@ def render_auth_gate():
         logger.info("No OAuth parameters found, skipping OAuth callback processing")
     
     # Check if user is already authenticated
-    current_user = st.session_state.get('current_user')
+    current_user = st.session_state.get(SSK_CURRENT_USER)
     if current_user:
         # Show user info and logout option
         col1, col2 = st.columns([3, 1])
@@ -586,7 +631,7 @@ def render_auth_gate():
         with col2:
             if st.button("🚪 Logout", key="logout_btn"):
                 # Clear session state
-                for key in ['current_user', 'session_token', 'auth_redirect', 'oauth_callback_processed', 'last_processed_code', 'oauth_callback_time', 'oauth_initiated', 'oauth_expected_provider', 'cookie_sync_done']:
+                for key in [SSK_CURRENT_USER, SSK_SESSION_TOKEN, SSK_AUTH_REDIRECT, SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME, SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE]:
                     if key in st.session_state:
                         del st.session_state[key]
                 # Clear cookies
@@ -621,24 +666,24 @@ def render_auth_gate():
             session_token = mgr.get("session_token") if mgr else None
             if session_token:
                 # Validate session token
-                st.session_state['session_token'] = session_token
+                st.session_state[SSK_SESSION_TOKEN] = session_token
                 user_service = UserService()
                 user = user_service.get_current_user()
                 if user:
-                    st.session_state['current_user'] = user
+                    st.session_state[SSK_CURRENT_USER] = user
                     st.rerun()  # Refresh to show authenticated state
                     return True
             else:
                 # If cookie manager just mounted, do a one-time rerun to sync cookies
-                if not st.session_state.get('cookie_sync_done', False):
-                    st.session_state['cookie_sync_done'] = True
+                if not st.session_state.get(SSK_COOKIE_SYNC_DONE, False):
+                    st.session_state[SSK_COOKIE_SYNC_DONE] = True
                     st.rerun()
                     return False
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
     
     # User is not authenticated, show auth interface
-    st.session_state['auth_redirect'] = True
+    st.session_state[SSK_AUTH_REDIRECT] = True
     
     # Check for auth mode
     auth_mode = st.session_state.get('auth_mode', 'login')

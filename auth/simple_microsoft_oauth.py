@@ -12,6 +12,7 @@ from config.app_config import (
     MICROSOFT_OAUTH_CLIENT_SECRET, 
     MICROSOFT_OAUTH_REDIRECT_URI
 )
+from auth.constants import MS_SCOPE
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class SimpleMicrosoftOAuth:
         self.redirect_uri = MICROSOFT_OAUTH_REDIRECT_URI
         self.authority = "https://login.microsoftonline.com/common"
         # Include Graph delegated permission for /me
-        self.scope = "openid profile email offline_access User.Read"
+        self.scope = MS_SCOPE
         
         logger.info(f"Simple Microsoft OAuth initialized for client: {self.client_id[:8]}...")
     
