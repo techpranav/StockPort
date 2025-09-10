@@ -140,17 +140,28 @@ class MultiPaymentService:
                 inr_price = 1  # Razorpay requires positive amount
             
             import os
-            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
-            callback_url = f"{base_url}/?purchase=success"
+            import streamlit as streamlit_module
+            
+            # Get the current Streamlit server URL
+            try:
+                # Try to get the current server URL from Streamlit
+                server_port = streamlit_module.get_option("server.port")
+                base_url = f"http://localhost:{server_port}"
+            except:
+                # Fallback to environment variable or default
+                base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            
+            callback_url = f"{base_url}/?purchase=success&plan_type={plan_type}"
             link = self.razorpay_service.create_payment_link(user_id, plan_type, inr_price, "INR", callback_url)
             if link:
-                return {
+                result = {
                     'gateway': 'razorpay',
                     'payment_url': link['short_url'],
                     'amount': inr_price,
                     'currency': 'INR',
                     'gateway_data': link
                 }
+                return result
             return None
             
         except Exception as e:

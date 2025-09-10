@@ -380,30 +380,59 @@ def render_license_purchase():
         # Use top-level meta refresh and a direct link fallback; avoid sandboxed iframes
         st.markdown(f"<meta http-equiv='refresh' content='0; url={pending_redirect}'>", unsafe_allow_html=True)
         st.markdown(f"<a href='{pending_redirect}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
-        # Do not clear immediately to avoid flicker; let the navigation replace page
+        # Clear the redirect URL after setting up the redirect
+        st.session_state.pop(SSK_PAYMENT_REDIRECT_URL, None)
         return
-
+    
     # Handle purchase success callback (fallback when webhooks are not configured)
     try:
         qp = st.query_params
         if qp.get('purchase') == 'success':
+            logger.info("Purchase success callback received")
+            
             current_user = st.session_state.get(SSK_CURRENT_USER)
             selected_plan = st.session_state.get(SSK_SELECTED_PLAN)
+            
+            # Try to get plan from payment session if not in session state
+            if not selected_plan:
+                payment_session = st.session_state.get(SSK_PAYMENT_SESSION)
+                if payment_session:
+                    selected_plan = payment_session.get('plan')
+                
+                # Try backup plan storage
+                if not selected_plan:
+                    selected_plan = st.session_state.get('last_selected_plan')
+                
+                # Try to get plan from query parameters
+                if not selected_plan:
+                    selected_plan = qp.get('plan_type')
+                    if selected_plan:
+                        # Store it back in session state for consistency
+                        st.session_state[SSK_SELECTED_PLAN] = selected_plan
+            
             if current_user and selected_plan:
                 license_service = LicenseService()
                 try:
                     license_key = license_service.create_license(current_user['id'], selected_plan)
-                    st.success(f"License activated successfully: {license_key}")
+                    st.success(f"✅ License activated successfully: {license_key}")
+                    logger.info(f"License created successfully: {license_key}")
                 except Exception as e:
-                    st.error(f"Failed to activate license: {e}")
+                    st.error(f"❌ Failed to activate license: {e}")
+                    logger.error(f"License activation failed: {e}")
+            else:
+                st.warning("⚠️ Missing user or plan information for license activation")
+                logger.warning(f"Missing info - User: {bool(current_user)}, Plan: {selected_plan}")
+            
             # Clean up payment-related state and query params
             for key in [SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
                 if key in st.session_state:
                     del st.session_state[key]
+            # Keep last_selected_plan for potential future use
             st.query_params.clear()
             st.rerun()
             return
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error in purchase success callback: {e}")
         pass
 
     payment_service = MultiPaymentService()
@@ -449,19 +478,60 @@ def render_license_purchase():
         gateways = payment_service.get_available_gateways()
         available = [g for g, ok in gateways.items() if ok]
         if not available:
-            st.error("Payment processing is not configured")
+            st.error("❌ Payment processing is not configured")
+            st.warning("**No payment gateways are configured.** Please set up at least one payment gateway:")
+            
+            with st.expander("🔧 Payment Gateway Setup Instructions"):
+                st.markdown("""
+                ### Razorpay (Recommended for India)
+                1. Sign up at [Razorpay](https://razorpay.com/)
+                2. Get your API keys from the dashboard
+                3. Set environment variables:
+                   - `RAZORPAY_KEY_ID=your_key_id`
+                   - `RAZORPAY_KEY_SECRET=your_key_secret`
+                
+                ### Stripe (Global)
+                1. Sign up at [Stripe](https://stripe.com/)
+                2. Get your API keys from the dashboard
+                3. Set environment variables:
+                   - `STRIPE_PUBLISHABLE_KEY=your_publishable_key`
+                   - `STRIPE_SECRET_KEY=your_secret_key`
+                
+                ### PayPal (Global)
+                1. Sign up at [PayPal Developer](https://developer.paypal.com/)
+                2. Create an app and get credentials
+                3. Set environment variables:
+                   - `PAYPAL_CLIENT_ID=your_client_id`
+                   - `PAYPAL_CLIENT_SECRET=your_client_secret`
+                
+                **After setting up credentials, restart the application.**
+                """)
+            
             st.info(INFO_CONTACT_SUPPORT)
             return
         gateway = st.selectbox("Payment Gateway", options=available, index=available.index(st.session_state.get(SSK_PAYMENT_GATEWAY, available[0])) if st.session_state.get(SSK_PAYMENT_GATEWAY) in available else 0)
         st.session_state[SSK_PAYMENT_GATEWAY] = gateway
+        logger.info(f"Selected gateway: {gateway}")
+        logger.info(f"Selected plan: {selected_plan}")
         
         # Create payment session via selected/recommended gateway
         import os
-        base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+        import streamlit as streamlit_module
+        
+        # Get the current Streamlit server URL
+        try:
+            # Try to get the current server URL from Streamlit
+            server_port = streamlit_module.get_option("server.port")
+            base_url = f"http://localhost:{server_port}"
+        except:
+            # Fallback to environment variable or default
+            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+        
         success_url = f"{base_url}/?purchase=success"
         cancel_url = f"{base_url}/?purchase=cancelled"
         
         session = st.session_state.get(SSK_PAYMENT_SESSION)
+        
         if not session or session.get('gateway') != gateway or session.get('plan') != selected_plan:
             try:
                 session = payment_service.create_payment_session(
@@ -472,9 +542,12 @@ def render_license_purchase():
                 if session:
                     session['plan'] = selected_plan
                     st.session_state[SSK_PAYMENT_SESSION] = session
+                    # Also store plan separately for license activation
+                    st.session_state['last_selected_plan'] = selected_plan
             except Exception as e:
                 st.error(f"Error creating checkout session: {e}")
                 session = None
+        
         
         if session:
             st.markdown(f"**Plan:** {plans[selected_plan]['name']}")
@@ -484,11 +557,13 @@ def render_license_purchase():
             if st.button("💳 Proceed to Payment", type="primary"):
                 # Determine redirect URL from session based on gateway
                 redirect_url = None
-                if session.get('gateway') == 'stripe':
+                gateway = session.get('gateway')
+                
+                if gateway == 'stripe':
                     redirect_url = session.get('checkout_url')
-                elif session.get('gateway') == 'razorpay':
+                elif gateway == 'razorpay':
                     redirect_url = session.get('payment_url')
-                elif session.get('gateway') == 'paypal':
+                elif gateway == 'paypal':
                     redirect_url = session.get('approval_url')
                 
                 if redirect_url:
@@ -516,7 +591,7 @@ def render_user_profile():
     # User info
     st.subheader(SUBHEADER_ACCOUNT_INFO)
     col1, col2 = st.columns(2)
-        
+    
     with col1:
         st.markdown(f"**Username:** {current_user['username']}")
         st.markdown(f"**Email:** {current_user['email']}")
@@ -581,7 +656,7 @@ def render_user_profile():
                         st.session_state.pop('profile_action', None)
                     else:
                         st.error(message)
-
+    
 def render_admin_panel():
     """Render the admin panel."""
     st.title("👨‍💼 Admin Panel")
@@ -687,15 +762,22 @@ def render_auth_gate():
     
     # Only clear payment flags if not authenticated and not in a payment flow
     current_user = st.session_state.get(SSK_CURRENT_USER)
-    if not current_user:
-        try:
-            qp = st.query_params
-            returning_from_payment = qp.get('purchase') in ('success', 'cancelled') or qp.get('payment') in ('success', 'cancelled') or qp.get('subscription') in ('success', 'cancelled')
-            if not returning_from_payment:
-                for key in [SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+    try:
+        qp = st.query_params
+        returning_from_payment = qp.get('purchase') in ('success', 'cancelled') or qp.get('payment') in ('success', 'cancelled') or qp.get('subscription') in ('success', 'cancelled')
+        
+        # Only clear payment state if not returning from payment
+        if not returning_from_payment:
+            if not current_user:
+                # For unauthenticated users, clear all payment state
+                for key in [SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_PAYMENT_GATEWAY]:
                     st.session_state.pop(key, None)
-        except Exception:
-            pass
+            else:
+                # For authenticated users, don't clear redirect URL immediately
+                # Let the redirect logic handle it
+                pass
+    except Exception:
+        pass
     
     # Check if user is already authenticated
     current_user = st.session_state.get(SSK_CURRENT_USER)
@@ -748,7 +830,7 @@ def render_auth_gate():
                 if user:
                     st.session_state[SSK_CURRENT_USER] = user
                     st.rerun()  # Refresh to show authenticated state
-                    return True
+            return True
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
     

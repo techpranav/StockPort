@@ -11,6 +11,10 @@ from typing import Dict, Any
 import webbrowser
 import os
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # UI Components
 from ui.components.sidebar import render_sidebar

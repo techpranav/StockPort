@@ -37,7 +37,11 @@ class RazorpayService:
                 self.key_id = key_id
                 logger.info("Razorpay client initialized successfully")
             else:
-                logger.warning("Razorpay credentials not configured")
+                logger.warning("Razorpay credentials not configured - please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables")
+                logger.info("To configure Razorpay:")
+                logger.info("1. Sign up at https://razorpay.com/")
+                logger.info("2. Get your API keys from the dashboard")
+                logger.info("3. Set environment variables: RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET")
         except Exception as e:
             logger.error(f"Error initializing Razorpay client: {e}")
     
@@ -93,25 +97,42 @@ class RazorpayService:
             if not plan:
                 logger.error(f"Invalid plan type: {plan_type}")
                 return None
-            payload = {
-                "amount": amount * 100,  # paise
-                "currency": currency,
-                "description": plan.get('name', f"License {plan_type}"),
-                "callback_url": callback_url,
-                "callback_method": "get",
-                "notes": {
-                    "user_id": str(user_id),
-                    "plan_type": plan_type,
-                    "plan_name": plan.get('name', plan_type)
-                }
+            
+            # Create payment link with proper configuration for Razorpay invoice API
+            payment_link_data = {
+                'type': 'link',
+                'amount': amount * 100,  # Convert to paise
+                'currency': currency,
+                'description': f"{plan.get('name', plan_type)} - Stockport License",
+                'customer': {
+                    'name': f"User {user_id}",
+                    'email': f"user{user_id}@example.com"
+                },
+                'notify': {
+                    'sms': True,
+                    'email': True
+                },
+                'reminder_enable': True,
+                'notes': {
+                    'user_id': str(user_id),
+                    'plan_type': plan_type,
+                    'plan_name': plan.get('name', plan_type)
+                },
+                'callback_url': callback_url,
+                'callback_method': 'get'
             }
-            link = self.client.payment_link.create(data=payload)
-            url = link.get('short_url') or link.get('url')
+            
+            payment_link = self.client.invoice.create(data=payment_link_data)
+            url = payment_link.get('short_url') or payment_link.get('url')
             if url:
-                return {
-                    "payment_link_id": link.get('id'),
-                    "short_url": url
+                result = {
+                    "payment_link_id": payment_link.get('id'),
+                    "short_url": url,
+                    "id": payment_link.get('id'),
+                    "amount": payment_link.get('amount'),
+                    "gateway_data": payment_link
                 }
+                return result
             return None
         except Exception as e:
             logger.error(f"Error creating Razorpay payment link: {e}")
