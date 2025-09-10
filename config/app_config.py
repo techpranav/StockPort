@@ -34,7 +34,7 @@ def is_cloud_environment() -> bool:
 # ============================================================================
 
 # Core Features
-ENABLE_AI_FEATURES = True
+ENABLE_AI_FEATURES = False
 ENABLE_GOOGLE_DRIVE = True
 ENABLE_TECHNICAL_ANALYSIS = True
 ENABLE_FUNDAMENTAL_ANALYSIS = True

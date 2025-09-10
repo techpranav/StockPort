@@ -152,7 +152,11 @@ def display_single_stock_analysis(symbol: str, days_back: int = 365):
 
     # Display analysis form (analyze button only) to prevent rerun issues
     with st.form(key=f"analysis_form_{symbol}"):
-        analyze_button = st.form_submit_button("🔍 Analyze", use_container_width=True)
+        analyze_button = st.form_submit_button(
+            "🔍 Analyze",
+            use_container_width=True,
+            disabled=st.session_state.get(analysis_running_key, False)
+        )
         
         if analyze_button:
             # Clear previous results and set running state
@@ -317,8 +321,12 @@ def display_mass_stock_analysis():
                 gen_excel = config.get('export_excel', True)
                 gen_word = config.get('export_word', True)
 
-                # Analyze All button
-                if st.button("🔍 Analyze All", key="analyze_mass_stocks"):
+                # Analyze All button (disabled while running)
+                if st.button(
+                    "🔍 Analyze All",
+                    key="analyze_mass_stocks",
+                    disabled=st.session_state.get('mass_analysis_running', False)
+                ):
                     if symbols:
                         # Clear any existing mass analysis results before starting new analysis
                         keys_to_remove = [

@@ -25,6 +25,12 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
+def _get_cookie_manager():
+    if not stx:
+        return None
+    # Use a single, consistent CookieManager instance
+    return stx.CookieManager(key="cookie_mgr")
+
 def handle_oauth_callback() -> bool:
     """Handle OAuth callback and return True if callback was processed."""
     try:
@@ -111,13 +117,16 @@ def handle_oauth_callback() -> bool:
                         st.session_state['current_user'] = session_info
                         st.session_state['auth_redirect'] = False
                         # Persist session in cookie (7 days) to survive reruns/browser refreshes
-                        if stx:
-                            try:
-                                mgr = stx.CookieManager(key="social_login_cookie_manager")
+                        try:
+                            mgr = _get_cookie_manager()
+                            if mgr:
                                 from datetime import datetime, timedelta
                                 mgr.set("session_token", session_info['session_token'], expires_at=(datetime.utcnow() + timedelta(days=7)))
-                            except Exception:
-                                pass
+                                # Ensure cookie persists before rerun
+                                import time as _t
+                                _t.sleep(0.4)
+                        except Exception:
+                            pass
 
                         # Clear the query parameters to avoid reprocessing
                         st.query_params.clear()
@@ -588,29 +597,41 @@ def render_auth_gate():
         with col2:
             if st.button("🚪 Logout", key="logout_btn"):
                 # Clear session state
-                for key in ['current_user', 'session_token', 'auth_redirect', 'oauth_callback_processed', 'last_processed_code', 'oauth_callback_time', 'oauth_initiated', 'oauth_expected_provider']:
+                for key in ['current_user', 'session_token', 'auth_redirect', 'oauth_callback_processed', 'last_processed_code', 'oauth_callback_time', 'oauth_initiated', 'oauth_expected_provider', 'cookie_sync_done']:
                     if key in st.session_state:
                         del st.session_state[key]
                 # Clear cookies
                 if stx:
                     try:
-                        mgr = stx.CookieManager(key="auth_gate_cookie_manager")
-                        mgr.delete("session_token")
-                    except Exception as e:
-                        logger.warning(f"Error clearing session cookie: {e}")
+                        mgr = _get_cookie_manager()
+                        if mgr:
+                            # Delete if present
+                            existing = mgr.get("session_token")
+                            if existing:
+                                try:
+                                    mgr.delete("session_token")
+                                except Exception:
+                                    pass
+                            # Force-expire cookie as fallback
+                            from datetime import datetime, timedelta
+                            mgr.set("session_token", "", expires_at=(datetime.utcnow() - timedelta(days=1)))
+                            # Wait for cookie deletion to persist
+                            import time as _t
+                            _t.sleep(0.4)
+                    except Exception:
+                        pass
                 # Clear query parameters
                 st.query_params.clear()
                 st.rerun()
         return True  # User is authenticated
     
-    # Check for session token in cookies
+    # Check for session token in cookies (avoid flicker with one-time sync)
     if stx:
         try:
-            mgr = stx.CookieManager(key="auth_gate_cookie_manager")
-            session_token = mgr.get("session_token")
+            mgr = _get_cookie_manager()
+            session_token = mgr.get("session_token") if mgr else None
             if session_token:
                 # Validate session token
-                # Ensure session_state is populated from cookie before validation
                 st.session_state['session_token'] = session_token
                 user_service = UserService()
                 user = user_service.get_current_user()
@@ -618,6 +639,12 @@ def render_auth_gate():
                     st.session_state['current_user'] = user
                     st.rerun()  # Refresh to show authenticated state
                     return True
+            else:
+                # If cookie manager just mounted, do a one-time rerun to sync cookies
+                if not st.session_state.get('cookie_sync_done', False):
+                    st.session_state['cookie_sync_done'] = True
+                    st.rerun()
+                    return False
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
     
