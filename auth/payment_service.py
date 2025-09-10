@@ -42,23 +42,30 @@ class PaymentService:
                 logger.error(f"No Stripe price ID configured for plan: {plan_type}")
                 return None
             
-            # Create checkout session
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
+            # Collect customer name and billing address to comply with India export regulations
+            # Ref: https://stripe.com/docs/india-exports
+            is_subscription = ('monthly' in plan_type or 'yearly' in plan_type)
+            kwargs = {
+                'payment_method_types': ['card'],
+                'line_items': [{
                     'price': stripe_price_id,
                     'quantity': 1,
                 }],
-                mode='subscription' if 'monthly' in plan_type or 'yearly' in plan_type else 'payment',
-                success_url=success_url,
-                cancel_url=cancel_url,
-                client_reference_id=str(user_id),
-                metadata={
+                'mode': 'subscription' if is_subscription else 'payment',
+                'success_url': success_url,
+                'cancel_url': cancel_url,
+                'client_reference_id': str(user_id),
+                'metadata': {
                     'user_id': str(user_id),
                     'plan_type': plan_type,
                     'plan_name': plan['name']
-                }
-            )
+                },
+                'billing_address_collection': 'required'
+            }
+            # customer_creation is only allowed in payment mode (not subscription)
+            if not is_subscription:
+                kwargs['customer_creation'] = 'always'
+            session = stripe.checkout.Session.create(**kwargs)
             
             logger.info(f"Created checkout session for user {user_id}, plan {plan_type}")
             return session.url

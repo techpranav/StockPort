@@ -89,6 +89,9 @@ class PayPalService:
                 logger.error(f"Invalid plan type: {plan_type}")
                 return None
             
+            import os
+            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            
             url = f"{self.base_url}/v2/checkout/orders"
             headers = {
                 'Content-Type': 'application/json',
@@ -107,8 +110,8 @@ class PayPalService:
                     'invoice_id': f"inv_{user_id}_{plan_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 }],
                 'application_context': {
-                    'return_url': f"{st.get_option('server.baseUrlPath')}?payment=success",
-                    'cancel_url': f"{st.get_option('server.baseUrlPath')}?payment=cancelled"
+                    'return_url': f"{base_url}/?payment=success",
+                    'cancel_url': f"{base_url}/?payment=cancelled"
                 }
             }
             

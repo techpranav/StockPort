@@ -306,7 +306,7 @@ PAYMENT_GATEWAY = os.getenv("PAYMENT_GATEWAY", "auto")  # auto, razorpay, stripe
 LICENSE_PLANS = {
     "basic_monthly": {
         "name": "Basic Monthly",
-        "price": 9.99,
+        "price": 0.01,
         "currency": "usd",
         "stripe_price_id": os.getenv("STRIPE_BASIC_MONTHLY_PRICE_ID"),
         "features": ["Stock Analysis", "Basic Reports", "Google Drive Export"],
@@ -314,7 +314,7 @@ LICENSE_PLANS = {
     },
     "basic_yearly": {
         "name": "Basic Yearly",
-        "price": 99.99,
+        "price": 00.05,
         "currency": "usd",
         "stripe_price_id": os.getenv("STRIPE_BASIC_YEARLY_PRICE_ID"),
         "features": ["Stock Analysis", "Basic Reports", "Google Drive Export"],

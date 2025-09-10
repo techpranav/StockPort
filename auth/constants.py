@@ -67,3 +67,9 @@ SSK_OAUTH_LAST_CODE = "last_processed_code"
 SSK_OAUTH_INITIATED = "oauth_initiated"
 SSK_OAUTH_EXPECTED_PROVIDER = "oauth_expected_provider"
 SSK_COOKIE_SYNC_DONE = "cookie_sync_done"
+
+# Payment-related session keys
+SSK_SELECTED_PLAN = "auth_selected_plan"
+SSK_PAYMENT_SESSION = "auth_payment_session"
+SSK_PAYMENT_GATEWAY = "auth_payment_gateway"
+SSK_PAYMENT_REDIRECT_URL = "auth_payment_redirect_url"

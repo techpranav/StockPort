@@ -134,18 +134,22 @@ class MultiPaymentService:
         """Create Razorpay payment session."""
         try:
             # Convert USD price to INR (approximate)
-            usd_price = plan.get('price', 0)
-            inr_price = int(usd_price * 83)  # Approximate USD to INR conversion
+            usd_price = float(plan.get('price', 0) or 0)
+            inr_price = int(round(usd_price * 83))  # Approximate USD to INR conversion
+            if inr_price < 1:
+                inr_price = 1  # Razorpay requires positive amount
             
-            order = self.razorpay_service.create_order(user_id, plan_type, inr_price, "INR")
-            if order:
+            import os
+            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            callback_url = f"{base_url}/?purchase=success"
+            link = self.razorpay_service.create_payment_link(user_id, plan_type, inr_price, "INR", callback_url)
+            if link:
                 return {
                     'gateway': 'razorpay',
-                    'order_id': order['order_id'],
-                    'amount': order['amount'],
+                    'payment_url': link['short_url'],
+                    'amount': inr_price,
                     'currency': 'INR',
-                    'payment_url': f"https://checkout.razorpay.com/v1/checkout.html?key={self.razorpay_service.client.key_id}&order_id={order['order_id']}",
-                    'gateway_data': order
+                    'gateway_data': link
                 }
             return None
             
@@ -156,8 +160,10 @@ class MultiPaymentService:
     def _create_stripe_session(self, user_id: int, plan_type: str, plan: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create Stripe payment session."""
         try:
-            success_url = f"{st.get_option('server.baseUrlPath')}?purchase=success"
-            cancel_url = f"{st.get_option('server.baseUrlPath')}?purchase=cancelled"
+            import os
+            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            success_url = f"{base_url}/?purchase=success"
+            cancel_url = f"{base_url}/?purchase=cancelled"
             
             checkout_url = self.stripe_service.create_checkout_session(
                 user_id=user_id,

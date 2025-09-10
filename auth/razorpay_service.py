@@ -22,6 +22,7 @@ class RazorpayService:
     def __init__(self):
         self.db = AuthDatabase()
         self.client = None
+        self.key_id: Optional[str] = None
         self._initialize_client()
     
     def _initialize_client(self):
@@ -33,12 +34,17 @@ class RazorpayService:
             
             if key_id and key_secret:
                 self.client = razorpay.Client(auth=(key_id, key_secret))
+                self.key_id = key_id
                 logger.info("Razorpay client initialized successfully")
             else:
                 logger.warning("Razorpay credentials not configured")
         except Exception as e:
             logger.error(f"Error initializing Razorpay client: {e}")
     
+    def get_key_id(self) -> Optional[str]:
+        """Return configured Razorpay key_id (public key) if available."""
+        return self.key_id
+
     def create_order(self, user_id: int, plan_type: str, amount: int, currency: str = "INR") -> Optional[Dict[str, Any]]:
         """Create a Razorpay order."""
         try:
@@ -77,6 +83,40 @@ class RazorpayService:
             logger.error(f"Error creating Razorpay order: {e}")
             return None
     
+    def create_payment_link(self, user_id: int, plan_type: str, amount: int, currency: str, callback_url: str) -> Optional[Dict[str, Any]]:
+        """Create a Razorpay Payment Link and return its URL."""
+        try:
+            if not self.client:
+                logger.error("Razorpay client not initialized")
+                return None
+            plan = LICENSE_PLANS.get(plan_type)
+            if not plan:
+                logger.error(f"Invalid plan type: {plan_type}")
+                return None
+            payload = {
+                "amount": amount * 100,  # paise
+                "currency": currency,
+                "description": plan.get('name', f"License {plan_type}"),
+                "callback_url": callback_url,
+                "callback_method": "get",
+                "notes": {
+                    "user_id": str(user_id),
+                    "plan_type": plan_type,
+                    "plan_name": plan.get('name', plan_type)
+                }
+            }
+            link = self.client.payment_link.create(data=payload)
+            url = link.get('short_url') or link.get('url')
+            if url:
+                return {
+                    "payment_link_id": link.get('id'),
+                    "short_url": url
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error creating Razorpay payment link: {e}")
+            return None
+
     def verify_payment(self, payment_id: str, order_id: str, signature: str) -> bool:
         """Verify payment signature."""
         try:
@@ -230,9 +270,7 @@ class RazorpayService:
                     license_key = self.db.create_license(
                         user_id=user_id,
                         plan_type=plan_type,
-                        expires_days=expiry_days,
-                        razorpay_payment_id=entity.get('id'),
-                        razorpay_order_id=entity.get('order_id')
+                        expires_days=expiry_days
                     )
                     logger.info(f"License created for payment: {license_key}")
                     return True
@@ -260,10 +298,9 @@ class RazorpayService:
                     license_key = self.db.create_license(
                         user_id=user_id,
                         plan_type=plan_type,
-                        expires_days=expiry_days,
-                        razorpay_subscription_id=entity.get('id')
+                        expires_days=expiry_days
                     )
-                    logger.info(f"License created for subscription: {license_key}")
+                    logger.info(f"License created for subscription activation: {license_key}")
                     return True
             
             return False

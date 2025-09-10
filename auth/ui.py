@@ -14,13 +14,14 @@ from auth.database import AuthDatabase
 from auth.user_service import UserService
 from auth.license_service import LicenseService
 from auth.oauth_service import OAuthService
-from auth.payment_service import PaymentService
+from auth.multi_payment_service import MultiPaymentService
 from auth.security_service import SecurityService
 from auth.constants import (
     PROVIDER_GOOGLE, PROVIDER_MICROSOFT,
     SSK_SESSION_TOKEN, SSK_CURRENT_USER, SSK_AUTH_REDIRECT,
     SSK_OAUTH_PROCESSED, SSK_OAUTH_TIME, SSK_OAUTH_LAST_CODE,
     SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE,
+    SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY, SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL,
 )
 from config import ENABLE_STRIPE_PAYMENTS, ENABLE_SOCIAL_LOGIN, STRIPE_PUBLISHABLE_KEY, AppConfig
 from datetime import datetime, timedelta
@@ -28,7 +29,6 @@ try:
     import extra_streamlit_components as stx
 except Exception:
     stx = None
-
 from auth.constants import (
     TITLE_LOGIN,
     TITLE_REGISTER,
@@ -65,7 +65,7 @@ from auth.constants import (
     ERROR_PASSWORDS_DONT_MATCH,
     ERROR_LOGOUT_FAILED,
     CAPTION_GOOGLE_NOT_CONFIGURED,
-    CAPTION_MS_NOT_CONFIGURED,
+    CAPTION_MS_NOT_CONFIGURED
 )
 
 logger = logging.getLogger(__name__)
@@ -165,14 +165,15 @@ def handle_oauth_callback() -> bool:
                         except Exception:
                             pass
 
-                        # Clear the query parameters to avoid reprocessing
-                        st.query_params.clear()
                         # Clear OAuth initiation flags
                         st.session_state.pop(SSK_OAUTH_INITIATED, None)
                         st.session_state.pop(SSK_OAUTH_EXPECTED_PROVIDER, None)
                         
                         # Show success message
                         st.success(f"✅ {provider.title()} login successful! Welcome, {user_info.get('name', user_info.get('email', 'User'))}!")
+                        
+                        # Clear the query parameters after setting success state
+                        st.query_params.clear()
                         
                         # Force a rerun to refresh the page
                         st.rerun()
@@ -372,8 +373,40 @@ def render_license_purchase():
     """Render the license purchase page."""
     st.title(TITLE_PURCHASE)
     st.markdown("---")
-    
-    payment_service = PaymentService()
+    # Handle pending payment redirect from previous click
+    pending_redirect = st.session_state.get(SSK_PAYMENT_REDIRECT_URL)
+    if pending_redirect:
+        st.success("Redirecting to payment page...")
+        # Use top-level meta refresh and a direct link fallback; avoid sandboxed iframes
+        st.markdown(f"<meta http-equiv='refresh' content='0; url={pending_redirect}'>", unsafe_allow_html=True)
+        st.markdown(f"<a href='{pending_redirect}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
+        # Do not clear immediately to avoid flicker; let the navigation replace page
+        return
+
+    # Handle purchase success callback (fallback when webhooks are not configured)
+    try:
+        qp = st.query_params
+        if qp.get('purchase') == 'success':
+            current_user = st.session_state.get(SSK_CURRENT_USER)
+            selected_plan = st.session_state.get(SSK_SELECTED_PLAN)
+            if current_user and selected_plan:
+                license_service = LicenseService()
+                try:
+                    license_key = license_service.create_license(current_user['id'], selected_plan)
+                    st.success(f"License activated successfully: {license_key}")
+                except Exception as e:
+                    st.error(f"Failed to activate license: {e}")
+            # Clean up payment-related state and query params
+            for key in [SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.query_params.clear()
+            st.rerun()
+            return
+    except Exception:
+        pass
+
+    payment_service = MultiPaymentService()
     plans = payment_service.get_available_plans()
     
     if not plans:
@@ -397,44 +430,75 @@ def render_license_purchase():
             
             if st.button(LABEL_SELECT_PLAN.format(plan_name=plan['name']), key=f"plan_{plan_key}"):
                 selected_plan = plan_key
+                st.session_state[SSK_SELECTED_PLAN] = selected_plan
     
+    selected_plan = selected_plan or st.session_state.get(SSK_SELECTED_PLAN)
     if selected_plan:
         st.markdown("---")
         st.subheader(f"Purchase {plans[selected_plan]['name']}")
         
         # Get current user
-        current_user = st.session_state.get('current_user')
+        current_user = st.session_state.get(SSK_CURRENT_USER)
         if not current_user:
             st.error("Please login first")
             return
         
         user_id = current_user['id']
         
-        # Create checkout session
-        if ENABLE_STRIPE_PAYMENTS and STRIPE_PUBLISHABLE_KEY:
-            success_url = f"{st.get_option('server.baseUrlPath')}?purchase=success"
-            cancel_url = f"{st.get_option('server.baseUrlPath')}?purchase=cancelled"
+        # Select payment gateway
+        gateways = payment_service.get_available_gateways()
+        available = [g for g, ok in gateways.items() if ok]
+        if not available:
+            st.error("Payment processing is not configured")
+            st.info(INFO_CONTACT_SUPPORT)
+            return
+        gateway = st.selectbox("Payment Gateway", options=available, index=available.index(st.session_state.get(SSK_PAYMENT_GATEWAY, available[0])) if st.session_state.get(SSK_PAYMENT_GATEWAY) in available else 0)
+        st.session_state[SSK_PAYMENT_GATEWAY] = gateway
+        
+        # Create payment session via selected/recommended gateway
+        import os
+        base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+        success_url = f"{base_url}/?purchase=success"
+        cancel_url = f"{base_url}/?purchase=cancelled"
+        
+        session = st.session_state.get(SSK_PAYMENT_SESSION)
+        if not session or session.get('gateway') != gateway or session.get('plan') != selected_plan:
+            try:
+                session = payment_service.create_payment_session(
+                    user_id=user_id,
+                    plan_type=selected_plan,
+                    gateway=gateway
+                )
+                if session:
+                    session['plan'] = selected_plan
+                    st.session_state[SSK_PAYMENT_SESSION] = session
+            except Exception as e:
+                st.error(f"Error creating checkout session: {e}")
+                session = None
+        
+        if session:
+            st.markdown(f"**Plan:** {plans[selected_plan]['name']}")
+            st.markdown(f"**Price:** ${plans[selected_plan]['price']}")
+            st.markdown(f"**Features:** {', '.join(plans[selected_plan].get('features', []))}")
             
-            checkout_url = payment_service.create_checkout_session(
-                user_id=user_id,
-                plan_type=selected_plan,
-                success_url=success_url,
-                cancel_url=cancel_url
-            )
-            
-            if checkout_url:
-                st.markdown(f"**Plan:** {plans[selected_plan]['name']}")
-                st.markdown(f"**Price:** ${plans[selected_plan]['price']}")
-                st.markdown(f"**Features:** {', '.join(plans[selected_plan].get('features', []))}")
+            if st.button("💳 Proceed to Payment", type="primary"):
+                # Determine redirect URL from session based on gateway
+                redirect_url = None
+                if session.get('gateway') == 'stripe':
+                    redirect_url = session.get('checkout_url')
+                elif session.get('gateway') == 'razorpay':
+                    redirect_url = session.get('payment_url')
+                elif session.get('gateway') == 'paypal':
+                    redirect_url = session.get('approval_url')
                 
-                if st.button("💳 Proceed to Payment", type="primary"):
-                    webbrowser.open(checkout_url)
-                    st.success("Redirecting to payment page...")
+                if redirect_url:
+                    st.session_state[SSK_PAYMENT_REDIRECT_URL] = redirect_url
+                    st.rerun()
                 else:
-                    st.error("Failed to create payment session")
-            else:
-                st.error("Payment processing is not configured")
-                st.info(INFO_CONTACT_SUPPORT)
+                    st.error("Failed to determine payment redirect URL")
+        else:
+            st.error("Payment processing is not configured")
+            st.info(INFO_CONTACT_SUPPORT)
 
 def render_user_profile():
     """Render the user profile page."""
@@ -452,7 +516,7 @@ def render_user_profile():
     # User info
     st.subheader(SUBHEADER_ACCOUNT_INFO)
     col1, col2 = st.columns(2)
-    
+        
     with col1:
         st.markdown(f"**Username:** {current_user['username']}")
         st.markdown(f"**Email:** {current_user['email']}")
@@ -517,7 +581,7 @@ def render_user_profile():
                         st.session_state.pop('profile_action', None)
                     else:
                         st.error(message)
-    
+
 def render_admin_panel():
     """Render the admin panel."""
     st.title("👨‍💼 Admin Panel")
@@ -565,12 +629,12 @@ def render_admin_panel():
             user_options = {f"{u['username']} ({u['email']})": u['id'] for u in users}
             
             selected_user = st.selectbox("Select User", options=list(user_options.keys()))
-            plan_type = st.selectbox("Plan Type", options=list(LICENSE_PLANS.keys()))
+            plan_type = st.selectbox("Plan Type", options=["basic", "premium", "enterprise"])
             
             if st.button("Create License"):
                 if selected_user and plan_type:
                     user_id = user_options[selected_user]
-                    license_service = LicenseService(storage)
+                    license_service = LicenseService()
                     try:
                         license_key = license_service.create_license(user_id, plan_type)
                         st.success(f"License created: {license_key}")
@@ -600,8 +664,8 @@ def render_admin_panel():
         
         with col2:
             st.metric("Active Users", active_users)
-        
-        with col3:
+    
+    with col3:
             st.metric("Admin Users", admin_users)
 
 def render_auth_gate():
@@ -610,16 +674,28 @@ def render_auth_gate():
     if not AppConfig.get_auth_settings().get('enabled', False):
         return True  # Skip authentication if disabled
     
-    # Handle OAuth callback first (before authentication gate)
-    # Only process if there are actual OAuth parameters
+    # Handle OAuth callback first (before clearing state)
     query_params = st.query_params
     if query_params and len(query_params) > 0 and 'code' in query_params and 'state' in query_params:
         # Only process OAuth callback if we have valid parameters
         logger.info(f"Processing OAuth callback with parameters: {list(query_params.keys())}")
         if handle_oauth_callback():
             st.rerun()  # Refresh the page after OAuth callback
+            return True  # Exit early after successful OAuth
     else:
         logger.info("No OAuth parameters found, skipping OAuth callback processing")
+    
+    # Only clear payment flags if not authenticated and not in a payment flow
+    current_user = st.session_state.get(SSK_CURRENT_USER)
+    if not current_user:
+        try:
+            qp = st.query_params
+            returning_from_payment = qp.get('purchase') in ('success', 'cancelled') or qp.get('payment') in ('success', 'cancelled') or qp.get('subscription') in ('success', 'cancelled')
+            if not returning_from_payment:
+                for key in [SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                    st.session_state.pop(key, None)
+        except Exception:
+            pass
     
     # Check if user is already authenticated
     current_user = st.session_state.get(SSK_CURRENT_USER)
@@ -631,7 +707,7 @@ def render_auth_gate():
         with col2:
             if st.button("🚪 Logout", key="logout_btn"):
                 # Clear session state
-                for key in [SSK_CURRENT_USER, SSK_SESSION_TOKEN, SSK_AUTH_REDIRECT, SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME, SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE]:
+                for key in [SSK_CURRENT_USER, SSK_SESSION_TOKEN, SSK_AUTH_REDIRECT, SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME, SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE, SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
                     if key in st.session_state:
                         del st.session_state[key]
                 # Clear cookies
@@ -654,17 +730,17 @@ def render_auth_gate():
                             _t.sleep(0.4)
                     except Exception:
                         pass
-                # Clear query parameters
-                st.query_params.clear()
-                st.rerun()
+                    # Clear query parameters
+                    st.query_params.clear()
+                    st.rerun()
         return True  # User is authenticated
     
-    # Check for session token in cookies (avoid flicker with one-time sync)
+    # Check for session token in cookies
     if stx:
         try:
             mgr = _get_cookie_manager()
             session_token = mgr.get("session_token") if mgr else None
-            if session_token:
+            if session_token and not st.session_state.get(SSK_CURRENT_USER):
                 # Validate session token
                 st.session_state[SSK_SESSION_TOKEN] = session_token
                 user_service = UserService()
@@ -673,12 +749,6 @@ def render_auth_gate():
                     st.session_state[SSK_CURRENT_USER] = user
                     st.rerun()  # Refresh to show authenticated state
                     return True
-            else:
-                # If cookie manager just mounted, do a one-time rerun to sync cookies
-                if not st.session_state.get(SSK_COOKIE_SYNC_DONE, False):
-                    st.session_state[SSK_COOKIE_SYNC_DONE] = True
-                    st.rerun()
-                    return False
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
     
