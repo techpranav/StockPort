@@ -9,6 +9,7 @@ import streamlit as st
 from config.constants import *
 from utils.user_settings_manager import UserSettingsManager
 from config import ENABLE_AI_FEATURES
+from auth.constants import SSK_CURRENT_USER
 
 def render_sidebar():
     """
@@ -17,6 +18,10 @@ def render_sidebar():
     Returns:
         dict: Configuration dictionary with all sidebar settings
     """
+    # Safety check: Only render sidebar for authenticated users
+    if not st.session_state.get(SSK_CURRENT_USER):
+        return {}
+    
     st.sidebar.title(HEADER_CONFIGURATION)
     
     # Initialize user settings manager
@@ -80,9 +85,11 @@ def render_sidebar():
     
     def _on_sidebar_days_back_change():
         try:
-            st.session_state['days_back_current'] = int(st.session_state['sidebar_days_back'])
+            if 'sidebar_days_back' in st.session_state:
+                st.session_state['days_back_current'] = int(st.session_state['sidebar_days_back'])
         except Exception:
-            st.session_state['days_back_current'] = st.session_state['sidebar_days_back']
+            if 'sidebar_days_back' in st.session_state:
+                st.session_state['days_back_current'] = st.session_state['sidebar_days_back']
 
     days_back = st.sidebar.number_input(
         LABEL_DAYS_HISTORICAL_DATA,

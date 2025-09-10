@@ -527,6 +527,7 @@ def render_license_purchase():
             # Fallback to environment variable or default
             base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
         
+        
         success_url = f"{base_url}/?purchase=success"
         cancel_url = f"{base_url}/?purchase=cancelled"
         
@@ -628,7 +629,20 @@ def render_user_profile():
     with col2:
         if st.button(BUTTON_LOGOUT):
             if user_service.logout_user(current_user['session_token']):
+                # Clear session state
                 st.session_state.clear()
+                
+                # Clear cookies
+                if stx:
+                    try:
+                        mgr = _get_cookie_manager()
+                        if mgr:
+                            mgr.delete("session_token")
+                            import time
+                            time.sleep(0.4)  # Wait for cookie deletion
+                    except Exception:
+                        pass
+                
                 st.success(SUCCESS_LOGGED_OUT)
                 st.rerun()
             else:
@@ -746,7 +760,10 @@ def render_admin_panel():
 def render_auth_gate():
     """Render the authentication gate - main entry point for auth."""
     # Check if authentication is enabled from config
-    if not AppConfig.get_auth_settings().get('enabled', False):
+    auth_settings = AppConfig.get_auth_settings()
+    auth_enabled = auth_settings.get('enabled', False)
+    
+    if not auth_enabled:
         return True  # Skip authentication if disabled
     
     # Handle OAuth callback first (before clearing state)
@@ -812,9 +829,10 @@ def render_auth_gate():
                             _t.sleep(0.4)
                     except Exception:
                         pass
-                    # Clear query parameters
-                    st.query_params.clear()
-                    st.rerun()
+                
+                # Clear query parameters
+                st.query_params.clear()
+                st.rerun()
         return True  # User is authenticated
     
     # Check for session token in cookies
@@ -822,6 +840,7 @@ def render_auth_gate():
         try:
             mgr = _get_cookie_manager()
             session_token = mgr.get("session_token") if mgr else None
+            
             if session_token and not st.session_state.get(SSK_CURRENT_USER):
                 # Validate session token
                 st.session_state[SSK_SESSION_TOKEN] = session_token
@@ -830,7 +849,9 @@ def render_auth_gate():
                 if user:
                     st.session_state[SSK_CURRENT_USER] = user
                     st.rerun()  # Refresh to show authenticated state
-            return True
+                    return True
+            elif st.session_state.get(SSK_CURRENT_USER):
+                return True
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
     

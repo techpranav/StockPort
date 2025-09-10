@@ -401,7 +401,8 @@ def main():
             if not render_auth_gate():
                 return  # Stop execution if not authenticated
         
-        # Render the sidebar (this will also save any changes back to persistent storage)
+        # Render the sidebar only for authenticated users
+        # (this will also save any changes back to persistent storage)
         config = render_sidebar()
         
         # Main content
