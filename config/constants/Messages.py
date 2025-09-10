@@ -15,6 +15,7 @@ HEADER_GOOGLE_DRIVE_OPTIONS = "☁️ Google Drive"
 HEADER_CLEANUP_OPTIONS = "🧹 Cleanup Options"
 HEADER_ANALYSIS_OPTIONS = "📊 Analysis Options"
 HEADER_REPORT_HISTORY = "📁 Report History"
+HEADER_AI_MODEL = "🤖 AI Model"
 
 # Navigation Labels
 NAV_SINGLE_ANALYSIS = "Single Stock Analysis"
@@ -33,6 +34,7 @@ LABEL_DELAY_API_CALLS = "Delay between API calls (seconds)"
 LABEL_FILTER_BY_SYMBOL = "Filter by Symbol"
 LABEL_FILTER_BY_TYPE = "Filter by Type"
 LABEL_FILTER_BY_DAYS = "Show reports from last N days"
+LABEL_REDIRECT_FALLBACK = "Click here if not redirected"
 
 # Help Text
 HELP_DISABLE_CLEANUP = "Set to 0 to disable automatic cleanup"
@@ -92,7 +94,13 @@ BUTTON_ANALYZE = "🔍 Analyze"
 BUTTON_DOWNLOAD_EXCEL = "Download Excel Report"
 BUTTON_DOWNLOAD_WORD = "Download Word Report"
 BUTTON_DELETE_REPORT = "🗑️ Delete"
+BUTTON_LOGIN_GOOGLE = "🔍 Login with Google"
+BUTTON_LOGIN_MICROSOFT = "📧 Login with Microsoft"
 BUTTON_CLEANUP_REPORTS = "🧹 Cleanup Old Reports"
+
+# Redirect Info
+INFO_REDIRECT_GOOGLE = "Redirecting to Google sign-in..."
+INFO_REDIRECT_MICROSOFT = "Redirecting to Microsoft sign-in..."
 
 # Input Placeholders
 PLACEHOLDER_STOCK_SYMBOL = "Enter stock symbol (e.g., AAPL, MSFT, GOOGL)"

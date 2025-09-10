@@ -8,6 +8,7 @@ for the stock analysis tool.
 import streamlit as st
 from config.constants import *
 from utils.user_settings_manager import UserSettingsManager
+from config import ENABLE_AI_FEATURES
 
 def render_sidebar():
     """
@@ -16,7 +17,7 @@ def render_sidebar():
     Returns:
         dict: Configuration dictionary with all sidebar settings
     """
-    st.sidebar.title("⚙️ Configuration")
+    st.sidebar.title(HEADER_CONFIGURATION)
     
     # Initialize user settings manager
     user_settings = UserSettingsManager()
@@ -25,7 +26,7 @@ def render_sidebar():
     saved_config = user_settings.load_sidebar_config()
     
     # Export Options
-    st.sidebar.subheader("📊 Export Options")
+    st.sidebar.subheader(HEADER_EXPORT_OPTIONS)
     
     export_word = st.sidebar.checkbox(
         LABEL_EXPORT_WORD_REPORT,
@@ -39,18 +40,20 @@ def render_sidebar():
         key='sidebar_export_excel'
     )
     
-    # AI Model Selection
-    st.sidebar.subheader("🤖 AI Model")
-    
-    ai_mode = st.sidebar.selectbox(
-        LABEL_AI_MODEL,
-        options=AI_MODEL_OPTIONS,
-        index=AI_MODEL_OPTIONS.index(st.session_state.get('sidebar_ai_model', saved_config.get('ai_model', 'gpt-3.5-turbo'))),
-        key='sidebar_ai_model'
-    )
+    # AI Model Selection (only if enabled)
+    if ENABLE_AI_FEATURES:
+        st.sidebar.subheader(HEADER_AI_MODEL)
+        ai_mode = st.sidebar.selectbox(
+            LABEL_AI_MODEL,
+            options=AI_MODEL_OPTIONS,
+            index=AI_MODEL_OPTIONS.index(st.session_state.get('sidebar_ai_model', saved_config.get('ai_model', DEFAULT_AI_MODEL))),
+            key='sidebar_ai_model'
+        )
+    else:
+        ai_mode = DEFAULT_AI_MODEL
     
     # Google Drive Integration
-    st.sidebar.subheader("☁️ Google Drive")
+    st.sidebar.subheader(HEADER_GOOGLE_DRIVE_OPTIONS)
     
     upload_to_drive = st.sidebar.checkbox(
         LABEL_UPLOAD_TO_DRIVE,
@@ -65,7 +68,7 @@ def render_sidebar():
     )
     
     # Analysis Settings
-    st.sidebar.subheader("📈 Analysis Settings")
+    st.sidebar.subheader(HEADER_ANALYSIS_OPTIONS)
     
     cleanup_days = st.sidebar.number_input(
         LABEL_DELETE_REPORTS_OLDER,

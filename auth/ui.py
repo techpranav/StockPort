@@ -66,11 +66,6 @@ def handle_oauth_callback() -> bool:
             
             # Debug logging
             logger.info(f"OAuth callback received: provider='{provider}', code_length={len(code)}")
-            st.info(f"🔍 Debug: OAuth callback received for '{provider}'")
-            st.info(f"🔍 Debug: Raw state parameter: {query_params.get('state', '')}")
-            st.info(f"🔍 Debug: Raw code parameter: {query_params.get('code', '')}")
-            st.info(f"🔍 Debug: Provider length: {len(provider)}")
-            
             # Handle OAuth callback based on provider
             if provider in ['google', 'microsoft']:
                 # Valid provider, proceed with OAuth
@@ -78,11 +73,9 @@ def handle_oauth_callback() -> bool:
             elif provider == 'g' or (provider.startswith('g') and len(provider) < 10):
                 # Google OAuth state parameter is truncated to 'g'
                 provider = 'google'
-                st.info(f"🔍 Debug: Corrected provider to 'google' from truncated state")
             elif provider.startswith('m') and len(provider) < 10:
                 # Only treat as Microsoft if it's clearly truncated (short and starts with 'm')
                 provider = 'microsoft'
-                st.info(f"🔍 Debug: Corrected provider to 'microsoft' from truncated state")
             else:
                 # Unknown provider, skip
                 logger.warning(f"Unknown OAuth provider: {provider}")
@@ -104,7 +97,6 @@ def handle_oauth_callback() -> bool:
                 
                 if user_info:
                     logger.info(f"OAuth user info received: {user_info.get('email', 'no email')}")
-                    st.info(f"🔍 Debug: User info received: {user_info.get('email', 'no email')}")
                     
                     user_service = UserService()
                     success, message, session_info = user_service.social_login(provider, user_info)
@@ -147,7 +139,6 @@ def handle_oauth_callback() -> bool:
                     logger.error(f"OAuth callback failed for {provider}")
                     if provider == 'microsoft':
                         st.error(f"❌ Microsoft OAuth failed. This is likely due to Azure AD app configuration issues.")
-                        st.warning("🔧 **Microsoft OAuth Troubleshooting:**")
                         st.markdown("""
                         The Microsoft OAuth is failing with `AADSTS70000` error. This indicates an Azure AD app configuration issue.
                         
@@ -210,15 +201,14 @@ def render_login_page():
         
         with col1:
             if oauth_service.is_configured('google'):
-                if st.button("🔍 Login with Google", use_container_width=True):
+                if st.button(BUTTON_LOGIN_GOOGLE, use_container_width=True):
                     try:
                         # Mark OAuth as user-initiated and expected provider
                         st.session_state['oauth_initiated'] = True
                         st.session_state['oauth_expected_provider'] = 'google'
                         auth_url = oauth_service.get_google_auth_url()
-                        st.info("Redirecting to Google sign-in...")
                         st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
-                        st.markdown(f"<a href='{auth_url}' target='_self'>Click here if not redirected</a>", unsafe_allow_html=True)
+                        st.markdown(f"<a href='{auth_url}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Google OAuth not configured: {e}")
             else:
@@ -227,14 +217,13 @@ def render_login_page():
         
         with col2:
             if oauth_service.is_configured('microsoft'):
-                if st.button("📧 Login with Microsoft", use_container_width=True):
+                if st.button(BUTTON_LOGIN_MICROSOFT, use_container_width=True):
                     try:
                         st.session_state['oauth_initiated'] = True
                         st.session_state['oauth_expected_provider'] = 'microsoft'
                         auth_url = oauth_service.get_microsoft_auth_url()
-                        st.info("Redirecting to Microsoft sign-in...")
                         st.markdown(f"<meta http-equiv='refresh' content='0; url={auth_url}'>", unsafe_allow_html=True)
-                        st.markdown(f"<a href='{auth_url}' target='_self'>Click here if not redirected</a>", unsafe_allow_html=True)
+                        st.markdown(f"<a href='{auth_url}' target='_self'>{LABEL_REDIRECT_FALLBACK}</a>", unsafe_allow_html=True)
                     except Exception as e:
                         st.error(f"Microsoft OAuth not configured: {e}")
             else:

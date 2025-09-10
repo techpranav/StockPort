@@ -459,3 +459,109 @@ For issues with the authentication system:
 3. **Load Balancing**: Use multiple instances
 4. **CDN**: Use CDN for static assets
 5. **Monitoring**: Implement application monitoring
+
+## Plugging Authentication Module into Another Project
+
+This guide explains how to integrate the Stockport authentication module (email/password + Google + Microsoft + licensing + payments hooks) into another Streamlit-based project.
+
+### Prerequisites
+- Python 3.10+
+- Streamlit 1.32+
+- extra_streamlit_components (for cookies)
+- requests, cryptography, itsdangerous
+- If using social login:
+  - Google OAuth credentials
+  - Microsoft Entra App Registration (with Graph `User.Read` delegated permission, admin consent granted)
+
+### 1) Copy Required Packages/Modules
+Copy these folders/files into your target project (preserving paths):
+- `auth/` (database, ui, services)
+- `config/` (and subfolders `constants/`) – or merge into your existing config system
+- `utils/` (only cookie/session helpers like `user_settings_manager.py` if used)
+- `services/exporters/` only if you need licensing/report hooks (optional)
+
+If you already have a config system, import the following from `config.__init__` and/or adapt names:
+- Feature flags: `ENABLE_AUTHENTICATION`, `ENABLE_SOCIAL_LOGIN`
+- OAuth secrets: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`, `MICROSOFT_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_SECRET`, `MICROSOFT_OAUTH_REDIRECT_URI`
+- Session & DB: `SESSION_TIMEOUT_HOURS`, `SESSION_SECRET_KEY`, `AUTH_DATABASE_PATH`
+
+### 2) Environment Variables (.env)
+Provide at minimum:
+```
+ENABLE_AUTHENTICATION=true
+ENABLE_SOCIAL_LOGIN=true
+SESSION_SECRET_KEY=your_random_secret
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8501
+MICROSOFT_OAUTH_CLIENT_ID=...
+MICROSOFT_OAUTH_CLIENT_SECRET=...
+MICROSOFT_OAUTH_REDIRECT_URI=http://localhost:8501
+```
+
+### 3) Azure/Google Console Settings
+- Google: Add `http://localhost:8501` to Authorized redirect URIs
+- Microsoft: App registrations → API permissions → Add Microsoft Graph `User.Read` (Delegated) → Grant admin consent; set redirect URI `http://localhost:8501`.
+
+### 4) Initialize Auth in Your App
+In your main Streamlit app (e.g. `app.py`):
+```python
+from auth.ui import render_auth_gate
+
+# Early in the app code
+if not render_auth_gate():
+    st.stop()
+
+# Your application content after this point is protected
+```
+This will display login/register and handle OAuth callbacks automatically.
+
+### 5) Persisted Sessions (Cookies)
+The module persists a `session_token` cookie for 7 days using `extra_streamlit_components.CookieManager`. Ensure you include the package and do not block cookies in the browser.
+
+### 6) Social Login Buttons (Optional)
+The login UI already includes Google/Microsoft buttons. If you need manual buttons elsewhere:
+```python
+from auth.oauth_service import OAuthService
+import streamlit as st
+
+svc = OAuthService()
+if st.button("Login with Google"):
+    st.markdown(f"<meta http-equiv='refresh' content='0; url={svc.get_google_auth_url()}'>", unsafe_allow_html=True)
+```
+
+### 7) Getting Current User
+```python
+from auth.user_service import UserService
+user = UserService().get_current_user()
+if user:
+    st.write("Hello", user['email'])
+```
+
+### 8) Logout
+```python
+from auth.user_service import UserService
+from auth.ui import _get_cookie_manager
+
+u = UserService()
+if st.button("Logout"):
+    user = u.get_current_user()
+    if user:
+        u.logout_user(user['session_token'])
+    mgr = _get_cookie_manager()
+    if mgr:
+        mgr.delete("session_token")
+    st.session_state.clear()
+    st.rerun()
+```
+
+### 9) Licensing & Payments (Optional)
+- License creation/validation available via `auth.license_service.LicenseService`
+- Payments hooks exist in `auth.razorpay_service.py`, `services/exporters/report_service.py`; wire these only if needed.
+
+### 10) Troubleshooting
+- If Google shows blank or "enable JavaScript": ensure we only read query parameters and immediately clear them; refresh once.
+- If Microsoft `/me` returns 403: add Graph `User.Read` and grant admin consent.
+- If sessions don’t persist: verify `session_token` cookie is present at `http://localhost:8501` and the browser isn’t blocking cookies.
+
+This module is self-contained; you can progressively adopt features (only email/password, or add social, or add licensing) by toggling the corresponding feature flags.
