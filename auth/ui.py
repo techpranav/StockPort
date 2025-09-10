@@ -840,6 +840,24 @@ def render_auth_gate():
     # Check if user is already authenticated
     current_user = st.session_state.get(SSK_CURRENT_USER)
     if current_user:
+        # Validate that the session is still valid for this user
+        user_service = UserService()
+        validated_user = user_service.get_current_user()
+        
+        # If session validation fails or user doesn't match, clear session state
+        if not validated_user or validated_user['id'] != current_user['id']:
+            logger.warning(f"Session validation failed for user {current_user.get('id', 'unknown')}, clearing session state")
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                if key.startswith(('auth_', 'session_', 'oauth_', 'payment_', 'upgrade_')):
+                    del st.session_state[key]
+            st.rerun()
+            return False
+        
+        # Update current user with validated data
+        st.session_state[SSK_CURRENT_USER] = validated_user
+        current_user = validated_user
+        
         # Show user info and logout option
         col1, col2 = st.columns([3, 1])
         with col1:
@@ -847,7 +865,7 @@ def render_auth_gate():
         with col2:
             if st.button("🚪 Logout", key="logout_btn"):
                 # Clear session state
-                for key in [SSK_CURRENT_USER, SSK_SESSION_TOKEN, SSK_AUTH_REDIRECT, SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME, SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE, SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                for key in [SSK_CURRENT_USER, SSK_SESSION_TOKEN, SSK_AUTH_REDIRECT, SSK_OAUTH_PROCESSED, SSK_OAUTH_LAST_CODE, SSK_OAUTH_TIME, SSK_OAUTH_INITIATED, SSK_OAUTH_EXPECTED_PROVIDER, SSK_COOKIE_SYNC_DONE, SSK_PAYMENT_REDIRECT_URL, SSK_PAYMENT_SESSION, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY, SSK_UPGRADE_MODE, SSK_UPGRADE_PLAN]:
                     if key in st.session_state:
                         del st.session_state[key]
                 # Clear cookies
