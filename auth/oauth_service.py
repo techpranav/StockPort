@@ -16,9 +16,9 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 from config import (
-    GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REDIRECT_URI,
+    GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, 
     MICROSOFT_OAUTH_CLIENT_ID, MICROSOFT_OAUTH_CLIENT_SECRET, 
-    MICROSOFT_OAUTH_REDIRECT_URI, MICROSOFT_OAUTH_TENANT_ID
+    MICROSOFT_OAUTH_TENANT_ID, get_google_oauth_redirect_uri, get_microsoft_oauth_redirect_uri
 )
 from auth.simple_microsoft_oauth import SimpleMicrosoftOAuth
 from auth.constants import (
@@ -34,11 +34,9 @@ class OAuthService:
     def __init__(self):
         self.google_client_id = GOOGLE_OAUTH_CLIENT_ID
         self.google_client_secret = GOOGLE_OAUTH_CLIENT_SECRET
-        self.google_redirect_uri = GOOGLE_OAUTH_REDIRECT_URI
         
         self.microsoft_client_id = MICROSOFT_OAUTH_CLIENT_ID
         self.microsoft_client_secret = MICROSOFT_OAUTH_CLIENT_SECRET
-        self.microsoft_redirect_uri = MICROSOFT_OAUTH_REDIRECT_URI
         self.microsoft_tenant_id = MICROSOFT_OAUTH_TENANT_ID
         
         # Initialize simple Microsoft OAuth service
@@ -51,7 +49,7 @@ class OAuthService:
         
         params = {
             'client_id': self.google_client_id,
-            'redirect_uri': self.google_redirect_uri,
+            'redirect_uri': get_google_oauth_redirect_uri(),
             'scope': GOOGLE_SCOPE,
             'response_type': 'code',
             'access_type': 'offline',
@@ -78,7 +76,7 @@ class OAuthService:
                 'client_secret': self.google_client_secret,
                 'code': code,
                 'grant_type': 'authorization_code',
-                'redirect_uri': self.google_redirect_uri
+                'redirect_uri': get_google_oauth_redirect_uri()
             }
             
             response = requests.post(token_url, data=data)

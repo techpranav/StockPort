@@ -31,6 +31,9 @@ from .app_config import (
     # Configuration management
     AppConfig,
     is_cloud_environment,
+    get_base_url,
+    get_google_oauth_redirect_uri,
+    get_microsoft_oauth_redirect_uri,
     
     # Legacy compatibility
     EXPORT_EXCEL,

@@ -29,6 +29,21 @@ def is_cloud_environment() -> bool:
         os.path.exists("/app/.streamlit/")
     )
 
+def get_base_url() -> str:
+    """Get the base URL for the application dynamically."""
+    if is_cloud_environment():
+        # In cloud environment, use the provided URL
+        return os.getenv("STREAMLIT_BASE_URL", "https://your-app-name.streamlit.app")
+    else:
+        # In local environment, detect the port dynamically
+        try:
+            import streamlit as st
+            port = st.get_option("server.port")
+            return f"http://localhost:{port}"
+        except Exception as e:
+            # Fallback to environment variable or default
+            return os.getenv("STREAMLIT_BASE_URL", "http://localhost:8501")
+
 # ============================================================================
 # FEATURE FLAGS (Single place to enable/disable features)
 # ============================================================================
@@ -322,7 +337,7 @@ LICENSE_PLANS = {
     },
     "pro_monthly": {
         "name": "Pro Monthly",
-        "price": 19.99,
+        "price": 00.06,
         "currency": "usd",
         "stripe_price_id": os.getenv("STRIPE_PRO_MONTHLY_PRICE_ID"),
         "features": ["Stock Analysis", "Advanced Reports", "Google Drive Export", "AI Insights", "Portfolio Analysis"],
@@ -330,7 +345,7 @@ LICENSE_PLANS = {
     },
     "pro_yearly": {
         "name": "Pro Yearly",
-        "price": 199.99,
+        "price": 00.09,
         "currency": "usd",
         "stripe_price_id": os.getenv("STRIPE_PRO_YEARLY_PRICE_ID"),
         "features": ["Stock Analysis", "Advanced Reports", "Google Drive Export", "AI Insights", "Portfolio Analysis"],
@@ -341,13 +356,29 @@ LICENSE_PLANS = {
 # Social Login Configuration
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
-GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "http://localhost:8501")
+GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")  # Will be set dynamically
 
 # Microsoft OAuth Configuration
 MICROSOFT_OAUTH_CLIENT_ID = os.getenv("MICROSOFT_OAUTH_CLIENT_ID")
 MICROSOFT_OAUTH_CLIENT_SECRET = os.getenv("MICROSOFT_OAUTH_CLIENT_SECRET")
-MICROSOFT_OAUTH_REDIRECT_URI = os.getenv("MICROSOFT_OAUTH_REDIRECT_URI", "http://localhost:8501")
+MICROSOFT_OAUTH_REDIRECT_URI = os.getenv("MICROSOFT_OAUTH_REDIRECT_URI")  # Will be set dynamically
 MICROSOFT_OAUTH_TENANT_ID = os.getenv("MICROSOFT_OAUTH_TENANT_ID", "common")
+
+def get_google_oauth_redirect_uri():
+    """Get Google OAuth redirect URI dynamically."""
+    env_uri = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
+    if env_uri:
+        return env_uri
+    else:
+        return get_base_url()
+
+def get_microsoft_oauth_redirect_uri():
+    """Get Microsoft OAuth redirect URI dynamically."""
+    env_uri = os.getenv("MICROSOFT_OAUTH_REDIRECT_URI")
+    if env_uri:
+        return env_uri
+    else:
+        return get_base_url()
 
 # Security Configuration
 CSRF_SECRET_KEY = os.getenv("CSRF_SECRET_KEY", "your-csrf-secret-key-change-in-production")

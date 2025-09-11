@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from config.app_config import (
     MICROSOFT_OAUTH_CLIENT_ID, 
     MICROSOFT_OAUTH_CLIENT_SECRET, 
-    MICROSOFT_OAUTH_REDIRECT_URI
+    get_microsoft_oauth_redirect_uri
 )
 from auth.constants import MS_SCOPE
 
@@ -22,7 +22,6 @@ class SimpleMicrosoftOAuth:
     def __init__(self):
         self.client_id = MICROSOFT_OAUTH_CLIENT_ID
         self.client_secret = MICROSOFT_OAUTH_CLIENT_SECRET
-        self.redirect_uri = MICROSOFT_OAUTH_REDIRECT_URI
         self.authority = "https://login.microsoftonline.com/common"
         # Include Graph delegated permission for /me
         self.scope = MS_SCOPE
@@ -34,7 +33,7 @@ class SimpleMicrosoftOAuth:
         try:
             params = {
                 'client_id': self.client_id,
-                'redirect_uri': self.redirect_uri,
+                'redirect_uri': get_microsoft_oauth_redirect_uri(),
                 'scope': self.scope,
                 'response_type': 'code',
                 'response_mode': 'query',
@@ -57,16 +56,17 @@ class SimpleMicrosoftOAuth:
         try:
             token_url = f"{self.authority}/oauth2/v2.0/token"
             
+            redirect_uri = get_microsoft_oauth_redirect_uri()
             data = {
                 'client_id': self.client_id,
                 'client_secret': self.client_secret,
                 'code': code,
-                'redirect_uri': self.redirect_uri,
+                'redirect_uri': redirect_uri,
                 'grant_type': 'authorization_code',
                 'scope': self.scope
             }
             
-            logger.info(f"Exchanging code for token: redirect_uri={self.redirect_uri}")
+            logger.info(f"Exchanging code for token: redirect_uri={redirect_uri}")
             logger.info(f"Code length: {len(code)}")
             logger.info(f"Code preview: {code[:20]}...")
             

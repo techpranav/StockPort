@@ -11,7 +11,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-from config import LICENSE_PLANS
+from config import LICENSE_PLANS, get_base_url
 from auth.database import AuthDatabase
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class PayPalService:
                 return None
             
             import os
-            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            base_url = get_base_url()
             
             url = f"{self.base_url}/v2/checkout/orders"
             headers = {

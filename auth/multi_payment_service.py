@@ -14,7 +14,7 @@ from datetime import datetime
 from auth.razorpay_service import RazorpayService
 from auth.payment_service import PaymentService
 from auth.paypal_service import PayPalService
-from config import LICENSE_PLANS
+from config import LICENSE_PLANS, get_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -142,17 +142,15 @@ class MultiPaymentService:
             import os
             import streamlit as streamlit_module
             
-            # Get the current Streamlit server URL
-            try:
-                # Try to get the current server URL from Streamlit
-                server_port = streamlit_module.get_option("server.port")
-                base_url = f"http://localhost:{server_port}"
-            except:
-                # Fallback to environment variable or default
-                base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            # Get dynamic base URL for redirect URLs
+            base_url = get_base_url()
+            success_url = f"{base_url}/?purchase=success&plan_type={plan_type}"
+            failure_url = f"{base_url}/?purchase=failed&plan_type={plan_type}"
+            cancel_url = f"{base_url}/?purchase=cancelled&plan_type={plan_type}"
             
-            callback_url = f"{base_url}/?purchase=success&plan_type={plan_type}"
-            link = self.razorpay_service.create_payment_link(user_id, plan_type, inr_price, "INR", callback_url)
+            # Note: Razorpay Payment Links don't support separate success/failure URLs
+            # They use webhooks for failure handling, but we'll use success URL as fallback
+            link = self.razorpay_service.create_payment_link(user_id, plan_type, inr_price, "INR", success_url)
             if link:
                 result = {
                     'gateway': 'razorpay',
@@ -172,7 +170,7 @@ class MultiPaymentService:
         """Create Stripe payment session."""
         try:
             import os
-            base_url = os.getenv("APP_BASE_URL", "http://localhost:8501")
+            base_url = get_base_url()
             success_url = f"{base_url}/?purchase=success"
             cancel_url = f"{base_url}/?purchase=cancelled"
             

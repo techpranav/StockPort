@@ -395,24 +395,60 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
         st.session_state.pop(SSK_PAYMENT_REDIRECT_URL, None)
         return
     
-    # Handle purchase success callback (fallback when webhooks are not configured)
+    # Handle purchase callbacks (success and failure)
     try:
         qp = st.query_params
         if qp.get('purchase') == 'success':
             logger.info("Purchase success callback received")
-            
+        elif qp.get('purchase') == 'failed':
+            logger.info("Purchase failure callback received")
+            st.error("❌ Payment failed. Please try again or use a different payment method.")
+            # Clear any payment-related state
+            for key in [SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.query_params.clear()
+            st.rerun()
+            return
+        elif qp.get('purchase') == 'cancelled':
+            logger.info("Purchase cancelled callback received")
+            st.warning("⚠️ Payment was cancelled. You can try again anytime.")
+            # Clear any payment-related state
+            for key in [SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.query_params.clear()
+            st.rerun()
+            return
+        
+        # Handle successful payment (only if purchase=success)
+        if qp.get('purchase') == 'success':
             current_user = st.session_state.get(SSK_CURRENT_USER)
             selected_plan = st.session_state.get(SSK_SELECTED_PLAN)
+            
+            # Check if we're in upgrade mode
+            upgrade_mode = st.session_state.get(SSK_UPGRADE_MODE, False)
+            upgrade_plan = st.session_state.get(SSK_UPGRADE_PLAN)
+            
+            logger.info(f"Payment success - User: {current_user['id'] if current_user else 'None'}, Selected Plan: {selected_plan}, Upgrade Mode: {upgrade_mode}, Upgrade Plan: {upgrade_plan}")
             
             # Try to get plan from payment session if not in session state
             if not selected_plan:
                 payment_session = st.session_state.get(SSK_PAYMENT_SESSION)
                 if payment_session:
                     selected_plan = payment_session.get('plan')
+                    logger.info(f"Got plan from payment session: {selected_plan}")
+                    
+                    # Check if payment session has upgrade mode info
+                    if payment_session.get('upgrade_mode'):
+                        upgrade_mode = True
+                        upgrade_plan = payment_session.get('upgrade_plan')
+                        logger.info(f"Payment session indicates upgrade mode: {upgrade_mode}, upgrade_plan: {upgrade_plan}")
                 
                 # Try backup plan storage
                 if not selected_plan:
                     selected_plan = st.session_state.get('last_selected_plan')
+                    logger.info(f"Got plan from last_selected_plan: {selected_plan}")
                 
                 # Try to get plan from query parameters
                 if not selected_plan:
@@ -420,6 +456,12 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
                     if selected_plan:
                         # Store it back in session state for consistency
                         st.session_state[SSK_SELECTED_PLAN] = selected_plan
+                        logger.info(f"Got plan from query params: {selected_plan}")
+            
+            # If in upgrade mode and no plan found, use upgrade plan
+            if upgrade_mode and upgrade_plan and not selected_plan:
+                selected_plan = upgrade_plan
+                logger.info(f"Using upgrade plan: {selected_plan}")
             
             if current_user and selected_plan:
                 license_service = LicenseService()
@@ -427,6 +469,13 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
                     license_key = license_service.create_license(current_user['id'], selected_plan)
                     st.success(f"✅ License activated successfully: {license_key}")
                     logger.info(f"License created successfully: {license_key}")
+                    
+                    # Clear upgrade mode after successful upgrade
+                    if upgrade_mode:
+                        st.session_state.pop(SSK_UPGRADE_MODE, None)
+                        st.session_state.pop(SSK_UPGRADE_PLAN, None)
+                        logger.info("Upgrade mode cleared after successful license activation")
+                        
                 except Exception as e:
                     st.error(f"❌ Failed to activate license: {e}")
                     logger.error(f"License activation failed: {e}")
@@ -453,6 +502,56 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
         st.error("No license plans available")
         return
     
+    # Get current user's license to filter available plans
+    current_user = st.session_state.get(SSK_CURRENT_USER)
+    user_current_plan = None
+    if current_user:
+        # Use the already imported LicenseService
+        license_service = LicenseService()
+        license_valid, _, license_info = license_service.validate_license(current_user['id'])
+        
+        if license_valid and license_info:
+            user_current_plan = license_info['plan_type']
+    
+    # Filter plans based on user's current plan
+    def get_plan_hierarchy():
+        """Define plan hierarchy for upgrades"""
+        return {
+            'basic_monthly': 1,
+            'basic_yearly': 2,
+            'pro_monthly': 3,
+            'pro_yearly': 4
+        }
+    
+    def filter_upgradeable_plans(plans_dict, current_plan):
+        """Filter plans to show only higher-tier plans for upgrade"""
+        if not current_plan:
+            return plans_dict  # Show all plans if no current license
+        
+        hierarchy = get_plan_hierarchy()
+        current_level = hierarchy.get(current_plan, 0)
+        
+        # Filter out plans that are same level or lower
+        upgradeable_plans = {}
+        for plan_key, plan in plans_dict.items():
+            plan_level = hierarchy.get(plan_key, 0)
+            if plan_level > current_level:
+                upgradeable_plans[plan_key] = plan
+        
+        return upgradeable_plans
+    
+    # Apply filtering
+    if user_current_plan:
+        filtered_plans = filter_upgradeable_plans(plans, user_current_plan)
+        if not filtered_plans:
+            st.info(f"🎉 **You already have the highest plan available!** Your current plan: {user_current_plan.replace('_', ' ').title()}")
+            return
+        elif len(filtered_plans) < len(plans):
+            st.info(f"📈 **Available Upgrades** (Current: {user_current_plan.replace('_', ' ').title()})")
+    else:
+        filtered_plans = plans
+        st.info("💳 **Choose Your Plan**")
+    
     st.subheader("Available Plans")
     
     # Display plans in columns
@@ -462,10 +561,10 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
         st.session_state[SSK_SELECTED_PLAN] = selected_plan
         st.success(f"Selected: {plans[upgrade_plan]['name']} - ${plans[upgrade_plan]['price']}")
     else:
-        cols = st.columns(len(plans))
+        cols = st.columns(len(filtered_plans))
         selected_plan = None
         
-        for i, (plan_key, plan) in enumerate(plans.items()):
+        for i, (plan_key, plan) in enumerate(filtered_plans.items()):
             with cols[i]:
                 st.markdown(f"### {plan['name']}")
                 st.markdown(f"**${plan['price']}** / {plan.get('period', 'month')}")
@@ -552,6 +651,7 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
         
         if not session or session.get('gateway') != gateway or session.get('plan') != selected_plan:
             try:
+                logger.info(f"Creating payment session - User: {user_id}, Plan: {selected_plan}, Gateway: {gateway}, Upgrade Mode: {upgrade_mode}")
                 session = payment_service.create_payment_session(
                     user_id=user_id,
                     plan_type=selected_plan,
@@ -559,11 +659,17 @@ def render_license_purchase(upgrade_mode=False, upgrade_plan=None):
                 )
                 if session:
                     session['plan'] = selected_plan
+                    # Store upgrade mode info in payment session
+                    if upgrade_mode:
+                        session['upgrade_mode'] = True
+                        session['upgrade_plan'] = upgrade_plan
                     st.session_state[SSK_PAYMENT_SESSION] = session
                     # Also store plan separately for license activation
                     st.session_state['last_selected_plan'] = selected_plan
+                    logger.info(f"Payment session created successfully: {session}")
             except Exception as e:
                 st.error(f"Error creating checkout session: {e}")
+                logger.error(f"Error creating payment session: {e}")
                 session = None
         
         
@@ -624,27 +730,154 @@ def render_user_profile():
             st.markdown(f"**Plan:** {license_info['plan_type']}")
             st.markdown(f"**Expires:** {license_info['expires_at']}")
             
-            # Show upgrade option for basic license holders
-            if license_info['plan_type'] in ['basic_monthly', 'basic_yearly']:
+            # Show upgrade options based on current plan
+            def get_upgrade_options(current_plan):
+                """Get available upgrade options for current plan"""
+                hierarchy = {
+                    'basic_monthly': 1,
+                    'basic_yearly': 2,
+                    'pro_monthly': 3,
+                    'pro_yearly': 4
+                }
+                
+                current_level = hierarchy.get(current_plan, 0)
+                upgrade_options = []
+                
+                # Define available plans
+                available_plans = {
+                    'pro_monthly': 'Pro Monthly',
+                    'pro_yearly': 'Pro Yearly'
+                }
+                
+                # Filter to show only higher-tier plans
+                for plan_key, plan_name in available_plans.items():
+                    plan_level = hierarchy.get(plan_key, 0)
+                    if plan_level > current_level:
+                        upgrade_options.append((plan_key, plan_name))
+                
+                return upgrade_options
+            
+            upgrade_options = get_upgrade_options(license_info['plan_type'])
+            
+            if upgrade_options:
                 st.markdown("---")
-                st.subheader("🚀 Upgrade to Pro")
-                st.info("You have a Basic license. Upgrade to Pro for advanced features like AI Insights and Portfolio Analysis!")
+                st.subheader("🚀 Upgrade Options")
                 
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("Upgrade to Pro Monthly", key="upgrade_pro_monthly"):
-                        st.session_state[SSK_UPGRADE_PLAN] = 'pro_monthly'
+                if license_info['plan_type'] in ['basic_monthly', 'basic_yearly']:
+                    st.info("You have a Basic license. Upgrade to Pro for advanced features like AI Insights and Portfolio Analysis!")
+                else:
+                    st.info(f"Upgrade from {license_info['plan_type'].replace('_', ' ').title()} to access more features!")
+                
+                # Show upgrade buttons dynamically
+                if len(upgrade_options) == 1:
+                    plan_key, plan_name = upgrade_options[0]
+                    if st.button(f"Upgrade to {plan_name}", key=f"upgrade_{plan_key}"):
+                        st.session_state[SSK_UPGRADE_PLAN] = plan_key
                         st.session_state[SSK_UPGRADE_MODE] = True
                         st.rerun()
-                
-                with col2:
-                    if st.button("Upgrade to Pro Yearly", key="upgrade_pro_yearly"):
-                        st.session_state[SSK_UPGRADE_PLAN] = 'pro_yearly'
-                        st.session_state[SSK_UPGRADE_MODE] = True
+                elif len(upgrade_options) == 2:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        plan_key, plan_name = upgrade_options[0]
+                        if st.button(f"Upgrade to {plan_name}", key=f"upgrade_{plan_key}"):
+                            st.session_state[SSK_UPGRADE_PLAN] = plan_key
+                            st.session_state[SSK_UPGRADE_MODE] = True
+                            st.rerun()
+                    
+                    with col2:
+                        plan_key, plan_name = upgrade_options[1]
+                        if st.button(f"Upgrade to {plan_name}", key=f"upgrade_{plan_key}"):
+                            st.session_state[SSK_UPGRADE_PLAN] = plan_key
+                            st.session_state[SSK_UPGRADE_MODE] = True
+                            st.rerun()
+                else:
+                    st.info("🎉 **You already have the highest plan available!**")
+            # Add refresh button for all users (in case they just completed a payment)
+            st.markdown("---")
+            st.info("💡 **Just completed a payment?** Click the button below to refresh your license status.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Refresh License Status", key="refresh_license_active"):
+                    # Force refresh license validation
+                    license_valid_new, license_message_new, license_info_new = license_service.validate_license(current_user['id'])
+                    if license_valid_new:
+                        st.success(f"✅ License updated! Your {license_info_new['plan_type']} plan is now active.")
                         st.rerun()
+                    else:
+                        st.warning("⚠️ No license changes found. If you just completed a payment, please wait a few minutes and try again.")
+            
+            with col2:
+                # Check if user is in upgrade mode and add manual activation
+                upgrade_plan = st.session_state.get(SSK_UPGRADE_PLAN)
+                if upgrade_plan and st.session_state.get(SSK_UPGRADE_MODE):
+                    if st.button(f"🎯 Activate {upgrade_plan.replace('_', ' ').title()}", key="manual_activate_active"):
+                        try:
+                            license_key = license_service.create_license(current_user['id'], upgrade_plan)
+                            st.success(f"✅ License activated manually: {license_key}")
+                            # Clear upgrade mode
+                            st.session_state.pop(SSK_UPGRADE_MODE, None)
+                            st.session_state.pop(SSK_UPGRADE_PLAN, None)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Failed to activate license: {e}")
+                else:
+                    # Clear upgrade mode if license is already Pro
+                    if license_info and license_info['plan_type'] in ['pro_monthly', 'pro_yearly']:
+                        st.session_state.pop(SSK_UPGRADE_MODE, None)
+                        st.session_state.pop(SSK_UPGRADE_PLAN, None)
+                    st.info("💡 **Need help?** Contact support if you're having issues with your license.")
         else:
             st.markdown("**License Status:** ❌ No active license")
             st.markdown(f"**Message:** {license_message}")
+            
+            # Add refresh button for manual license check
+            st.markdown("---")
+            st.info("💡 **Just completed a payment?** Click the button below to refresh your license status.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Refresh License Status", key="refresh_license"):
+                    # Force refresh license validation
+                    license_valid_new, license_message_new, license_info_new = license_service.validate_license(current_user['id'])
+                    if license_valid_new:
+                        st.success(f"✅ License activated! Your {license_info_new['plan_type']} plan is now active.")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ No new license found. If you just completed a payment, please wait a few minutes and try again.")
+            
+            with col2:
+                # Check if user is in upgrade mode and add manual activation
+                upgrade_plan = st.session_state.get(SSK_UPGRADE_PLAN)
+                if upgrade_plan and st.session_state.get(SSK_UPGRADE_MODE):
+                    if st.button(f"🎯 Activate {upgrade_plan.replace('_', ' ').title()}", key="manual_activate"):
+                        try:
+                            license_key = license_service.create_license(current_user['id'], upgrade_plan)
+                            st.success(f"✅ License activated manually: {license_key}")
+                            # Clear upgrade mode
+                            st.session_state.pop(SSK_UPGRADE_MODE, None)
+                            st.session_state.pop(SSK_UPGRADE_PLAN, None)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Failed to activate license: {e}")
+            
+            # Add payment failure help section
+            st.markdown("---")
+            st.info("💳 **Payment Issues?** If your payment failed or was declined:")
+            st.markdown("""
+            - **Check your card details** (number, expiry, CVV)
+            - **Ensure sufficient funds** in your account
+            - **Try a different payment method** (different card/bank account)
+            - **Contact your bank** if payments are being blocked
+            - **Wait a few minutes** and try again
+            """)
+            
+            if st.button("🔄 Try Payment Again", key="retry_payment"):
+                # Clear any existing payment state and allow retry
+                for key in [SSK_PAYMENT_SESSION, SSK_PAYMENT_REDIRECT_URL, SSK_SELECTED_PLAN, SSK_PAYMENT_GATEWAY]:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
     
     # License purchase section
     if not license_valid or st.session_state.get(SSK_UPGRADE_MODE, False):
@@ -658,7 +891,7 @@ def render_user_profile():
             render_license_purchase()
     
     # Profile actions
-    st.markdown("---")
+        st.markdown("---")
     st.subheader(SUBHEADER_ACCOUNT_ACTIONS)
     
     col1, col2 = st.columns(2)
@@ -711,7 +944,7 @@ def render_user_profile():
                         st.session_state.pop('profile_action', None)
                     else:
                         st.error(message)
-    
+
 def render_admin_panel():
     """Render the admin panel."""
     st.title("👨‍💼 Admin Panel")
@@ -777,7 +1010,7 @@ def render_admin_panel():
             if st.button("🧹 Cleanup Expired Sessions"):
                 user_service.cleanup_expired_sessions()
                 st.success("Expired sessions cleaned up")
-    
+        
     with tab3:
         st.subheader("System Statistics")
         
@@ -786,13 +1019,13 @@ def render_admin_panel():
         total_users = len(users)
         active_users = len([u for u in users if u['is_active']])
         admin_users = len([u for u in users if u['is_admin']])
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
             st.metric("Total Users", total_users)
-        
-        with col2:
+    
+    with col2:
             st.metric("Active Users", active_users)
     
     with col3:
@@ -892,7 +1125,7 @@ def render_auth_gate():
                 # Clear query parameters
                 st.query_params.clear()
                 st.rerun()
-        return True  # User is authenticated
+                return True  # User is authenticated
     
     # Check for session token in cookies
     if stx:
