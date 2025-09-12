@@ -179,3 +179,44 @@ class OAuthService:
         elif provider == PROVIDER_MICROSOFT:
             return bool(self.microsoft_client_id and self.microsoft_client_secret)
         return False
+    
+    def exchange_code_for_token(self, provider: str, code: str, state: str) -> Optional[Dict[str, Any]]:
+        """Unified method to exchange authorization code for token and get user info."""
+        try:
+            if provider == 'google':
+                # Exchange code for token
+                token_data = self.exchange_google_code_for_token(code)
+                if not token_data:
+                    return None
+                
+                # Get user info
+                access_token = token_data.get('access_token')
+                if not access_token:
+                    logger.error("No access token in Google response")
+                    return None
+                
+                user_info = self.get_google_user_info(access_token)
+                return user_info
+                
+            elif provider == 'microsoft':
+                # Exchange code for token
+                token_data = self.exchange_microsoft_code_for_token(code)
+                if not token_data:
+                    return None
+                
+                # Get user info
+                access_token = token_data.get('access_token')
+                if not access_token:
+                    logger.error("No access token in Microsoft response")
+                    return None
+                
+                user_info = self.get_microsoft_user_info(access_token)
+                return user_info
+            
+            else:
+                logger.error(f"Unknown provider: {provider}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error in exchange_code_for_token: {e}")
+            return None

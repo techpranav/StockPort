@@ -93,6 +93,9 @@ class RazorpayService:
             if not self.client:
                 logger.error("Razorpay client not initialized")
                 return None
+            
+            # Note: UI layer prevents duplicate session creation and handles redirects.
+            # Avoid applying app-level rate limiting here to prevent false positives.
             plan = LICENSE_PLANS.get(plan_type)
             if not plan:
                 logger.error(f"Invalid plan type: {plan_type}")
