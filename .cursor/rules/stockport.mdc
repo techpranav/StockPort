@@ -1,0 +1,760 @@
+---
+description: Stock Analysis Application - Coding Guidelines & Structure
+alwaysApply: true
+---
+
+# Stock Analysis Application - Coding Guidelines
+
+## Project Context
+
+- **Stack**: Python 3.8+, Streamlit, pandas, NumPy, yfinance, Plotly
+- **Purpose**: Automated parallel technical analysis of stocks for intraday and short-term trading
+- **Architecture**: Modular design with clear separation of concerns (UI, Services, Core, Models, Utils, Config)
+- **Primary Focus**: Fast, parallel processing with comprehensive technical analysis and entry point detection
+
+## Project Structure
+
+```
+stockport/
+├── config/                 # Configuration and constants
+│   ├── app_config.py      # Unified application settings (single source of truth)
+│   └── constants/         # Application constants
+│       ├── FinancialConstants.py
+│       ├── Messages.py
+│       ├── NumericConstants.py
+│       ├── StringConstants.py
+│       └── IntradayConstants.py (new)
+│
+├── core/                  # Core business logic and orchestration
+│   ├── stock_analyzer.py  # Main analysis orchestrator
+│   ├── parallel_analyzer.py (new)
+│   └── task_queue.py (new)
+│
+├── services/              # Business logic services
+│   ├── data_providers/    # Data fetching services
+│   │   ├── stock_data_provider.py  # Abstract base class
+│   │   ├── providers/    # Provider implementations
+│   │   └── async_fetcher.py (new)
+│   │
+│   ├── analyzers/         # Analysis services
+│   │   ├── analysis/      # Core analysis logic
+│   │   ├── indicators/    # Technical indicators (new)
+│   │   ├── patterns/      # Pattern recognition (new)
+│   │   ├── signals/       # Signal generation (new)
+│   │   └── risk/          # Risk calculations (new)
+│   │
+│   ├── exporters/         # Report generation
+│   └── stock_service.py   # Main stock service facade
+│
+├── models/                # Data models and structures
+│   ├── stock_data.py      # Stock data models
+│   ├── signals.py (new)   # Signal models
+│   └── risk_metrics.py (new)
+│
+├── ui/                    # User interface components
+│   ├── components/        # Reusable UI components
+│   └── pages/             # Page-level components
+│
+├── utils/                 # Utility functions
+│   ├── debug_utils.py     # Logging and debugging
+│   ├── file_utils.py      # File operations
+│   └── cache_manager.py (new)
+│
+├── exceptions/            # Custom exceptions
+└── docs/                  # Documentation
+```
+
+## Critical Guardrails
+
+### Security & Secrets
+- **Never** commit API keys, tokens, or credentials to version control
+- Store all secrets in `.env` file (gitignored) or environment variables
+- Use `config/app_config.py` to load secrets via `os.getenv()`
+- Never log or print sensitive information (API keys, user tokens)
+- Use `utils/secrets_wrapper.py` for secure secret handling
+
+### Edit Scope
+- **Allowed**: All files in `config/`, `core/`, `services/`, `models/`, `ui/`, `utils/`, `exceptions/`
+- **Prohibited**: Direct edits to `requirements.txt` without discussion (use separate PR)
+- **Prohibited**: Changes to authentication/payment logic without explicit approval
+- **Prohibited**: Breaking changes to existing APIs without migration path
+
+### Data Handling
+- Always validate input data before processing
+- Handle missing data gracefully (use `pd.isna()`, provide defaults)
+- Never assume data structure - always check for required columns/keys
+- Use type hints and validate types where critical
+
+## Code Style & Standards
+
+### Python Version & Style
+- **Target**: Python 3.8+ (use f-strings, type hints, dataclasses)
+- **Style Guide**: Follow PEP 8 strictly
+- **Line Length**: Maximum 100 characters (soft limit 88)
+- **Import Order**: 
+  1. Standard library
+  2. Third-party packages
+  3. Local application imports
+  - Use absolute imports only (no relative imports)
+  - Group imports with blank lines between groups
+
+### Naming Conventions
+
+#### Files & Modules
+- Use `snake_case` for file names: `stock_analyzer.py`, `technical_analysis.py`
+- Match module name to primary class if single-purpose: `stock_analyzer.py` → `StockAnalyzer`
+
+#### Classes
+- Use `PascalCase`: `StockAnalyzer`, `TechnicalAnalyzer`, `EntryDetector`
+- Be descriptive: `StockDataProvider` not `Provider`
+
+#### Functions & Methods
+- Use `snake_case`: `calculate_rsi()`, `fetch_stock_data()`, `generate_signals()`
+- Use verb-noun pattern: `calculate_indicators()`, `detect_patterns()`, `score_signals()`
+- Boolean functions: prefix with `is_`, `has_`, `can_`: `is_overbought()`, `has_pattern()`
+
+#### Variables
+- Use `snake_case`: `stock_symbol`, `current_price`, `rsi_value`
+- Be descriptive: `sma_20` not `ma20`, `entry_signal` not `sig`
+- Constants: `UPPER_SNAKE_CASE`: `RSI_OVERBOUGHT_THRESHOLD`, `MAX_WORKERS`
+
+#### Constants
+- All constants in `config/constants/` directory
+- Numeric values → `NumericConstants.py`
+- String values → `StringConstants.py`
+- User messages → `Messages.py`
+- Financial thresholds → `FinancialConstants.py`
+- Intraday-specific → `IntradayConstants.py`
+
+### Type Hints
+
+**Required for all functions and methods:**
+
+```python
+from typing import Dict, List, Optional, Tuple, Union
+import pandas as pd
+
+def calculate_rsi(
+    prices: pd.Series, 
+    window: int = 14
+) -> pd.Series:
+    """Calculate RSI indicator."""
+    pass
+
+def fetch_stock_data(
+    symbol: str,
+    days_back: int = 365
+) -> Optional[StockData]:
+    """Fetch stock data for symbol."""
+    pass
+
+def analyze_batch(
+    symbols: List[str],
+    parallel: bool = True
+) -> Dict[str, StockData]:
+    """Analyze multiple stocks."""
+    pass
+```
+
+**Use Optional for nullable values:**
+```python
+def get_current_price(symbol: str) -> Optional[float]:
+    """Get current price, returns None if unavailable."""
+    pass
+```
+
+**Use Union for multiple types:**
+```python
+def process_data(data: Union[pd.DataFrame, Dict[str, Any]]) -> pd.DataFrame:
+    """Process data from DataFrame or dict."""
+    pass
+```
+
+### Docstrings
+
+**Use Google-style docstrings for all public functions/classes:**
+
+```python
+def calculate_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
+    """
+    Calculate Relative Strength Index (RSI) indicator.
+    
+    RSI measures the speed and magnitude of price changes to identify
+    overbought (>70) or oversold (<30) conditions.
+    
+    Args:
+        prices: Series of closing prices
+        window: Period for RSI calculation (default: 14)
+        
+    Returns:
+        Series containing RSI values (0-100)
+        
+    Raises:
+        ValueError: If prices is empty or window < 2
+        DataProcessingException: If calculation fails
+        
+    Example:
+        >>> prices = pd.Series([100, 102, 101, 103, 105])
+        >>> rsi = calculate_rsi(prices, window=14)
+        >>> rsi.iloc[-1]
+        65.5
+    """
+    pass
+```
+
+**Class docstrings:**
+```python
+class TechnicalAnalyzer:
+    """
+    Performs technical analysis on stock price data.
+    
+    This class provides methods for calculating technical indicators,
+    detecting patterns, and generating trading signals.
+    
+    Attributes:
+        data: DataFrame containing OHLCV data
+        indicators: Dictionary of calculated indicators
+        
+    Example:
+        >>> analyzer = TechnicalAnalyzer(data)
+        >>> indicators = analyzer.calculate_indicators()
+        >>> signals = analyzer.generate_signals()
+    """
+    pass
+```
+
+### Error Handling
+
+**Always use custom exceptions from `exceptions/` package:**
+```python
+from exceptions.stock_data_exceptions import (
+    DataFetchException,
+    DataProcessingException,
+    DataAnalysisException
+)
+
+def fetch_stock_data(symbol: str) -> StockData:
+    """Fetch stock data with proper error handling."""
+    try:
+        data = provider.fetch(symbol)
+        if data is None:
+            raise DataFetchException(f"No data available for {symbol}")
+        return normalize_data(data)
+    except ValueError as e:
+        raise DataFetchException(f"Invalid symbol {symbol}: {e}") from e
+    except Exception as e:
+        raise DataFetchException(f"Error fetching {symbol}: {e}") from e
+```
+
+**Never use bare `except:` clauses:**
+```python
+# BAD
+try:
+    process_data()
+except:
+    pass
+
+# GOOD
+try:
+    process_data()
+except (ValueError, KeyError) as e:
+    logger.error(f"Data processing error: {e}")
+    raise DataProcessingException(str(e)) from e
+except Exception as e:
+    logger.error(f"Unexpected error: {e}")
+    raise
+```
+
+### Logging
+
+**Use `utils/debug_utils.py` for all logging:**
+```python
+from utils.debug_utils import DebugUtils
+
+# Info level for normal operations
+DebugUtils.info(f"Processing stock: {symbol}")
+
+# Warning for potential issues
+DebugUtils.warning(f"Low volume detected for {symbol}")
+
+# Error for failures
+DebugUtils.error(f"Failed to fetch data for {symbol}")
+
+# Debug for detailed troubleshooting
+DebugUtils.debug(f"RSI calculation: {rsi_value}")
+
+# Exception logging
+try:
+    process_stock(symbol)
+except Exception as e:
+    DebugUtils.log_error(e, f"Error processing {symbol}")
+```
+
+**Never use `print()` statements in production code:**
+```python
+# BAD
+print(f"Processing {symbol}")
+
+# GOOD
+DebugUtils.info(f"Processing {symbol}")
+```
+
+### Constants & Configuration
+
+**All configuration in `config/app_config.py`:**
+```python
+# config/app_config.py
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "10"))
+API_RATE_LIMIT = int(os.getenv("API_RATE_LIMIT", "100"))
+ENABLE_PARALLEL = os.getenv("ENABLE_PARALLEL", "true").lower() == "true"
+```
+
+**All constants in `config/constants/`:**
+```python
+# config/constants/NumericConstants.py
+RSI_PERIOD = 14
+RSI_OVERBOUGHT_THRESHOLD = 70
+RSI_OVERSOLD_THRESHOLD = 30
+SMA_SHORT_PERIOD = 20
+SMA_LONG_PERIOD = 50
+
+# config/constants/StringConstants.py
+INDICATOR_RSI = "RSI"
+INDICATOR_MACD = "MACD"
+SIGNAL_BUY = "BUY"
+SIGNAL_SELL = "SELL"
+```
+
+**Never hardcode values:**
+```python
+# BAD
+if rsi > 70:
+    signal = "OVERBOUGHT"
+
+# GOOD
+from config.constants.NumericConstants import RSI_OVERBOUGHT_THRESHOLD
+from config.constants.StringConstants import SIGNAL_OVERBOUGHT
+
+if rsi > RSI_OVERBOUGHT_THRESHOLD:
+    signal = SIGNAL_OVERBOUGHT
+```
+
+## Design Patterns & Architecture
+
+### Service Layer Pattern
+- **Services** (`services/`) contain business logic
+- Services are stateless (no instance variables that change)
+- Services use dependency injection for providers
+- Services return standardized models (`StockData`, `EntrySignal`)
+
+```python
+class StockService:
+    """High-level service for stock operations."""
+    
+    def __init__(self, provider: StockDataProvider, days_back: int = 365):
+        self._provider = provider
+        self.days_back = days_back
+    
+    def fetch_stock_data(self, symbol: str) -> StockData:
+        """Fetch and normalize stock data."""
+        raw_data = self._provider.fetch(symbol)
+        return self._normalize(raw_data)
+```
+
+### Factory Pattern
+- Use factories for creating provider instances
+- Example: `StockDataFactory.get_provider(provider_name)`
+
+### Strategy Pattern
+- Abstract base classes for interchangeable implementations
+- Example: `StockDataProvider` with `YahooFinanceProvider`, `AlphaVantageProvider`
+
+### Facade Pattern
+- `StockAnalyzer` orchestrates multiple services
+- Provides simple interface to complex subsystems
+
+## Data Models
+
+### Use Dataclasses for Models
+```python
+from dataclasses import dataclass
+from typing import Optional, List
+import pandas as pd
+
+@dataclass
+class EntrySignal:
+    """Represents a trading entry signal."""
+    symbol: str
+    signal_type: str  # "STRONG_BUY", "BUY", "WATCH", "AVOID"
+    score: float  # 0-100
+    confidence: float  # 0-1
+    entry_price: float
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    timestamp: Optional[datetime] = None
+    indicators: Optional[Dict[str, float]] = None
+```
+
+### Data Validation
+```python
+@dataclass
+class StockData:
+    symbol: str
+    history: pd.DataFrame
+    
+    def __post_init__(self):
+        """Validate data after initialization."""
+        if not isinstance(self.symbol, str) or not self.symbol:
+            raise ValueError("symbol must be non-empty string")
+        if self.history.empty:
+            raise ValueError("history DataFrame cannot be empty")
+        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        if not all(col in self.history.columns for col in required_columns):
+            raise ValueError(f"history must contain columns: {required_columns}")
+```
+
+## Parallel Processing Guidelines
+
+### Thread Pool for I/O-Bound Operations
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict
+
+def analyze_batch_parallel(symbols: List[str], max_workers: int = 10) -> Dict[str, StockData]:
+    """Analyze multiple stocks in parallel."""
+    results = {}
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_symbol = {
+            executor.submit(analyze_stock, symbol): symbol
+            for symbol in symbols
+        }
+        
+        # Collect results as they complete
+        for future in as_completed(future_to_symbol):
+            symbol = future_to_symbol[future]
+            try:
+                results[symbol] = future.result()
+            except Exception as e:
+                DebugUtils.log_error(e, f"Error analyzing {symbol}")
+                results[symbol] = None
+    
+    return results
+```
+
+### Process Pool for CPU-Bound Operations
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+def calculate_indicators_parallel(data_list: List[pd.DataFrame]) -> List[Dict]:
+    """Calculate indicators in parallel for multiple stocks."""
+    with ProcessPoolExecutor(max_workers=cpu_count()) as executor:
+        results = list(executor.map(calculate_all_indicators, data_list))
+    return results
+```
+
+### Rate Limiting
+```python
+import time
+from threading import Semaphore
+
+class RateLimiter:
+    def __init__(self, max_calls: int, period: float):
+        self.max_calls = max_calls
+        self.period = period
+        self.calls = []
+        self.semaphore = Semaphore(max_calls)
+    
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            with self.semaphore:
+                now = time.time()
+                # Remove old calls outside period
+                self.calls = [t for t in self.calls if now - t < self.period]
+                
+                if len(self.calls) >= self.max_calls:
+                    sleep_time = self.period - (now - self.calls[0])
+                    if sleep_time > 0:
+                        time.sleep(sleep_time)
+                
+                self.calls.append(time.time())
+                return func(*args, **kwargs)
+        return wrapper
+```
+
+## Testing Guidelines
+
+### Test Structure
+- Mirror source structure: `tests/services/analyzers/test_technical_analysis.py`
+- Use pytest framework
+- Test files: `test_*.py` or `*_test.py`
+
+### Test Naming
+```python
+def test_calculate_rsi_with_valid_data():
+    """Test RSI calculation with valid price data."""
+    pass
+
+def test_calculate_rsi_raises_error_with_empty_data():
+    """Test RSI calculation raises error with empty data."""
+    pass
+
+def test_parallel_analysis_processes_all_symbols():
+    """Test parallel analysis processes all symbols correctly."""
+    pass
+```
+
+### Test Data
+- Use fixtures for common test data
+- Create minimal test datasets (don't use real API calls in unit tests)
+- Mock external dependencies (API calls, file I/O)
+
+```python
+import pytest
+from unittest.mock import Mock, patch
+
+@pytest.fixture
+def sample_price_data():
+    """Sample OHLCV data for testing."""
+    return pd.DataFrame({
+        'Open': [100, 101, 102],
+        'High': [105, 106, 107],
+        'Low': [99, 100, 101],
+        'Close': [103, 104, 105],
+        'Volume': [1000, 1100, 1200]
+    }, index=pd.date_range('2024-01-01', periods=3))
+
+@patch('services.data_providers.yahoo_finance.yfinance.download')
+def test_fetch_stock_data(mock_download, sample_price_data):
+    """Test stock data fetching with mocked API."""
+    mock_download.return_value = sample_price_data
+    service = StockService()
+    result = service.fetch_stock_data("AAPL")
+    assert result.symbol == "AAPL"
+    assert not result.history.empty
+```
+
+## Performance Optimization
+
+### Vectorization
+- Use NumPy/pandas vectorized operations
+- Avoid Python loops for calculations
+
+```python
+# BAD - Python loop
+rsi_values = []
+for i in range(len(prices)):
+    rsi_values.append(calculate_rsi_point(prices[i:i+14]))
+
+# GOOD - Vectorized
+delta = prices.diff()
+gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+rsi = 100 - (100 / (1 + gain / loss))
+```
+
+### Caching
+- Cache expensive calculations and API responses
+- Use TTL-based expiration
+- Cache at appropriate granularity (per symbol, per timeframe)
+
+```python
+from functools import lru_cache
+from datetime import datetime, timedelta
+
+@lru_cache(maxsize=1000)
+def calculate_indicators_cached(symbol: str, timestamp: str) -> Dict:
+    """Cached indicator calculation."""
+    # Cache key includes timestamp for TTL
+    pass
+```
+
+### Lazy Evaluation
+- Don't calculate all indicators if only one is needed
+- Use generators for large datasets
+
+## File Organization
+
+### Module Structure
+```python
+"""
+Module docstring describing the module's purpose.
+
+This module provides [brief description of functionality].
+"""
+
+# Standard library imports
+import os
+from typing import Dict, List, Optional
+from datetime import datetime
+
+# Third-party imports
+import pandas as pd
+import numpy as np
+
+# Local application imports
+from config.constants.NumericConstants import RSI_PERIOD
+from config.constants.StringConstants import INDICATOR_RSI
+from exceptions.stock_data_exceptions import DataProcessingException
+from utils.debug_utils import DebugUtils
+
+# Module-level constants
+DEFAULT_WINDOW = 14
+MAX_CACHE_SIZE = 1000
+
+# Classes
+class TechnicalAnalyzer:
+    """Class docstring."""
+    pass
+
+# Functions
+def calculate_rsi(prices: pd.Series) -> pd.Series:
+    """Function docstring."""
+    pass
+
+# Main execution (if applicable)
+if __name__ == "__main__":
+    pass
+```
+
+## Documentation Requirements
+
+### Code Comments
+- Explain **why**, not **what** (code should be self-documenting)
+- Use comments for complex algorithms or business logic
+- Keep comments up-to-date with code changes
+
+```python
+# BAD - obvious comment
+# Calculate RSI
+rsi = calculate_rsi(prices)
+
+# GOOD - explains why
+# Use Wilder's smoothing method for RSI to reduce noise
+# in volatile markets, as per industry standard
+rsi = calculate_rsi_wilder(prices, alpha=1/14)
+```
+
+### README Updates
+- Update README.md when adding major features
+- Document new configuration options
+- Update examples if API changes
+
+### API Documentation
+- Document all public functions/classes
+- Include usage examples
+- Document exceptions that may be raised
+
+## Common Patterns
+
+### Data Fetching Pattern
+```python
+def fetch_with_retry(symbol: str, max_retries: int = 3) -> StockData:
+    """Fetch data with automatic retry."""
+    for attempt in range(max_retries):
+        try:
+            return provider.fetch(symbol)
+        except DataFetchException as e:
+            if attempt == max_retries - 1:
+                raise
+            DebugUtils.warning(f"Retry {attempt + 1}/{max_retries} for {symbol}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+    raise DataFetchException(f"Failed after {max_retries} attempts")
+```
+
+### Indicator Calculation Pattern
+```python
+def calculate_indicator(
+    data: pd.DataFrame,
+    indicator_name: str,
+    **params
+) -> pd.Series:
+    """Calculate indicator with validation."""
+    # Validate input
+    if data.empty:
+        raise DataProcessingException("Data cannot be empty")
+    if 'Close' not in data.columns:
+        raise DataProcessingException("Missing 'Close' column")
+    
+    # Calculate
+    try:
+        result = _calculate(data, indicator_name, **params)
+        return result
+    except Exception as e:
+        raise DataProcessingException(
+            f"Error calculating {indicator_name}: {e}"
+        ) from e
+```
+
+### Signal Generation Pattern
+```python
+def generate_signal(stock_data: StockData) -> EntrySignal:
+    """Generate entry signal from stock data."""
+    # Calculate all indicators
+    indicators = calculate_all_indicators(stock_data.history)
+    
+    # Score the signal
+    score = calculate_signal_score(indicators, stock_data)
+    
+    # Determine signal type
+    signal_type = determine_signal_type(score)
+    
+    # Calculate risk metrics
+    risk_metrics = calculate_risk_metrics(stock_data, indicators)
+    
+    return EntrySignal(
+        symbol=stock_data.symbol,
+        signal_type=signal_type,
+        score=score,
+        confidence=calculate_confidence(indicators),
+        entry_price=stock_data.history['Close'].iloc[-1],
+        stop_loss=risk_metrics.stop_loss,
+        take_profit=risk_metrics.take_profit
+    )
+```
+
+## Review Checklist
+
+Before submitting code, ensure:
+
+- [ ] All functions have type hints
+- [ ] All public functions/classes have docstrings
+- [ ] Constants are in appropriate `config/constants/` files
+- [ ] Configuration values are in `config/app_config.py`
+- [ ] No `print()` statements (use `DebugUtils`)
+- [ ] Error handling uses custom exceptions
+- [ ] No hardcoded values (use constants)
+- [ ] Imports are absolute and properly ordered
+- [ ] Code follows PEP 8 (line length, naming, spacing)
+- [ ] Tests added/updated for new functionality
+- [ ] No secrets or credentials in code
+- [ ] Logging is appropriate (info/warning/error/debug)
+- [ ] Performance considerations addressed (caching, vectorization)
+- [ ] Documentation updated if API changes
+
+## Prohibited Practices
+
+1. **Never** use `eval()` or `exec()` with user input
+2. **Never** commit secrets, API keys, or credentials
+3. **Never** use bare `except:` clauses
+4. **Never** ignore exceptions silently (log them)
+5. **Never** use mutable default arguments (`def func(items=[])`)
+6. **Never** modify data in place without explicit intent
+7. **Never** use global variables for state
+8. **Never** break existing APIs without migration path
+9. **Never** add dependencies without updating `requirements.txt`
+10. **Never** use `print()` for logging
+
+## Best Practices Summary
+
+1. **Simplicity**: Write simple, readable code over clever code
+2. **Modularity**: Keep functions/classes focused on single responsibility
+3. **Testability**: Write testable code (dependency injection, pure functions)
+4. **Documentation**: Document public APIs and complex logic
+5. **Performance**: Optimize bottlenecks, not premature optimization
+6. **Error Handling**: Fail fast with clear error messages
+7. **Type Safety**: Use type hints for better IDE support and documentation
+8. **Constants**: Centralize all magic numbers and strings
+9. **Logging**: Log appropriately for debugging and monitoring
+10. **Testing**: Write tests for critical business logic

@@ -25,18 +25,24 @@ class MSALOAuthService:
         self.authority = "https://login.microsoftonline.com/common"
         self.scope = ["openid", "email", "profile"]  # Include all required scopes
         
-        # Create MSAL app
-        self.app = msal.ConfidentialClientApplication(
-            client_id=self.client_id,
-            client_credential=self.client_secret,
-            authority=self.authority
-        )
-        
-        logger.info(f"MSAL OAuth service initialized for client: {self.client_id[:8]}...")
+        # Create MSAL app only if client_id is configured
+        if self.client_id and self.client_secret:
+            self.app = msal.ConfidentialClientApplication(
+                client_id=self.client_id,
+                client_credential=self.client_secret,
+                authority=self.authority
+            )
+            logger.info(f"MSAL OAuth service initialized for client: {self.client_id[:8]}...")
+        else:
+            self.app = None
+            logger.warning("MSAL OAuth service initialized without client ID (Microsoft OAuth not configured)")
     
     def get_auth_url(self) -> str:
         """Generate Microsoft OAuth authorization URL using manual construction"""
         try:
+            if not self.client_id:
+                logger.error("Microsoft OAuth client ID not configured")
+                return ""
             # Use manual URL construction to avoid MSAL scope restrictions
             return self._get_fallback_auth_url()
             
@@ -48,6 +54,9 @@ class MSALOAuthService:
         """Fallback method to generate auth URL manually"""
         import urllib.parse
         
+        if not self.client_id:
+            return ""
+            
         params = {
             'client_id': self.client_id,
             'redirect_uri': self.redirect_uri,

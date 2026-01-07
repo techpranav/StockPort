@@ -32,6 +32,11 @@ from models.stock_data import (
 from exceptions.stock_data_exceptions import DataAnalysisException
 
 from config import ENABLE_GOOGLE_DRIVE
+from config.app_config import (
+    ENABLE_PARALLEL_PROCESSING,
+    ENABLE_INTRADAY_ANALYSIS,
+    ENABLE_ENTRY_DETECTION
+)
 
 class StockAnalyzer:
     def __init__(
@@ -80,8 +85,21 @@ class StockAnalyzer:
             f"generate_word_report={generate_word_report}, generate_excel_report={generate_excel_report}"
         )
     
-    def process_stock(self, symbol: str) -> Dict[str, Any]:
-        """Process a single stock symbol."""
+    def process_stock(
+        self,
+        symbol: str,
+        use_enhanced_analysis: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Process a single stock symbol.
+        
+        Args:
+            symbol: Stock symbol to process
+            use_enhanced_analysis: Use enhanced analysis with entry detection
+            
+        Returns:
+            Analysis result dictionary
+        """
         try:
             DebugUtils.info(f"Processing stock: {symbol} with {self.days_back} days of historical data")
             
@@ -91,6 +109,15 @@ class StockAnalyzer:
             
             # Convert StockData to dictionary format for legacy compatibility
             stock_dict = stock_data.to_dict()
+            
+            # Use enhanced analyzer if requested and enabled
+            if use_enhanced_analysis and ENABLE_ENTRY_DETECTION:
+                from core.enhanced_analyzer import EnhancedStockAnalyzer
+                enhanced_analyzer = EnhancedStockAnalyzer(days_back=self.days_back)
+                enhanced_results = enhanced_analyzer.analyze_stock_comprehensive(symbol)
+                
+                # Merge enhanced results
+                stock_dict.update(enhanced_results)
             
             # Save filtered data (using legacy format for now)
             self.file_utils.save_filtered_data(symbol, stock_dict, self.output_dir)

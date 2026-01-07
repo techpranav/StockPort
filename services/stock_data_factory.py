@@ -32,6 +32,22 @@ class StockDataFactory:
             DebugUtils.info("Registered Alpha Vantage provider")
         except ImportError as e:
             DebugUtils.warning(f"Could not register Alpha Vantage provider: {e}")
+        
+        try:
+            from services.data_providers.providers.nse_provider import NSEProvider
+            cls._providers['nse'] = NSEProvider
+            cls._providers['nse_india'] = NSEProvider  # Alias
+            DebugUtils.info("Registered NSE provider")
+        except ImportError as e:
+            DebugUtils.warning(f"Could not register NSE provider: {e}")
+        
+        try:
+            from services.data_providers.providers.bse_provider import BSEProvider
+            cls._providers['bse'] = BSEProvider
+            cls._providers['bse_india'] = BSEProvider  # Alias
+            DebugUtils.info("Registered BSE provider")
+        except ImportError as e:
+            DebugUtils.warning(f"Could not register BSE provider: {e}")
     
     @classmethod
     def register_provider(cls, name: str, provider_class: type) -> None:

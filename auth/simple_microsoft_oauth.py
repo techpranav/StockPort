@@ -26,11 +26,18 @@ class SimpleMicrosoftOAuth:
         # Include Graph delegated permission for /me
         self.scope = MS_SCOPE
         
-        logger.info(f"Simple Microsoft OAuth initialized for client: {self.client_id[:8]}...")
+        if self.client_id:
+            logger.info(f"Simple Microsoft OAuth initialized for client: {self.client_id[:8]}...")
+        else:
+            logger.warning("Simple Microsoft OAuth initialized without client ID (Microsoft OAuth not configured)")
     
     def get_auth_url(self) -> str:
         """Generate Microsoft OAuth authorization URL"""
         try:
+            if not self.client_id:
+                logger.error("Microsoft OAuth client ID not configured")
+                return ""
+                
             params = {
                 'client_id': self.client_id,
                 'redirect_uri': get_microsoft_oauth_redirect_uri(),
@@ -54,6 +61,10 @@ class SimpleMicrosoftOAuth:
     def exchange_code_for_token(self, code: str) -> Optional[Dict[str, Any]]:
         """Exchange authorization code for access token"""
         try:
+            if not self.client_id or not self.client_secret:
+                logger.error("Microsoft OAuth credentials not configured")
+                return None
+                
             token_url = f"{self.authority}/oauth2/v2.0/token"
             
             redirect_uri = get_microsoft_oauth_redirect_uri()

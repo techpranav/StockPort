@@ -19,6 +19,8 @@ from exceptions.stock_data_exceptions import (
 from config.constants import *
 from utils.debug_utils import DebugUtils
 from services.data_providers.fetcher.base_fetcher import BaseFetcher
+from services.data_providers.adapters.adapter_factory import AdapterFactory
+from config.constants.DataConstants import DEFAULT_PROVIDER
 from .historical_data_fetcher import HistoricalDataFetcher
 from .financial_data_fetcher import FinancialDataFetcher
 from .company_info_fetcher import CompanyInfoFetcher
@@ -138,10 +140,16 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             metrics = self._normalize_financial_metrics(raw_data)
             
             # Normalize technical indicators
-            technical_analysis = self._normalize_technical_indicators(raw_data.get('history', pd.DataFrame()))
+            technical_analysis = self._normalize_technical_indicators(
+                raw_data.get('history', pd.DataFrame()),
+                provider_name='yahoo_finance'
+            )
             
             # Generate technical signals
-            technical_signals = self._normalize_technical_signals(raw_data.get('history', pd.DataFrame()))
+            technical_signals = self._normalize_technical_signals(
+                raw_data.get('history', pd.DataFrame()),
+                provider_name='yahoo_finance'
+            )
             
             # Normalize financial statements
             financials = self._normalize_financial_statements(raw_data.get('financials', {}))
@@ -292,10 +300,16 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             # Calculate basic metrics from historical data
             if 'history' in data and isinstance(data['history'], pd.DataFrame) and not data['history'].empty:
                 hist_data = data['history']
-                if 'Close' in hist_data.columns:
-                    metrics['current_price'] = hist_data['Close'].iloc[-1]
-                    metrics['price_change'] = hist_data['Close'].iloc[-1] - hist_data['Close'].iloc[0]
-                    metrics['price_change_pct'] = (metrics['price_change'] / hist_data['Close'].iloc[0]) * 100
+                try:
+                    adapter = AdapterFactory.get_adapter('yahoo_finance')
+                    normalized_hist = adapter.normalize_dataframe(hist_data)
+                    if not normalized_hist.empty:
+                        close = adapter.get_column(normalized_hist, 'CLOSE')
+                        metrics['current_price'] = close.iloc[-1]
+                        metrics['price_change'] = close.iloc[-1] - close.iloc[0]
+                        metrics['price_change_pct'] = (metrics['price_change'] / close.iloc[0]) * 100
+                except Exception as e:
+                    DebugUtils.warning(f"Could not calculate metrics from history: {e}")
             
             # Add company info metrics
             if 'info' in data and data['info']:
@@ -395,29 +409,55 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             DebugUtils.log_error(e, "Error normalizing financial metrics")
             return FinancialMetrics()
     
-    def _normalize_technical_indicators(self, history: pd.DataFrame) -> TechnicalIndicators:
+    def _normalize_technical_indicators(
+        self,
+        history: pd.DataFrame,
+        provider_name: str = DEFAULT_PROVIDER
+    ) -> TechnicalIndicators:
         """Normalize technical indicators to TechnicalIndicators dataclass."""
         try:
-            if history.empty or 'Close' not in history.columns:
+            if history.empty:
                 return TechnicalIndicators()
             
-            # Calculate basic indicators
-            current_price = float(history['Close'].iloc[-1]) if len(history) > 0 else None
-            volume = float(history['Volume'].iloc[-1]) if 'Volume' in history.columns and len(history) > 0 else None
+            # Normalize data using adapter
+            adapter = AdapterFactory.get_adapter(provider_name)
+            normalized_history = adapter.normalize_dataframe(history)
+            
+            if normalized_history.empty:
+                return TechnicalIndicators()
+            
+            # Calculate basic indicators using adapter
+            close = adapter.get_column(normalized_history, 'CLOSE')
+            current_price = float(close.iloc[-1]) if len(normalized_history) > 0 else None
+            
+            volume = None
+            try:
+                volume_col = adapter.get_column(normalized_history, 'VOLUME')
+                volume = float(volume_col.iloc[-1]) if len(normalized_history) > 0 else None
+            except DataProcessingException:
+                pass
             
             # Calculate SMAs if we have enough data
-            sma_20 = float(history['Close'].rolling(20).mean().iloc[-1]) if len(history) >= 20 else None
-            sma_50 = float(history['Close'].rolling(50).mean().iloc[-1]) if len(history) >= 50 else None
-            sma_200 = float(history['Close'].rolling(200).mean().iloc[-1]) if len(history) >= 200 else None
+            sma_20 = float(close.rolling(20).mean().iloc[-1]) if len(normalized_history) >= 20 else None
+            sma_50 = float(close.rolling(50).mean().iloc[-1]) if len(normalized_history) >= 50 else None
+            sma_200 = float(close.rolling(200).mean().iloc[-1]) if len(normalized_history) >= 200 else None
             
             # Calculate RSI if we have enough data
             rsi = None
-            if len(history) >= 14:
-                delta = history['Close'].diff()
+            if len(normalized_history) >= 14:
+                delta = close.diff()
                 gain = (delta.where(delta > 0, 0)).rolling(14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
                 rs = gain / loss
                 rsi = float(100 - (100 / (1 + rs.iloc[-1]))) if not rs.iloc[-1] == 0 else None
+            
+            volume_sma = None
+            if volume is not None and len(normalized_history) >= 20:
+                try:
+                    volume_col = adapter.get_column(normalized_history, 'VOLUME')
+                    volume_sma = float(volume_col.rolling(20).mean().iloc[-1])
+                except DataProcessingException:
+                    pass
             
             return TechnicalIndicators(
                 current_price=current_price,
@@ -426,22 +466,34 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
                 sma_200=sma_200,
                 rsi=rsi,
                 volume=volume,
-                volume_sma=float(history['Volume'].rolling(20).mean().iloc[-1]) if 'Volume' in history.columns and len(history) >= 20 else None
+                volume_sma=volume_sma
             )
         except Exception as e:
             DebugUtils.log_error(e, "Error normalizing technical indicators")
             return TechnicalIndicators()
     
-    def _normalize_technical_signals(self, history: pd.DataFrame) -> TechnicalSignals:
+    def _normalize_technical_signals(
+        self,
+        history: pd.DataFrame,
+        provider_name: str = DEFAULT_PROVIDER
+    ) -> TechnicalSignals:
         """Generate technical signals from historical data."""
         try:
-            if history.empty or COLUMN_CLOSE not in history.columns or len(history) < MIN_DATA_POINTS_FOR_ANALYSIS:
+            if history.empty or len(history) < MIN_DATA_POINTS_FOR_ANALYSIS:
                 return TechnicalSignals()
             
-            # Simple trend analysis
-            sma_20 = history[COLUMN_CLOSE].rolling(SMA_SHORT_PERIOD).mean()
-            sma_50 = history[COLUMN_CLOSE].rolling(SMA_LONG_PERIOD).mean() if len(history) >= SMA_LONG_PERIOD else None
-            current_price = history[COLUMN_CLOSE].iloc[-1]
+            # Normalize data using adapter
+            adapter = AdapterFactory.get_adapter(provider_name)
+            normalized_history = adapter.normalize_dataframe(history)
+            
+            if normalized_history.empty:
+                return TechnicalSignals()
+            
+            # Simple trend analysis using adapter
+            close = adapter.get_column(normalized_history, 'CLOSE')
+            sma_20 = close.rolling(SMA_SHORT_PERIOD).mean()
+            sma_50 = close.rolling(SMA_LONG_PERIOD).mean() if len(normalized_history) >= SMA_LONG_PERIOD else None
+            current_price = close.iloc[-1]
             
             # Determine trend
             trend = TREND_SIDEWAYS
@@ -453,8 +505,8 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             
             # Simple momentum analysis using RSI
             momentum = MOMENTUM_NEUTRAL
-            if len(history) >= RSI_PERIOD:
-                delta = history[COLUMN_CLOSE].diff()
+            if len(normalized_history) >= RSI_PERIOD:
+                delta = close.diff()
                 gain = (delta.where(delta > 0, 0)).rolling(RSI_PERIOD).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(RSI_PERIOD).mean()
                 rs = gain / loss
@@ -467,8 +519,8 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             
             # Simple volatility analysis
             volatility = VOLATILITY_NORMAL
-            if len(history) >= SMA_SHORT_PERIOD:
-                returns = history[COLUMN_CLOSE].pct_change()
+            if len(normalized_history) >= SMA_SHORT_PERIOD:
+                returns = close.pct_change()
                 vol = returns.rolling(SMA_SHORT_PERIOD).std().iloc[-1] * 100
                 if vol > HIGH_VOLATILITY_THRESHOLD:
                     volatility = VOLATILITY_HIGH
@@ -477,13 +529,17 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
             
             # Volume analysis
             volume_signal = VOLUME_NORMAL
-            if COLUMN_VOLUME in history.columns and len(history) >= SMA_SHORT_PERIOD:
-                avg_volume = history[COLUMN_VOLUME].rolling(SMA_SHORT_PERIOD).mean().iloc[-1]
-                current_volume = history[COLUMN_VOLUME].iloc[-1]
-                if current_volume > avg_volume * HIGH_VOLUME_MULTIPLIER:
-                    volume_signal = VOLUME_HIGH
-                elif current_volume < avg_volume * LOW_VOLUME_MULTIPLIER:
-                    volume_signal = VOLUME_LOW
+            try:
+                volume_col = adapter.get_column(normalized_history, 'VOLUME')
+                if len(normalized_history) >= SMA_SHORT_PERIOD:
+                    avg_volume = volume_col.rolling(SMA_SHORT_PERIOD).mean().iloc[-1]
+                    current_volume = volume_col.iloc[-1]
+                    if current_volume > avg_volume * HIGH_VOLUME_MULTIPLIER:
+                        volume_signal = VOLUME_HIGH
+                    elif current_volume < avg_volume * LOW_VOLUME_MULTIPLIER:
+                        volume_signal = VOLUME_LOW
+            except DataProcessingException:
+                pass
             
             return TechnicalSignals(
                 trend=trend,

@@ -141,6 +141,12 @@ class StockData:
     financials: FinancialStatements
     news: List[NewsItem]
     raw_data: Dict[str, Any]  # Store original provider data for reference
+    # New fields for enhanced analysis
+    intraday_data: Optional[Dict[str, pd.DataFrame]] = None  # Multiple timeframes
+    entry_signals: Optional[List[Any]] = None  # List of EntrySignal objects
+    pattern_detections: Optional[List[Any]] = None  # List of PatternDetection objects
+    risk_metrics: Optional[Any] = None  # RiskMetrics object
+    signal_score: Optional[float] = None  # Overall signal score (0-100)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the stock data to a dictionary format, keeping DataFrames as DataFrames."""
@@ -161,5 +167,23 @@ class StockData:
             },
             'news': [news.__dict__ for news in self.news],
             'raw_data': self.raw_data,
-            'history': self.raw_data.get('history', pd.DataFrame())  # Include history for easy access
+            'history': self.raw_data.get('history', pd.DataFrame()),  # Include history for easy access
+            # New fields
+            'intraday_data': {
+                tf: df.to_dict() if isinstance(df, pd.DataFrame) else df
+                for tf, df in (self.intraday_data or {}).items()
+            },
+            'entry_signals': [
+                sig.to_dict() if hasattr(sig, 'to_dict') else sig.__dict__
+                for sig in (self.entry_signals or [])
+            ],
+            'pattern_detections': [
+                pat.__dict__ if not isinstance(pat, dict) else pat
+                for pat in (self.pattern_detections or [])
+            ],
+            'risk_metrics': (
+                self.risk_metrics.to_dict() if hasattr(self.risk_metrics, 'to_dict')
+                else self.risk_metrics.__dict__ if self.risk_metrics else None
+            ),
+            'signal_score': self.signal_score
         } 

@@ -1,0 +1,49 @@
+"""
+Signal Generation Constants
+
+This file contains constants for signal scoring, entry detection, and risk parameters.
+"""
+
+# Signal Score Thresholds
+SIGNAL_STRONG_BUY_THRESHOLD = 80
+SIGNAL_BUY_THRESHOLD = 60
+SIGNAL_WATCH_THRESHOLD = 40
+SIGNAL_AVOID_THRESHOLD = 0
+
+# Signal Types
+SIGNAL_TYPE_STRONG_BUY = "STRONG_BUY"
+SIGNAL_TYPE_BUY = "BUY"
+SIGNAL_TYPE_WATCH = "WATCH"
+SIGNAL_TYPE_AVOID = "AVOID"
+
+# Signal Scoring Weights
+WEIGHT_TECHNICAL = 0.40
+WEIGHT_MOMENTUM = 0.25
+WEIGHT_PATTERN = 0.20
+WEIGHT_TIMEFRAME = 0.10
+WEIGHT_RISK = 0.05
+
+# Entry Detection
+MIN_CONFIRMATIONS_STRONG_BUY = 3
+MIN_CONFIRMATIONS_BUY = 2
+MIN_CONFIRMATIONS_WATCH = 1
+
+# Risk Parameters
+DEFAULT_RISK_PER_TRADE = 0.02  # 2% of account
+DEFAULT_RISK_REWARD_RATIO = 1.5  # 1.5:1 minimum
+MAX_STOP_LOSS_PERCENTAGE = 0.10  # 10% maximum stop-loss
+MIN_RISK_REWARD_RATIO = 1.0
+
+# Position Sizing
+MAX_POSITION_SIZE_PERCENTAGE = 0.25  # 25% of account max per position
+MIN_POSITION_SIZE_PERCENTAGE = 0.01  # 1% minimum
+
+# ATR Multipliers for Stop-Loss and Take-Profit
+ATR_STOP_LOSS_MULTIPLIER = 2.0
+ATR_TAKE_PROFIT_MULTIPLIER = 3.0
+
+# Confidence Levels
+CONFIDENCE_HIGH = 0.75
+CONFIDENCE_MEDIUM = 0.50
+CONFIDENCE_LOW = 0.25
+

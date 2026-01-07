@@ -1,0 +1,246 @@
+rules:
+  # Constants Management
+  - id: constants-in-correct-file
+    pattern: ".*"
+    message: "All constants must be declared in config/constants/ directory. Use the appropriate file: NumericConstants.py, StringConstants.py, Messages.py, FinancialConstants.py, or IntradayConstants.py."
+    severity: error
+    autofix: |
+      Place constants in the correct file:
+        - Numeric values → NumericConstants.py
+        - String values → StringConstants.py
+        - User messages → Messages.py
+        - Financial thresholds → FinancialConstants.py
+        - Intraday-specific → IntradayConstants.py
+      Then import: from config.constants.NumericConstants import CONSTANT_NAME
+
+  # Configuration Management
+  - id: config-centralized
+    pattern: ".*"
+    message: "Configuration must be centralized in config/app_config.py or loaded from environment variables via os.getenv()."
+    severity: error
+    autofix: |
+      Add configuration to config/app_config.py:
+        MAX_WORKERS = int(os.getenv("MAX_WORKERS", "10"))
+      Never hardcode configuration values.
+
+  # Imports
+  - id: imports-absolute
+    pattern: "from \\.\\."
+    message: "Use absolute imports only. Avoid relative imports (from ..module import)."
+    severity: error
+    autofix: |
+      Convert relative imports to absolute:
+        from ..services import StockService
+        → from services.stock_service import StockService
+
+  - id: imports-ordered
+    pattern: "^(import|from)"
+    message: "Imports must be ordered: 1) Standard library, 2) Third-party, 3) Local imports. Group with blank lines."
+    severity: warning
+    autofix: |
+      Organize imports:
+        1. Standard library (os, sys, typing)
+        2. Third-party (pandas, numpy, streamlit)
+        3. Local (from config.constants import ...)
+
+  # Type Hints
+  - id: type-hints-required
+    pattern: "^def [a-z_]+.*\\(.*\\):"
+    message: "All functions must include type hints for parameters and return values."
+    severity: error
+    autofix: |
+      Add type hints:
+        def calculate_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
+          pass
+
+  # Docstrings
+  - id: docstrings-required
+    pattern: "^def [a-z_]+|^class [A-Z]"
+    message: "All public functions and classes must have Google-style docstrings."
+    severity: warning
+    autofix: |
+      Add docstring:
+        def calculate_rsi(prices: pd.Series) -> pd.Series:
+          \"\"\"
+          Calculate Relative Strength Index.
+          
+          Args:
+              prices: Series of closing prices
+              
+          Returns:
+              Series containing RSI values
+          \"\"\"
+          pass
+
+  # Logging
+  - id: no-print-statements
+    pattern: "print\\("
+    message: "Use DebugUtils from utils.debug_utils instead of print(). Never use print() in production code."
+    severity: error
+    autofix: |
+      Replace print() with DebugUtils:
+        print(f"Processing {symbol}")
+        → DebugUtils.info(f"Processing {symbol}")
+
+  # Magic Numbers
+  - id: no-magic-numbers
+    pattern: "\\b(\\d{2,}|0\\.\\d+|\\d+\\.\\d+)\\b"
+    message: "Avoid magic numbers. Use constants from config/constants/NumericConstants.py."
+    severity: warning
+    autofix: |
+      Move numeric values to constants:
+        if rsi > 70:
+        → from config.constants.NumericConstants import RSI_OVERBOUGHT_THRESHOLD
+        → if rsi > RSI_OVERBOUGHT_THRESHOLD:
+
+  # Error Handling
+  - id: no-bare-except
+    pattern: "except:"
+    message: "Never use bare except clauses. Specify exception types or use Exception as base."
+    severity: error
+    autofix: |
+      Specify exception types:
+        except:
+        → except (ValueError, KeyError) as e:
+        → except Exception as e:
+
+  - id: use-custom-exceptions
+    pattern: "raise (ValueError|KeyError|Exception)\\("
+    message: "Use custom exceptions from exceptions.stock_data_exceptions for domain-specific errors."
+    severity: warning
+    autofix: |
+      Use custom exceptions:
+        raise ValueError("No data")
+        → from exceptions.stock_data_exceptions import DataFetchException
+        → raise DataFetchException("No data available")
+
+  # Naming Conventions
+  - id: class-naming
+    pattern: "^class [a-z]"
+    message: "Class names must use PascalCase: class StockAnalyzer, not class stock_analyzer."
+    severity: error
+    autofix: |
+      Use PascalCase for classes:
+        class stock_analyzer:
+        → class StockAnalyzer:
+
+  - id: function-naming
+    pattern: "^def [A-Z]"
+    message: "Function names must use snake_case: def calculate_rsi, not def CalculateRsi."
+    severity: error
+    autofix: |
+      Use snake_case for functions:
+        def CalculateRsi():
+        → def calculate_rsi():
+
+  - id: constant-naming
+    pattern: "^[a-z_]+ = "
+    message: "Module-level constants must use UPPER_SNAKE_CASE: RSI_PERIOD, not rsi_period."
+    severity: warning
+    autofix: |
+      Use UPPER_SNAKE_CASE for constants:
+        rsi_period = 14
+        → RSI_PERIOD = 14
+
+  # Folder Structure
+  - id: folder-structure-config
+    pattern: ".*"
+    message: "All configuration must be in config/ directory, primarily config/app_config.py."
+    severity: error
+
+  - id: folder-structure-constants
+    pattern: ".*"
+    message: "All constants must be in config/constants/ directory."
+    severity: error
+
+  - id: folder-structure-services
+    pattern: ".*"
+    message: "Business logic services must be in services/ directory."
+    severity: warning
+
+  - id: folder-structure-core
+    pattern: ".*"
+    message: "Core orchestration logic must be in core/ directory."
+    severity: warning
+
+  - id: folder-structure-utils
+    pattern: ".*"
+    message: "Utility functions must be in utils/ directory."
+    severity: warning
+
+  - id: folder-structure-models
+    pattern: ".*"
+    message: "Data models must be in models/ directory."
+    severity: warning
+
+  # Data Handling
+  - id: validate-data
+    pattern: "def.*\\(.*data.*\\):"
+    message: "Always validate input data (check for None, empty, required columns/keys) before processing."
+    severity: warning
+    autofix: |
+      Add validation:
+        def process_data(data):
+          # Add validation
+          if data is None or data.empty:
+              raise ValueError("Data cannot be empty")
+          if 'Close' not in data.columns:
+              raise ValueError("Missing 'Close' column")
+
+  # Type Safety
+  - id: optional-types
+    pattern: "def.*-> [^O]"
+    message: "Functions that may return None should use Optional[Type] in return type hint."
+    severity: warning
+    autofix: |
+      Use Optional for nullable returns:
+        def get_price() -> float:
+        → def get_price() -> Optional[float]:
+
+  # Performance
+  - id: avoid-python-loops
+    pattern: "for .* in range\\(len\\(.*\\)\\):"
+    message: "Prefer vectorized pandas/NumPy operations over Python loops for calculations."
+    severity: warning
+    autofix: |
+      Use vectorized operations:
+        for i in range(len(prices)):
+            result[i] = calculate(prices[i])
+        → result = prices.apply(calculate)  # or vectorized operation
+
+  # Security
+  - id: no-secrets-in-code
+    pattern: "(api_key|secret|password|token)\\s*=\\s*['\"][^'\"]+['\"]"
+    message: "Never hardcode secrets, API keys, or credentials. Use environment variables or config/app_config.py."
+    severity: error
+    autofix: |
+      Use environment variables:
+        api_key = "sk-123456"
+        → api_key = os.getenv("API_KEY")
+        → # Or in config/app_config.py: API_KEY = os.getenv("API_KEY")
+
+  # Testing
+  - id: tests-required
+    pattern: "^(class|def) [A-Z]"
+    message: "New public classes/functions should have corresponding tests in tests/ directory."
+    severity: info
+    autofix: |
+      Add test file:
+        tests/services/analyzers/test_technical_analysis.py
+        def test_calculate_rsi():
+            pass
+
+  # Documentation
+  - id: module-docstring
+    pattern: "^[^\"'#]"
+    message: "Modules should start with a module-level docstring describing their purpose."
+    severity: info
+    autofix: |
+      Add module docstring at top:
+        \"\"\"
+        Module for technical analysis calculations.
+        
+        This module provides functions for calculating technical indicators
+        such as RSI, MACD, and moving averages.
+        \"\"\"
+

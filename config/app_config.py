@@ -54,6 +54,8 @@ ENABLE_GOOGLE_DRIVE = True
 ENABLE_TECHNICAL_ANALYSIS = True
 ENABLE_FUNDAMENTAL_ANALYSIS = True
 ENABLE_PORTFOLIO_ANALYSIS = True
+ENABLE_ALERTS = os.getenv("ENABLE_ALERTS", "true").lower() == "true"
+ENABLE_BACKTESTING = os.getenv("ENABLE_BACKTESTING", "true").lower() == "true"
 
 # Export Features
 ENABLE_EXCEL_EXPORT = True
@@ -170,6 +172,17 @@ ALLOWED_FILE_TYPES = [".txt", ".csv"]
 CACHE_TTL_HOURS = 24
 MAX_CONCURRENT_ANALYSES = 5
 
+# Parallel Processing Configuration
+ENABLE_PARALLEL_PROCESSING = os.getenv("ENABLE_PARALLEL_PROCESSING", "true").lower() == "true"
+DEFAULT_MAX_WORKERS = int(os.getenv("DEFAULT_MAX_WORKERS", "10"))
+PARALLEL_RATE_LIMIT_PER_WORKER = int(os.getenv("PARALLEL_RATE_LIMIT_PER_WORKER", "10"))
+PARALLEL_RATE_LIMIT_WINDOW = float(os.getenv("PARALLEL_RATE_LIMIT_WINDOW", "60.0"))
+
+# Intraday Analysis Configuration
+ENABLE_INTRADAY_ANALYSIS = os.getenv("ENABLE_INTRADAY_ANALYSIS", "true").lower() == "true"
+ENABLE_ENTRY_DETECTION = os.getenv("ENABLE_ENTRY_DETECTION", "true").lower() == "true"
+ENABLE_PATTERN_RECOGNITION = os.getenv("ENABLE_PATTERN_RECOGNITION", "true").lower() == "true"
+
 # ============================================================================
 # CONFIGURATION MANAGEMENT
 # ============================================================================
@@ -256,7 +269,20 @@ class AppConfig:
             "max_history_days": MAX_HISTORY_DAYS,
             "technical_analysis": ENABLE_TECHNICAL_ANALYSIS,
             "fundamental_analysis": ENABLE_FUNDAMENTAL_ANALYSIS,
-            "portfolio_analysis": ENABLE_PORTFOLIO_ANALYSIS
+            "portfolio_analysis": ENABLE_PORTFOLIO_ANALYSIS,
+            "intraday_analysis": ENABLE_INTRADAY_ANALYSIS,
+            "entry_detection": ENABLE_ENTRY_DETECTION,
+            "pattern_recognition": ENABLE_PATTERN_RECOGNITION
+        }
+    
+    @classmethod
+    def get_parallel_processing_settings(cls) -> Dict[str, Any]:
+        """Get parallel processing settings."""
+        return {
+            "enabled": ENABLE_PARALLEL_PROCESSING,
+            "max_workers": DEFAULT_MAX_WORKERS,
+            "rate_limit_per_worker": PARALLEL_RATE_LIMIT_PER_WORKER,
+            "rate_limit_window": PARALLEL_RATE_LIMIT_WINDOW
         }
     
     @classmethod

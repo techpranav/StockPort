@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from utils.debug_utils import DebugUtils
 from exceptions.stock_data_exceptions import DataProcessingException
+from services.data_providers.adapters.adapter_factory import AdapterFactory
+from config.constants.DataConstants import DEFAULT_PROVIDER
 
 # Type aliases
 TechnicalIndicators = Dict[str, pd.Series]
@@ -13,12 +15,16 @@ class TechnicalAnalyzer:
     """Class for performing technical analysis on stock data."""
     
     @staticmethod
-    def calculate_indicators(data: pd.DataFrame) -> TechnicalIndicators:
+    def calculate_indicators(
+        data: pd.DataFrame,
+        provider_name: str = DEFAULT_PROVIDER
+    ) -> TechnicalIndicators:
         """
         Calculate technical indicators from price data.
         
         Args:
-            data: DataFrame containing price data with columns ['Open', 'High', 'Low', 'Close', 'Volume']
+            data: DataFrame containing price data (will be normalized via adapter)
+            provider_name: Name of the data provider (default: yahoo_finance)
             
         Returns:
             Dictionary containing calculated technical indicators
@@ -27,18 +33,42 @@ class TechnicalAnalyzer:
             DataProcessingException: If there's an error processing the data
         """
         try:
+            # Input validation
+            if data is None:
+                raise DataProcessingException("Data cannot be None")
+            if not isinstance(data, pd.DataFrame):
+                raise DataProcessingException(f"Data must be a DataFrame, got {type(data)}")
+            
+            # Get adapter for the provider
+            adapter = AdapterFactory.get_adapter(provider_name)
+            
+            # Normalize data using adapter
+            normalized_data = adapter.normalize_dataframe(data)
+            
+            if normalized_data.empty:
+                raise DataProcessingException("Normalized data is empty")
+            
+            # Validate minimum data points
+            if len(normalized_data) < 20:
+                raise DataProcessingException(
+                    f"Insufficient data: need at least 20 data points, got {len(normalized_data)}"
+                )
+            
+            # Get close price using adapter
+            close = adapter.get_column(normalized_data, 'CLOSE')
+            
             indicators: TechnicalIndicators = {}
             
             # Calculate moving averages
-            indicators['sma_20'] = TechnicalAnalyzer._calculate_sma(data['Close'], 20)
-            indicators['sma_50'] = TechnicalAnalyzer._calculate_sma(data['Close'], 50)
-            indicators['sma_200'] = TechnicalAnalyzer._calculate_sma(data['Close'], 200)
+            indicators['sma_20'] = TechnicalAnalyzer._calculate_sma(close, 20)
+            indicators['sma_50'] = TechnicalAnalyzer._calculate_sma(close, 50)
+            indicators['sma_200'] = TechnicalAnalyzer._calculate_sma(close, 200)
             
             # Calculate RSI
-            indicators['rsi'] = TechnicalAnalyzer._calculate_rsi(data['Close'])
+            indicators['rsi'] = TechnicalAnalyzer._calculate_rsi(close)
             
             # Calculate MACD
-            macd_line, signal_line = TechnicalAnalyzer._calculate_macd(data['Close'])
+            macd_line, signal_line = TechnicalAnalyzer._calculate_macd(close)
             indicators['macd'] = macd_line
             indicators['macd_signal'] = signal_line
             indicators['macd_histogram'] = macd_line - signal_line
@@ -46,7 +76,7 @@ class TechnicalAnalyzer:
             return indicators
             
         except Exception as e:
-            raise DataProcessingException(f"Error calculating technical indicators: {str(e)}")
+            raise DataProcessingException(f"Error calculating technical indicators: {str(e)}") from e
     
     @staticmethod
     def _calculate_sma(prices: pd.Series, window: int) -> pd.Series:
@@ -99,12 +129,16 @@ class TechnicalAnalyzer:
         return macd, signal
     
     @staticmethod
-    def generate_signals(data: pd.DataFrame) -> TechnicalSignals:
+    def generate_signals(
+        data: pd.DataFrame,
+        provider_name: str = DEFAULT_PROVIDER
+    ) -> TechnicalSignals:
         """
         Generate trading signals based on technical indicators.
         
         Args:
             data: DataFrame containing price data
+            provider_name: Name of the data provider (default: yahoo_finance)
             
         Returns:
             Dictionary containing trading signals
@@ -115,24 +149,36 @@ class TechnicalAnalyzer:
         }
         
         try:
+            # Get adapter for the provider
+            adapter = AdapterFactory.get_adapter(provider_name)
+            
+            # Normalize data using adapter
+            normalized_data = adapter.normalize_dataframe(data)
+            
+            if normalized_data.empty:
+                return {'buy': [], 'sell': []}
+            
             # Calculate indicators
-            indicators = TechnicalAnalyzer.calculate_indicators(data)
+            indicators = TechnicalAnalyzer.calculate_indicators(normalized_data, provider_name)
+            
+            # Get close price using adapter
+            close = adapter.get_column(normalized_data, 'CLOSE')
             
             # Generate signals based on moving average crossovers
-            for i in range(1, len(data)):
+            for i in range(1, len(normalized_data)):
                 if indicators['sma_20'].iloc[i] > indicators['sma_50'].iloc[i] and \
                    indicators['sma_20'].iloc[i-1] <= indicators['sma_50'].iloc[i-1]:
                     signals['buy'].append({
-                        'date': data.index[i],
-                        'price': data['Close'].iloc[i],
+                        'date': normalized_data.index[i],
+                        'price': close.iloc[i],
                         'type': 'MA_CROSSOVER'
                     })
                 
                 elif indicators['sma_20'].iloc[i] < indicators['sma_50'].iloc[i] and \
                      indicators['sma_20'].iloc[i-1] >= indicators['sma_50'].iloc[i-1]:
                     signals['sell'].append({
-                        'date': data.index[i],
-                        'price': data['Close'].iloc[i],
+                        'date': normalized_data.index[i],
+                        'price': close.iloc[i],
                         'type': 'MA_CROSSOVER'
                     })
             
@@ -143,12 +189,16 @@ class TechnicalAnalyzer:
             return {'buy': [], 'sell': []}
     
     @staticmethod
-    def analyze_trend(data: pd.DataFrame) -> TrendAnalysis:
+    def analyze_trend(
+        data: pd.DataFrame,
+        provider_name: str = DEFAULT_PROVIDER
+    ) -> TrendAnalysis:
         """
         Analyze price trend based on technical indicators.
         
         Args:
             data: DataFrame containing price data
+            provider_name: Name of the data provider (default: yahoo_finance)
             
         Returns:
             Dictionary containing trend analysis
@@ -156,11 +206,23 @@ class TechnicalAnalyzer:
         trend: TrendAnalysis = {}
         
         try:
+            # Get adapter for the provider
+            adapter = AdapterFactory.get_adapter(provider_name)
+            
+            # Normalize data using adapter
+            normalized_data = adapter.normalize_dataframe(data)
+            
+            if normalized_data.empty:
+                return {'direction': 'unknown', 'strength': 'unknown', 'rsi_signal': 'unknown'}
+            
             # Calculate indicators
-            indicators = TechnicalAnalyzer.calculate_indicators(data)
+            indicators = TechnicalAnalyzer.calculate_indicators(normalized_data, provider_name)
+            
+            # Get close price using adapter
+            close = adapter.get_column(normalized_data, 'CLOSE')
             
             # Get latest values
-            last_close = data['Close'].iloc[-1]
+            last_close = close.iloc[-1]
             last_sma20 = indicators['sma_20'].iloc[-1]
             last_sma50 = indicators['sma_50'].iloc[-1]
             last_sma200 = indicators['sma_200'].iloc[-1]

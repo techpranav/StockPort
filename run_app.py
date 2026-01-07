@@ -23,9 +23,13 @@ if __name__ == "__main__":
     
     # Get the local IP address
     ip_address = get_local_ip()
-    print(f"\nAccess the app from other computers using:")
-    print(f"http://{ip_address}:8501\n")
+    print(f"\n{'='*60}")
+    print(f"Stock Analysis Tool - Starting Server")
+    print(f"{'='*60}")
+    print(f"\nLocal access:    http://localhost:8501")
+    print(f"Network access:  http://{ip_address}:8501")
+    print(f"\n{'='*60}\n")
     
-    # Set the host to '0.0.0.0' to make it accessible from other machines
-    # Set the port to 8501 (default Streamlit port)
-    os.system('streamlit run app/main.py --server.address 0.0.0.0 --server.port 8501') 
+    # Use localhost for local access, but still allow network access via 0.0.0.0
+    # This makes it accessible from other machines while showing localhost in the URL
+    os.system('streamlit run app.py --server.address 0.0.0.0 --server.port 8501') 
