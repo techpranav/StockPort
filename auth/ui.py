@@ -22,6 +22,25 @@ from config.constants.Messages import *
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Helper to get a CookieManager instance compatibly across versions
+def _get_cookie_manager():
+    try:
+        from extra_streamlit_components import CookieManager  # type: ignore
+        try:
+            return CookieManager(key="app_cookies")
+        except TypeError:
+            # Older/newer API variants without named params
+            return CookieManager("app_cookies")
+    except Exception:
+        try:
+            import extra_streamlit_components as stx  # type: ignore
+            try:
+                return stx.CookieManager(key="app_cookies")
+            except TypeError:
+                return stx.CookieManager("app_cookies")
+        except Exception:
+            return None
+
 class AuthUI:
     """Main authentication UI controller class."""
     
@@ -164,6 +183,8 @@ class AuthUI:
                     return
                 license_key = self.license_service.create_license(current_user['id'], final_plan)
                 st.success(f"✅ License activated! Your {final_plan.replace('_', ' ').title()} plan is now active.")
+                # Clear any cached license so next view reflects new state
+                st.session_state.pop('license_cache', None)
                 # Clear upgrade/payment state and query params
                 self._clear_upgrade_state()
                 st.query_params.clear()
@@ -179,15 +200,16 @@ class AuthUI:
         else:
             # Fallback: try selected_plan cookie
             try:
-                from extra_streamlit_components import CookieManager
-                cm = CookieManager()
-                cookie_plan = cm.get("selected_plan")
+                cm = _get_cookie_manager()
+                cookie_plan = cm.get("selected_plan") if cm else None
                 if cookie_plan:
                     current_user = st.session_state.get(SSK_CURRENT_USER)
                     if current_user:
                         license_key = self.license_service.create_license(current_user['id'], cookie_plan)
                         st.success(f"✅ License activated! Your {cookie_plan.replace('_', ' ').title()} plan is now active.")
-                        cm.delete("selected_plan")
+                        if cm:
+                            cm.delete("selected_plan")
+                        st.session_state.pop('license_cache', None)
                         self._clear_upgrade_state()
                         st.query_params.clear()
                         st.session_state.pop('payment_success_processed', None)
@@ -242,9 +264,7 @@ class AuthUI:
     def _check_session_cookies(self) -> bool:
         """Check for valid session cookies."""
         try:
-            from extra_streamlit_components import CookieManager
-            cookie_manager = CookieManager()
-            
+            cookie_manager = _get_cookie_manager()
             if cookie_manager:
                 session_token = cookie_manager.get("session_token")
                 if session_token:
@@ -252,7 +272,6 @@ class AuthUI:
                     user = self.user_service.get_current_user()
                     if user:
                         st.session_state[SSK_CURRENT_USER] = user
-                        # Don't call st.rerun() here to avoid infinite loops
                         return True
         except Exception as e:
             logger.warning(f"Error reading session cookie: {e}")
@@ -262,11 +281,8 @@ class AuthUI:
     def _set_session_cookie(self, session_token: str):
         """Set session token in cookie for persistence."""
         try:
-            from extra_streamlit_components import CookieManager
-            cookie_manager = CookieManager()
-            
+            cookie_manager = _get_cookie_manager()
             if cookie_manager:
-                # Set cookie with 30 days expiration
                 cookie_manager.set(
                     cookie="session_token",
                     val=session_token,
@@ -279,9 +295,7 @@ class AuthUI:
     def _clear_session_cookie(self):
         """Clear session token from cookie."""
         try:
-            from extra_streamlit_components import CookieManager
-            cookie_manager = CookieManager()
-            
+            cookie_manager = _get_cookie_manager()
             if cookie_manager:
                 cookie_manager.delete("session_token")
                 logger.info("Session token cleared from cookie")
@@ -315,7 +329,7 @@ class AuthUI:
         """Render the main login/register interface."""
         st.title("🔐 Authentication")
         st.markdown("---")
-        
+    
         # Create tabs for login and register
         tab1, tab2 = st.tabs(["Login", "Register"])
         
@@ -396,7 +410,6 @@ class AuthUI:
                 
                 # Store session token in cookie for persistence
                 self._set_session_cookie(user['session_token'])
-                
                 st.success("Login successful!")
                 st.rerun()
             else:
@@ -921,12 +934,13 @@ class LicensePurchaseUI:
                     st.session_state[SSK_PAYMENT_REDIRECT_URL] = redirect_url
                     # Persist selected plan in cookie as a fallback across redirects
                     try:
-                        from extra_streamlit_components import CookieManager
-                        CookieManager().set(
-                            cookie="selected_plan",
-                            val=selected_plan,
-                            expires_at=datetime.now() + timedelta(days=2)
-                        )
+                        cm = _get_cookie_manager()
+                        if cm:
+                            cm.set(
+                                cookie="selected_plan",
+                                val=selected_plan,
+                                expires_at=datetime.now() + timedelta(days=2)
+                            )
                     except Exception as ce:
                         logger.warning(f"Could not persist selected_plan cookie: {ce}")
                     # Immediate redirect via HTML to avoid duplicate calls on rerun

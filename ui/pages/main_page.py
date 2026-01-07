@@ -419,6 +419,19 @@ def main():
                 "👤 Profile",
                 "👨‍💼 Admin"
             ])
+            # If we should keep/return to Admin tab after an action, simulate a click on the Admin tab
+            if st.session_state.get('current_page') == 'admin' or st.session_state.get('stay_on_admin'):
+                st.session_state['stay_on_admin'] = False
+                st.markdown(
+                    """
+                    <script>
+                    const tabs = Array.from(document.querySelectorAll('button[role="tab"]'));
+                    const adminTab = tabs.find(btn => btn.innerText && btn.innerText.includes('Admin')) || tabs[5];
+                    if (adminTab) adminTab.click();
+                    </script>
+                    """,
+                    unsafe_allow_html=True
+                )
         else:
             tab1, tab2, tab3, tab4 = st.tabs(["📊 Single Stock Analysis", "📋 Mass Analysis", "☁️ Google Drive Setup", "🗂 Report History"])
         
