@@ -213,7 +213,7 @@ Core → Services → Models → Config
 - Data provider API keys (if required)
 
 ### Settings Files
-- `config/settings.py`: Main application settings
+- `config/app_config.py`: Unified application settings (single source of truth)
 - `config/constants/`: String constants and messages
 
 ## Testing Strategy

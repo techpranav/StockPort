@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 import os
 
-from config.settings import OUTPUT_DIR, ENABLE_AI_FEATURES
+from config import OUTPUT_DIR, ENABLE_AI_FEATURES
 from config.constants import *
 from config.constants.Messages import (
     WORD_HEADER_COMPANY_INFO,

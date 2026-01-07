@@ -2,11 +2,13 @@ from typing import Dict, Any, Optional
 import openai
 import time
 import random
-from core.config import (
-    CHATGPT,
-    OLLAMA,
-    OPENAI_API_KEY
+from config.app_config import (
+    AI_API_KEY as OPENAI_API_KEY,
 )
+
+# Centralized model identifiers
+CHATGPT = "chatgpt"
+OLLAMA = "ollama"
 
 class AIService:
     def __init__(self, ai_mode: Optional[str] = None):

@@ -8,7 +8,7 @@ import time
 import random
 from typing import Callable, Any, Optional
 from utils.debug_utils import DebugUtils
-from config.settings import API_RATE_LIMIT_DELAY, API_MAX_RETRIES, API_REQUEST_DELAY
+from config import AppConfig
 
 class BaseFetcher:
     """Base class for all data fetching operations."""
@@ -17,9 +17,10 @@ class BaseFetcher:
         """Initialize the base fetcher."""
         self.consecutive_failures = 0
         self.last_request_time = 0
-        self.rate_limit_delay = API_RATE_LIMIT_DELAY
-        self.max_retries = API_MAX_RETRIES
-        self.request_delay = API_REQUEST_DELAY
+        api_settings = AppConfig.get_api_settings()
+        self.rate_limit_delay = api_settings["rate_limit_delay"]
+        self.max_retries = api_settings["max_retries"]
+        self.request_delay = api_settings["request_delay"]
     
     def fetch_with_retry(self, symbol: str, fetch_function: Callable, *args, **kwargs) -> Any:
         """

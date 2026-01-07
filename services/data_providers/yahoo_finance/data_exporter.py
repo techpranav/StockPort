@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from utils.debug_utils import DebugUtils
 from exceptions.stock_data_exceptions import ExportException
-from config.settings import Settings
+# Settings have been unified; read paths from config if needed
 
 # Type aliases
 FinancialData = Dict[str, pd.DataFrame]

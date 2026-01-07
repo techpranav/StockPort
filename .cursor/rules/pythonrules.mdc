@@ -1,0 +1,84 @@
+---
+author:
+- Version 1.0
+title: Python Coding Rules for Cursor AI
+---
+
+# Python Coding Rules & Standards
+
+## General
+
+-   Follow [PEP 8](https://peps.python.org/pep-0008/) for style and [PEP
+    257](https://peps.python.org/pep-0257/) for docstrings.
+-   Organize code into well-structured modules: `constants/`, `config/`,
+    `utils/`, `core/`, `tests/`.
+
+## Rules (Cursor AI)
+
+``` yaml
+rules:
+  - id: constants-in-correct-file
+    pattern: ".*"
+    message: "All constants must be declared in the constants/ directory. Use the appropriate file (FinancialConstants.py, Messages.py, NumericConstants.py, StringConstants.py)."
+    severity: error
+
+  - id: config-centralized
+    pattern: ".*"
+    message: "Configuration values must be centralized in config/settings.py (or equivalent) and not hard-coded."
+    severity: error
+
+  - id: imports-absolute
+    pattern: ".*"
+    message: "Avoid relative imports. Use absolute imports for clarity."
+    severity: warning
+
+  - id: type-hints
+    pattern: "def "
+    message: "All functions and methods must include type hints for parameters and return values."
+    severity: warning
+
+  - id: docstrings
+    pattern: "def "
+    message: "Public functions/classes must include a docstring (PEP 257)."
+    severity: warning
+
+  - id: logging
+    pattern: "print\("
+    message: "Use the logging module instead of print statements."
+    severity: error
+
+  - id: magic-numbers
+    pattern: "[0-9]{2,}"
+    message: "Avoid magic numbers; replace with constants (e.g., NumericConstants)."
+    severity: warning
+
+  - id: tests-required
+    pattern: ".*"
+    message: "Every new module must have unit tests under tests/."
+    severity: info
+
+  - id: folder-structure-config
+    pattern: ".*"
+    message: "All configuration must reside under config/."
+    severity: error
+
+  - id: folder-structure-constants
+    pattern: ".*"
+    message: "All constants must reside under constants/ (FinancialConstants.py, Messages.py, NumericConstants.py, StringConstants.py)."
+    severity: error
+
+  - id: folder-structure-utils
+    pattern: ".*"
+    message: "Utility/helper functions must be placed in utils/ package."
+    severity: warning
+
+  - id: folder-structure-core
+    pattern: ".*"
+    message: "Business/domain logic must reside in core/ package."
+    severity: warning
+
+  - id: folder-structure-tests
+    pattern: ".*"
+    message: "All tests must be inside tests/ package, mirroring module structure."
+    severity: error
+```

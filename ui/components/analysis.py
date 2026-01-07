@@ -2,7 +2,7 @@ import streamlit as st
 from typing import Dict, Any, List
 import pandas as pd
 from pathlib import Path
-from config.settings import (
+from config import (
     ENABLE_AI_FEATURES,
     ENABLE_TECHNICAL_ANALYSIS,
     ENABLE_FUNDAMENTAL_ANALYSIS,
@@ -127,19 +127,36 @@ def display_single_stock_analysis(symbol: str, days_back: int = 365):
     result_key = f'analysis_result_{symbol}'
     stored_result = st.session_state.get(result_key)
     
-    # Display analysis form
+    # Days slider outside the form to allow immediate on_change sync
+    def _on_single_days_change():
+        val = st.session_state.get(f"days_back_{symbol}")
+        try:
+            st.session_state['days_back_current'] = int(val)
+            st.session_state['sidebar_days_back'] = int(val)
+        except Exception:
+            st.session_state['days_back_current'] = val
+            st.session_state['sidebar_days_back'] = val
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.slider(
+            "Days of historical data:",
+            min_value=30,
+            max_value=1095,  # 3 years
+            value=st.session_state.get('days_back_current', days_back),
+            key=f"days_back_{symbol}",
+            on_change=_on_single_days_change
+        )
+    with col2:
+        pass
+
+    # Display analysis form (analyze button only) to prevent rerun issues
     with st.form(key=f"analysis_form_{symbol}"):
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            days_back = st.slider(
-                "Days of historical data:",
-                min_value=30,
-                max_value=1095,  # 3 years
-                value=days_back,
-                key=f"days_back_{symbol}"
-            )
-        with col2:
-            analyze_button = st.form_submit_button("🔍 Analyze", use_container_width=True)
+        analyze_button = st.form_submit_button(
+            "🔍 Analyze",
+            use_container_width=True,
+            disabled=st.session_state.get(analysis_running_key, False)
+        )
         
         if analyze_button:
             # Clear previous results and set running state
@@ -161,10 +178,11 @@ def display_single_stock_analysis(symbol: str, days_back: int = 365):
     if st.session_state.get(analysis_running_key, False):
         with st.spinner(f"Analyzing {symbol}..."):
             try:
-                # Get drive settings from saved configuration
-                mgr = GoogleDriveManager()
-                drive_folder_id = mgr.get_saved_folder_id()
-                create_date_folders = mgr.get_saved_date_folder_preference()
+                # Get drive settings from UserSettingsManager (new unified approach)
+                from utils.user_settings_manager import UserSettingsManager
+                user_settings = UserSettingsManager()
+                drive_folder_id = user_settings.get_google_drive_folder_id()
+                create_date_folders = user_settings.get_google_drive_date_folders()
                 
                 # Initialize analyzer with drive settings
                 # Respect export options from sidebar configuration
@@ -174,7 +192,7 @@ def display_single_stock_analysis(symbol: str, days_back: int = 365):
                 analyzer = StockAnalyzer(
                     input_dir="input",
                     output_dir="output", 
-                    days_back=days_back,
+                    days_back=st.session_state.get('days_back_current', days_back),
                     drive_folder_id=drive_folder_id,
                     create_date_folders=create_date_folders,
                     generate_excel_report=single_gen_excel,
@@ -275,21 +293,40 @@ def display_mass_stock_analysis():
                     st.write(", ".join(symbols[:10]) + ("..." if len(symbols) > 10 else ""))
 
                 # History duration slider
+                def _on_mass_days_change():
+                    val = st.session_state.get('mass_days_back')
+                    try:
+                        st.session_state['days_back_current'] = int(val)
+                        st.session_state['sidebar_days_back'] = int(val)
+                    except Exception:
+                        st.session_state['days_back_current'] = val
+                        st.session_state['sidebar_days_back'] = val
+
                 days_back_val = st.slider(
                     "Days of historical data:",
                     min_value=30,
                     max_value=1095,
                     value=st.session_state.get('mass_days_back', 365),
-                    key="mass_days_back"
+                    key="mass_days_back",
+                    on_change=_on_mass_days_change
                 )
+                # Sync sidebar immediately (will show on next rerun)
+                try:
+                    st.session_state['sidebar_days_back'] = int(days_back_val)
+                except Exception:
+                    st.session_state['sidebar_days_back'] = days_back_val
 
                 # Use export options from sidebar configuration
                 config = st.session_state.get('config', {})
                 gen_excel = config.get('export_excel', True)
                 gen_word = config.get('export_word', True)
 
-                # Analyze All button
-                if st.button("🔍 Analyze All", key="analyze_mass_stocks"):
+                # Analyze All button (disabled while running)
+                if st.button(
+                    "🔍 Analyze All",
+                    key="analyze_mass_stocks",
+                    disabled=st.session_state.get('mass_analysis_running', False)
+                ):
                     if symbols:
                         # Clear any existing mass analysis results before starting new analysis
                         keys_to_remove = [
@@ -309,6 +346,11 @@ def display_mass_stock_analysis():
                         st.session_state['mass_generate_word'] = gen_word
                         # Do NOT modify the widget key 'mass_days_back'; store separately
                         st.session_state['mass_days_back_selected'] = days_back_val
+                        # Also reflect in sidebar field for consistency
+                        try:
+                            st.session_state['sidebar_days_back'] = int(days_back_val)
+                        except Exception:
+                            st.session_state['sidebar_days_back'] = days_back_val
                         st.rerun()
                     else:
                         st.warning("No valid symbols found in the uploaded file.")
@@ -443,10 +485,11 @@ def process_mass_analysis(symbols: List[str], days_back: int = 365, generate_exc
         # Process next symbol (one per rerun)
         if idx < total_symbols:
             try:
-                # Drive settings and analyzer
-                mgr = GoogleDriveManager()
-                drive_folder_id = mgr.get_saved_folder_id()
-                create_date_folders = mgr.get_saved_date_folder_preference()
+                # Drive settings and analyzer - use UserSettingsManager (new unified approach)
+                from utils.user_settings_manager import UserSettingsManager
+                user_settings = UserSettingsManager()
+                drive_folder_id = user_settings.get_google_drive_folder_id()
+                create_date_folders = user_settings.get_google_drive_date_folders()
                 gen_excel = st.session_state.get('mass_generate_excel', True)
                 gen_word = st.session_state.get('mass_generate_word', True)
                 days_back = st.session_state.get('mass_days_back_selected', st.session_state.get('mass_days_back', 365))

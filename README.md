@@ -12,12 +12,46 @@ A comprehensive stock analysis application built with Streamlit that provides fu
 - **Report Generation**: Excel and Word reports with customizable export options
 - **Google Drive Integration**: Automatic upload of reports to Google Drive
 - **AI Analysis**: Optional AI-powered insights (requires API key)
+- **🔐 Authentication & Licensing**: Complete user management and license system
+- **🌐 Social Login**: Google and Microsoft OAuth integration
+- **💳 Payment Processing**: Stripe integration for license purchases
+- **🔒 Security Features**: Rate limiting, CSRF protection, input validation
+
+## Authentication & Licensing System
+
+The application includes a comprehensive authentication and licensing system:
+
+### 🔐 Authentication Features
+- **User Registration & Login**: Email/password authentication
+- **Social Login**: Google OAuth and Microsoft OAuth integration
+- **Session Management**: Secure token-based sessions with configurable timeout
+- **Password Security**: bcrypt hashing with strong password requirements
+- **Rate Limiting**: Protection against brute force attacks
+- **CSRF Protection**: Cross-site request forgery protection
+- **Input Validation**: Comprehensive input sanitization and validation
+
+### 🔑 Licensing System
+- **License Management**: Automatic license validation and expiry
+- **Multiple Plans**: Basic/Pro plans with monthly/yearly billing
+- **Payment Integration**: Stripe checkout for license purchases
+- **Subscription Management**: Automatic renewal and cancellation handling
+- **Admin Panel**: User and license management interface
+
+### 💳 Payment Features
+- **Stripe Integration**: Secure payment processing
+- **Multiple Plans**: Flexible pricing options
+- **Webhook Support**: Automatic license activation
+- **Customer Portal**: Self-service subscription management
+
+For detailed setup instructions, see [Authentication Setup Guide](docs/AUTHENTICATION_SETUP.md).
 
 ## Prerequisites
 
 - Python 3.8 or higher
 - Internet connection for stock data fetching
 - Google account (optional, for Google Drive integration)
+- OAuth providers (optional, for social login)
+- Stripe account (optional, for payment processing)
 
 ## Installation
 
@@ -42,11 +76,41 @@ pip uninstall pydrive2 pydrive
 pip install pydrive2==1.21.3
 ```
 
-### 3. Set Up Environment Variables (Optional)
+### 3. Set Up Environment Variables
 
-Create a `.env` file in the root directory for custom configuration:
+Create a `.env` file in the root directory for configuration:
 
 ```bash
+# Authentication Settings (Optional)
+ENABLE_AUTHENTICATION=true
+ENABLE_STRIPE_PAYMENTS=true
+ENABLE_SOCIAL_LOGIN=true
+ENABLE_ADMIN_PANEL=true
+
+# Session Configuration
+SESSION_SECRET_KEY=your-super-secret-session-key-change-this
+SESSION_TIMEOUT_HOURS=24
+
+# Security Configuration
+CSRF_SECRET_KEY=your-csrf-secret-key-change-this
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=3600
+
+# Google OAuth (Optional)
+GOOGLE_OAUTH_CLIENT_ID=your-google-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-google-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8501/auth/callback
+
+# Microsoft OAuth (Optional)
+MICROSOFT_OAUTH_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_OAUTH_CLIENT_SECRET=your-microsoft-client-secret
+MICROSOFT_OAUTH_REDIRECT_URI=http://localhost:8501/auth/microsoft/callback
+
+# Stripe Configuration (Optional)
+STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+
 # Google Drive Integration (Optional)
 GOOGLE_DRIVE_USE_SERVICE_ACCOUNT=false
 GOOGLE_DRIVE_CREDENTIALS_FILE=config/credentials/client_secret.json
@@ -57,17 +121,44 @@ GOOGLE_DRIVE_SCOPES=https://www.googleapis.com/auth/drive.file
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
+### 4. Test the Authentication System
+
+Run the authentication test script to verify everything is working:
+
+```bash
+python test_auth.py
+```
+
+Test Microsoft OAuth configuration (for Hotmail support):
+
+```bash
+python test_microsoft_oauth.py
+```
+
+Test payment gateway configurations:
+
+```bash
+python test_payment_gateways.py
+```
+
 ## Quick Start
 
 ### 1. Run the Application
 
 ```bash
-streamlit run ui/pages/main_page.py
+streamlit run app.py
 ```
 
 The application will open in your default web browser at `http://localhost:8501`.
 
-### 2. Basic Usage
+### 2. Authentication Flow
+
+1. **First Time Users**: Register with email/password or use social login
+2. **Existing Users**: Login with credentials or social providers
+3. **License Purchase**: Buy a license through the integrated payment system
+4. **Access Application**: Use all features with your licensed account
+
+### 3. Basic Usage
 
 1. **Single Stock Analysis**:
    - Enter a stock symbol (e.g., AAPL, MSFT, GOOGL)
@@ -116,12 +207,13 @@ Stockport/
 ├── config/                 # Configuration files
 │   ├── constants/         # Application constants
 │   ├── credentials/       # API keys and credentials
-│   └── settings.py        # Application settings
+│   └── app_config.py      # Unified application settings (single source of truth)
 ├── core/                  # Core analysis logic
 ├── services/              # Data and analysis services
 ├── ui/                    # User interface components
 ├── utils/                 # Utility functions
 ├── input/                 # Input files (stock symbols)
+
 ├── output/                # Generated reports
 ├── requirements.txt       # Python dependencies
 └── README.md             # This file
