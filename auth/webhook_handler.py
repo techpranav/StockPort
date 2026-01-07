@@ -44,7 +44,11 @@ def razorpay_webhook():
     """Handle Razorpay webhooks."""
     try:
         # Get the webhook payload
-        payload = request.get_json()
+        try:
+            payload = request.get_json()
+        except Exception:
+            payload = None
+        
         signature = request.headers.get('X-Razorpay-Signature')
         
         if not payload:
