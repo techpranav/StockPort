@@ -280,8 +280,28 @@ class RESTAPI:
                             "entry_price": event_data.get("entry_price", 0.0),
                             "stop_loss": event_data.get("stop_loss"),
                             "take_profit": event_data.get("take_profit"),
-                            "decision": "APPROVE"  # Would get from trading_decision event
+                            "decision": "PENDING"  # Will be updated by trading_decision event
                         }
+                        
+                        # Try to find corresponding trading decision
+                        try:
+                            decision_logs = audit_logger.get_logs(
+                                event_type="TRADING_DECISION",
+                                limit=100  # Get recent decisions to match
+                            )
+                            # Find decision that matches this signal
+                            for decision_log in decision_logs:
+                                decision_data = decision_log.event_data
+                                if isinstance(decision_data, dict):
+                                    # Match by symbol and strategy_id, and decision after signal
+                                    if (decision_data.get("symbol") == signal["symbol"] and
+                                        decision_data.get("strategy_id") == signal["strategy_id"] and
+                                        decision_log.timestamp >= log.timestamp):  # Decision after signal
+                                        signal["decision"] = decision_data.get("decision", "PENDING")
+                                        break
+                        except Exception:
+                            pass  # If matching fails, keep PENDING
+                        
                         signals.append(signal)
                 
                 return {"signals": signals}
