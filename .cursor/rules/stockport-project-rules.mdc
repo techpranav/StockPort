@@ -1,0 +1,665 @@
+---
+alwaysApply: true
+---
+
+# Stockport v4 - Comprehensive Cursor AI Rules
+
+## Table of Contents
+
+1. [Terminal Management](#terminal-management)
+2. [Compilation & Build Fixes](#compilation--build-fixes)
+3. [Testing Requirements](#testing-requirements)
+4. [Documentation Standards](#documentation-standards)
+5. [Code Quality & Best Practices](#code-quality--best-practices)
+6. [Backend Development Rules](#backend-development-rules)
+7. [Frontend/UI Development Rules](#frontendui-development-rules)
+8. [Trading System Specific Rules](#trading-system-specific-rules)
+9. [Regression Prevention Guidelines](#regression-prevention-guidelines)
+10. [Commit Message Format](#commit-message-format)
+
+---
+
+## Terminal Management
+
+### PowerShell Commands (Windows)
+
+- **Always use PowerShell syntax** with `;` instead of `&&` for command chaining
+- Use `-Force` flag when needed for non-interactive operations
+- **Always check compilation issues, server startup issues** if any and fix those after changes
+- For background processes: Use `-is_background true`
+- For interactive scripts: Use new terminal window
+- For quick commands: Use existing terminal
+
+### Interactive Prompts
+
+- If a terminal asks for Y/N input, **ALWAYS provide the response**
+- Never leave terminals waiting for input
+- Use `echo Y | command` or similar patterns for batch operations
+
+### Terminal Command Best Practices
+
+- Always capture important output to log files for analysis
+- Use proper error handling in scripts
+- Check exit codes before proceeding to next steps
+
+---
+
+## Compilation & Build Fixes
+
+### Build Error Resolution Protocol
+
+1. Check error message for specific module/export
+2. Verify dependencies in `requirements.txt`
+3. Check if package version is compatible
+4. Test compilation after fix
+5. Document the fix in code comments
+6. **Run linter after fixes**: `read_lints` tool to verify no new errors
+
+### Common Compilation Issues & Fixes
+
+#### Missing Imports
+- **Issue**: Using functions/utilities without importing them
+- **Fix**: Always import required dependencies
+- **Check**: Verify all used functions are imported before committing
+
+#### Variable Name Mismatches
+- **Issue**: Using wrong variable names
+- **Fix**: Always verify variable names match their declarations
+- **Prevention**: Use consistent naming conventions and search for all usages before renaming
+
+#### Type Errors
+- **Issue**: Type mismatches or missing type hints
+- **Fix**: Add proper type hints and ensure types match
+- **Check**: Run type checker if available
+
+### Before Committing Code
+
+- **ALWAYS run**: `pytest tests/` to verify tests pass
+- **ALWAYS run**: `read_lints` tool on modified files to check for errors
+- Fix all linting errors before committing
+- Check for missing dependencies in `requirements.txt`
+- Verify all imports resolve correctly
+- **Verify state declarations**: Ensure all used state variables are declared
+- **Check variable names**: Verify all variable references match their declarations
+
+---
+
+## Testing Requirements
+
+### Comprehensive Testing Guidelines
+
+#### Test Writing Principles
+
+1. **Test Structure**:
+   - Use `pytest` framework
+   - Use descriptive test names that explain what is being tested
+   - Follow AAA pattern: Arrange, Act, Assert
+   - One assertion per test when possible (or related assertions)
+   - Group related tests in classes or modules
+
+2. **Test Organization**:
+   - **Unit tests**: `tests/unit/` - Test individual components in isolation
+   - **Integration tests**: `tests/integration/` - Test component interactions
+   - **E2E tests**: `tests/e2e/` - Test complete workflows (if applicable)
+   - Mirror source structure: `tests/unit/backend/capital/test_capital_manager.py`
+
+3. **Test Fixtures**:
+   - Use `conftest.py` for shared fixtures
+   - Create fixtures for common test data (mock brokers, capital managers, etc.)
+   - Use `@pytest.fixture` for reusable test setup
+   - Provide mock objects for external dependencies
+
+4. **Mocking Best Practices**:
+   - **Mock all external dependencies**: API calls, database, file system, brokers
+   - **Mock at module level** using `@patch` or `unittest.mock`
+   - **Reset mocks** in `setUp` or `beforeEach` methods
+   - **Provide default mock implementations** that return realistic data
+   - **Mock async functions** with `AsyncMock` when needed
+
+5. **Test Markers**:
+   - Use pytest markers to categorize tests:
+     - `@pytest.mark.unit`: Unit tests
+     - `@pytest.mark.integration`: Integration tests
+     - `@pytest.mark.e2e`: End-to-end tests
+     - `@pytest.mark.slow`: Slow-running tests
+   - Run specific test categories: `pytest -m unit`
+
+6. **Coverage Requirements**:
+   - **Minimum Coverage**: 70% code coverage (as per `pytest.ini`)
+   - **Target Coverage**: 80%+ for critical modules
+   - **Coverage Reports**: Generated in HTML and XML formats
+   - **Excluded Files**: Migrations, virtual environments, test files, `__pycache__`
+
+### Test Execution & Monitoring
+
+1. **Running Tests**:
+   ```bash
+   # All tests
+   pytest tests/
+   
+   # Unit tests only
+   pytest tests/unit/
+   
+   # Integration tests only
+   pytest tests/integration/
+   
+   # With coverage
+   pytest tests/ --cov=backend --cov=ui --cov=models --cov-report=html
+   
+   # Using Makefile
+   make test              # All tests
+   make test-unit         # Unit tests
+   make test-integration  # Integration tests
+   make test-coverage     # With coverage
+   ```
+
+2. **Test Monitoring**:
+   - Check console output for warnings and errors
+   - Review test logs for detailed failure information
+   - Use `--verbose` flag for detailed output
+   - Capture logs to files for analysis: `pytest tests/ > test-output.log 2>&1`
+
+3. **Debugging Failed Tests**:
+   - Read error messages carefully: They often point to the exact issue
+   - Check mock implementations: Ensure they return expected structure
+   - Add `print()` statements temporarily to see what's happening
+   - Use `pytest --pdb` to drop into debugger on failure
+   - Use `pytest --lf` to run only failed tests
+
+### Testing Protocol
+
+- **NEVER commit without testing first**
+- Always run automated tests before committing
+- Test on UI/browser after backend changes when applicable
+- For critical features (trading, risk management, execution):
+  1. Run automated test scripts first
+  2. Verify with manual testing
+  3. Check console logs and network requests
+  4. Only commit after 100% verification
+- **Fix failing tests immediately**: Don't commit with broken tests
+- **Run tests locally** before pushing to remote
+- **Monitor test execution**: Watch for timeouts, errors, and warnings
+
+### Test Data
+
+- Use consistent test data factories
+- Mock all external API calls: Don't make real API requests in tests
+- Use realistic test data: Match production data structure
+- Clean up test data: Reset state between tests
+- Use fixtures for common test data (capital, positions, opportunities)
+
+### CI/CD Integration
+
+- Tests run automatically on push/PR via GitHub Actions
+- Coverage reported to Codecov
+- Multiple Python versions tested (3.8, 3.9, 3.10, 3.11)
+- Redis and PostgreSQL services provided in CI
+
+---
+
+## Documentation Standards
+
+### Documentation Location
+
+- Keep documentation in `docs/` folder, not in module folders
+- Consolidate redundant documentation files
+- Update documentation when features change
+- **Architecture Documentation**: System design and decisions
+- **API Documentation**: Document all endpoints, request/response formats
+- **Component Documentation**: Document classes, methods, usage examples
+- **Setup Documentation**: Installation and configuration instructions
+
+### Documentation Structure
+
+#### Getting Started Guide (CRITICAL)
+
+- **New developers MUST start with**: `docs/README.md`
+- **Sequential Steps**: All setup steps must be numbered and sequential
+- **Checkpoints**: Include verification checkpoints after each major step
+- **Clear Order**: Steps must be in logical order (backend → frontend → servers)
+- **No Assumptions**: Assume nothing is installed or configured
+
+#### Documentation Hierarchy
+
+1. **Start Here** (`docs/README.md`): Overview and navigation
+2. **Getting Started** (`docs/README.md`): Step-by-step new developer onboarding
+3. **Setup Guides** (`docs/`): Detailed setup instructions
+4. **Architecture Docs** (`docs/`): Architecture and design
+5. **Feature Docs** (`docs/`): Feature-specific documentation
+
+### Documentation Types
+
+- **Getting Started**: Step-by-step onboarding for new developers
+- **Setup Guides**: Detailed installation and configuration instructions
+- **API Documentation**: Document all endpoints, request/response formats
+- **Component Documentation**: Document props, usage examples
+- **Architecture Documentation**: System design and decisions
+- **Testing Documentation**: How to run tests, test structure
+
+### Documentation Guidelines
+
+#### For New Features
+
+- **Update README**: If setup process changes, update `docs/README.md`
+- **Add Configuration**: If new service, add setup guide
+- **Document Architecture**: If new component, update architecture docs
+- **Update Navigation**: Always update documentation navigation
+
+#### For Setup Changes
+
+- **Sequential Steps**: Maintain numbered, sequential steps
+- **Checkpoints**: Add verification checkpoints
+- **Troubleshooting**: Update troubleshooting guide
+- **Environment Variables**: Document new variables
+
+### Code Comments
+
+- Add comments for complex logic
+- Document non-obvious design decisions
+- Keep comments up-to-date with code changes
+- Use Google-style docstrings for all public functions/classes
+
+### README Files
+
+- Keep README files in relevant directories
+- Include setup instructions
+- Document key features and usage
+- Include examples where helpful
+
+### Documentation Maintenance
+
+- **Update on Changes**: Update documentation when features change
+- **Test Documentation**: Verify documentation is accurate
+- **Check Links**: Verify all internal links work
+- **Search Functionality**: Ensure search works for new content
+
+---
+
+## Code Quality & Best Practices
+
+### Constants Management
+
+- **All constants in `config/constants/` directory**:
+  - Numeric values → `NumericConstants.py`
+  - String values → `StringConstants.py`
+  - User messages → `Messages.py`
+  - Financial thresholds → `FinancialConstants.py`
+  - Intraday-specific → `IntradayConstants.py`
+- **Never hardcode values**: Use constants from appropriate file
+- **Import constants**: `from config.constants.NumericConstants import RSI_OVERBOUGHT_THRESHOLD`
+
+### Configuration Management
+
+- **All configuration in `config/app_config.py`**:
+  - Use `os.getenv()` for environment variables
+  - Provide sensible defaults
+  - Document all configuration options
+- **Settings System**: Use `backend/settings/settings_manager.py` for runtime configuration
+- **Never hardcode configuration values**
+
+### Imports
+
+- **Use absolute imports only**: No relative imports (`from ..module import`)
+- **Import order**:
+  1. Standard library
+  2. Third-party packages
+  3. Local application imports
+- **Group imports** with blank lines between groups
+
+### Type Hints
+
+- **Required for all functions and methods**:
+  ```python
+  def calculate_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
+      pass
+  ```
+- **Use Optional for nullable values**: `Optional[float]`
+- **Use Union for multiple types**: `Union[pd.DataFrame, Dict[str, Any]]`
+
+### Docstrings
+
+- **Use Google-style docstrings** for all public functions/classes:
+  ```python
+  def calculate_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
+      """
+      Calculate Relative Strength Index (RSI) indicator.
+      
+      Args:
+          prices: Series of closing prices
+          window: Period for RSI calculation (default: 14)
+          
+      Returns:
+          Series containing RSI values (0-100)
+          
+      Raises:
+          ValueError: If prices is empty or window < 2
+      """
+      pass
+  ```
+
+### Logging
+
+- **Use `utils/debug_utils.py` for all logging**:
+  ```python
+  from utils.debug_utils import DebugUtils
+  
+  DebugUtils.info(f"Processing stock: {symbol}")
+  DebugUtils.warning(f"Low volume detected for {symbol}")
+  DebugUtils.error(f"Failed to fetch data for {symbol}")
+  DebugUtils.debug(f"RSI calculation: {rsi_value}")
+  ```
+- **Never use `print()` statements** in production code
+
+### Error Handling
+
+- **Always use custom exceptions** from `exceptions/` package:
+  ```python
+  from exceptions.stock_data_exceptions import (
+      DataFetchException,
+      DataProcessingException,
+      DataAnalysisException
+  )
+  ```
+- **Never use bare `except:` clauses**: Specify exception types
+- **Log errors appropriately**: Use `DebugUtils.log_error()`
+
+### Naming Conventions
+
+- **Classes**: `PascalCase` (e.g., `StockAnalyzer`)
+- **Functions/Methods**: `snake_case` (e.g., `calculate_rsi()`)
+- **Variables**: `snake_case` (e.g., `stock_symbol`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `RSI_OVERBOUGHT_THRESHOLD`)
+
+### Before Committing
+
+1. **Remove debug code**:
+   - Remove debug `print()` statements (use `DebugUtils` instead)
+   - Remove commented-out code blocks
+   - Remove temporary test code
+   - Remove merge conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
+
+2. **Fix linting errors**:
+   - Run linters and fix all errors
+   - Fix type errors
+   - **Use `read_lints` tool**: Check all modified files for linting errors
+
+3. **Test thoroughly**:
+   - Run `pytest tests/` to verify all tests pass
+   - Test all affected endpoints/pages
+   - Verify no broken imports or unused variables
+   - **Test in browser**: Verify UI changes work correctly (if applicable)
+
+4. **Verify compilation**:
+   - Ensure server starts without errors
+   - **Check state declarations**: All used state variables must be declared
+   - **Check imports**: All used functions/components must be imported
+   - **Check variable names**: All variable references must match declarations
+
+---
+
+## Backend Development Rules
+
+### Trading System Architecture
+
+- **Always-on backend**: System runs continuously, independent of UI
+- **Event-driven architecture**: Use Redis pub/sub for inter-component communication
+- **State persistence**: Use `StateManager` for system state persistence
+- **Distributed processing**: Use Celery workers for parallel task processing
+
+### Data Integrity Layer
+
+- **Multi-layer validation**: Validate all incoming market data
+- **Anomaly detection**: Detect price spikes, missing candles, bad ticks
+- **Health monitoring**: GREEN/YELLOW/RED status for all data sources
+- **Truth layer**: Single source of truth for market prices
+
+### Capital & Risk Management
+
+- **Real-time tracking**: Track total, allocated, reserved, and available capital
+- **Risk limits**: Enforce per-trade, daily, sector limits
+- **Position sizing**: Risk-based position sizing
+- **Kill-switch**: Emergency stop mechanism
+
+### Strategy System
+
+- **YAML-based definitions**: Strategies defined in YAML files
+- **Strategy registry**: Manage active and inactive strategies
+- **Regime-aware**: Strategies adapt to market conditions
+- **Backtestable**: All strategies can be backtested
+
+### Execution Engine
+
+- **Broker-agnostic**: Abstract interface for multiple brokers
+- **Safety checks**: Pre-execution validation
+- **Order lifecycle**: Track orders from creation to fill
+- **Audit logging**: Log all decisions and executions
+
+### Database Operations
+
+- **SQLite default**: Use SQLite for development, PostgreSQL for production
+- **Connection pooling**: Use connection pooling for database connections
+- **Migrations**: Use database migrations for schema changes
+- **State persistence**: Use `StateManager` for system state
+
+### API Design
+
+- **REST API**: FastAPI-based REST API for commands and queries
+- **WebSocket Server**: Real-time updates via WebSocket
+- **Response structure**: Consistent response format
+- **Error handling**: Appropriate HTTP status codes
+
+---
+
+## Frontend/UI Development Rules
+
+### Streamlit UI
+
+- **Component-based**: Use reusable UI components
+- **Real-time updates**: Subscribe to backend state/events via WebSocket
+- **Dashboard-first**: Signal-first, always visible capital/risk
+- **Explainability**: Show decision explanations, not just indicators
+
+### UI Components
+
+- **Main Dashboard**: System status, key metrics, market state
+- **Scanner View**: Opportunity stream with filters and explanations
+- **Strategies Panel**: Strategy management with performance metrics
+- **Portfolio View**: Capital breakdown, positions, risk metrics
+- **Execution View**: Order monitoring and execution log
+- **Settings Panel**: Enterprise-level settings management
+
+### State Management
+
+- **WebSocket subscriptions**: Subscribe to backend events
+- **Real-time updates**: Push updates to connected clients
+- **Settings updates**: Real-time settings change notifications
+
+---
+
+## Trading System Specific Rules
+
+### Market Data
+
+- **Data validation**: Always validate market data before use
+- **Data integrity**: Use truth layer for single source of truth
+- **Health monitoring**: Monitor data source health (GREEN/YELLOW/RED)
+- **Price reconciliation**: Reconcile provider vs broker prices
+
+### Trading Decisions
+
+- **Multi-factor analysis**: Integrate capital, risk, portfolio, market state
+- **Timing awareness**: Reject stale signals and opportunities
+- **Portfolio fit**: Evaluate how new positions fit existing portfolio
+- **Risk-reward analysis**: Calculate risk-reward ratios
+
+### Execution Safety
+
+- **Pre-execution validation**: Safety checks before execution
+- **Order lifecycle**: Track orders from creation to fill
+- **Slippage handling**: Account for execution slippage
+- **Fill tracking**: Monitor order fills and partial fills
+
+### Audit & Compliance
+
+- **Comprehensive audit trail**: Log all decisions and executions
+- **Event logging**: Log opportunity discovery, signal generation, decisions, executions
+- **Audit database**: Persistent storage of all audit logs
+- **Query interface**: Query audit logs by event type, date, symbol
+
+### Operational Resilience
+
+- **Heartbeat monitoring**: Monitor service health
+- **Auto-restart**: Automatically restart failed services
+- **State recovery**: Recover state after crashes
+- **Duplicate prevention**: Idempotency keys prevent duplicate orders
+- **Safe shutdown**: Graceful shutdown with state saving
+
+---
+
+## Regression Prevention Guidelines
+
+### Core Philosophy
+
+⚠️ **Stability is more important than speed**  
+⚠️ **Backward compatibility is mandatory**  
+⚠️ **No "quick fixes" allowed**
+
+**Principles**:
+1. **No regression is acceptable**
+2. **Every change must be localized**
+3. **No silent behavior changes**
+4. **If unsure, do NOT change behavior**
+
+### Before Making Changes
+
+1. **Understand Current Behavior**: Test the feature before modifying it
+2. **Identify Dependencies**: List all components that use the code being changed
+3. **Check Related Features**: Verify related functionality that might be affected
+4. **Document Current State**: Note current behavior for comparison after changes
+
+### During Changes
+
+1. **Incremental Changes**: Make small, focused changes rather than large rewrites
+2. **Preserve APIs**: Maintain existing interfaces when possible
+3. **Add Defensive Checks**: Add null/undefined checks for edge cases
+4. **Maintain Backward Compatibility**: Don't break existing functionality unless explicitly required
+
+### After Changes
+
+1. **Test Original Functionality**: Verify the feature still works as before
+2. **Test Related Features**: Check dependent features for regressions
+3. **Test Edge Cases**: Verify edge cases (empty data, null values, etc.)
+4. **Run All Tests**: Ensure all tests pass
+
+### Regression Testing Checklist
+
+- [ ] Original functionality still works
+- [ ] Related features unaffected
+- [ ] Edge cases handled (null, undefined, empty arrays)
+- [ ] Error handling preserved
+- [ ] Loading states work correctly
+- [ ] All tests pass
+- [ ] No console errors or warnings
+- [ ] All imports resolve correctly
+- [ ] All state variables declared
+- [ ] Variable names match declarations
+
+---
+
+## Commit Message Format
+
+### Commit Message Structure
+
+When committing changes, use this format:
+
+```
+<type>: <short summary>
+
+PROBLEM:
+- Describe the issue or problem being solved
+- List specific symptoms or user complaints
+- Include error messages or unexpected behaviors
+
+SOLUTION:
+- Explain the approach taken to fix the problem
+- List key changes made (components, patterns)
+- Reference any design patterns or best practices applied
+- Include technical details
+
+BENEFITS:
+- List improvements (UX, performance, maintainability)
+- Note any code reuse or component extraction
+- Mention consistency improvements
+
+FILES CHANGED:
+- List all modified files with brief description
+- Note new files created
+- Mention refactored files
+```
+
+### Commit Types
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code refactoring without changing functionality
+- `test`: Adding or updating tests
+- `docs`: Documentation changes
+- `chore`: Maintenance tasks, dependencies
+- `perf`: Performance improvements
+
+### Example Commit Message
+
+```
+feat: Add comprehensive testing infrastructure
+
+PROBLEM:
+- No automated testing framework in place
+- Manual testing required for all changes
+- No coverage reporting
+- Difficult to catch regressions
+
+SOLUTION:
+- Set up pytest with comprehensive configuration
+- Created shared fixtures in conftest.py
+- Added unit tests for capital, risk, position sizing
+- Added integration tests for end-to-end flow
+- Integrated with GitHub Actions for CI/CD
+- Added coverage reporting with 70% minimum threshold
+
+BENEFITS:
+- Automated testing catches bugs early
+- Coverage reporting ensures code quality
+- CI/CD integration provides continuous testing
+- Shared fixtures reduce test code duplication
+
+FILES CHANGED:
+- pytest.ini (new) - Pytest configuration
+- tests/conftest.py (new) - Shared fixtures
+- tests/unit/test_capital_manager.py (new) - Unit tests
+- tests/integration/test_end_to_end_flow.py (new) - Integration tests
+- .github/workflows/tests.yml (new) - CI/CD workflow
+- Makefile (new) - Test commands
+- tests/README.md (new) - Test documentation
+```
+
+---
+
+## Remember
+
+- Always use PowerShell syntax with `;` instead of `&&` for command chaining
+- Always check compilation issues, server startup issues if any and fix those after changes
+- **NEVER commit without testing first**
+- Always run automated tests before committing
+- **ALWAYS use `DebugUtils` instead of `print()`**
+- **ALWAYS use constants from `config/constants/`**
+- **ALWAYS validate input data** before processing
+- **ALWAYS use type hints** for all functions
+- **ALWAYS use custom exceptions** for domain-specific errors
+- **ALWAYS test original functionality** after refactoring to prevent regressions
+- **ALWAYS check for linting errors** using `read_lints` tool on modified files
+- **ALWAYS verify all imports resolve correctly** before committing
+- **ALWAYS verify all state variables are declared** before using them
+- **ALWAYS verify variable names match declarations** before committing
+- **ALWAYS remove merge conflict markers** before committing
+- **ALWAYS remove temporary summary documents** before committing
+- **ALWAYS use commit message format** with PROBLEM, SOLUTION, BENEFITS, and FILES CHANGED sections
