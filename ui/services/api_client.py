@@ -63,12 +63,18 @@ class APIClient:
         """
         try:
             url = f"{self.base_url}{endpoint}"
-            response = self.session.post(url, json=data)
+            response = self.session.post(url, json=data, timeout=5)
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.ConnectionError as e:
+            DebugUtils.warning(f"API connection failed: {e}")
+            raise ConnectionError(f"Cannot connect to backend at {self.base_url}. Is the server running?")
+        except requests.exceptions.Timeout as e:
+            DebugUtils.warning(f"API request timeout: {e}")
+            raise TimeoutError(f"Backend request timed out. Server may be slow or unavailable.")
         except requests.exceptions.RequestException as e:
             DebugUtils.warning(f"API request failed: {e}")
-            return {}
+            raise RuntimeError(f"API request failed: {e}")
     
     def _put(self, endpoint: str, data: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -83,17 +89,27 @@ class APIClient:
         """
         try:
             url = f"{self.base_url}{endpoint}"
-            response = self.session.put(url, json=data)
+            response = self.session.put(url, json=data, timeout=5)
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.ConnectionError as e:
+            DebugUtils.warning(f"API connection failed: {e}")
+            raise ConnectionError(f"Cannot connect to backend at {self.base_url}. Is the server running?")
+        except requests.exceptions.Timeout as e:
+            DebugUtils.warning(f"API request timeout: {e}")
+            raise TimeoutError(f"Backend request timed out. Server may be slow or unavailable.")
         except requests.exceptions.RequestException as e:
             DebugUtils.warning(f"API request failed: {e}")
-            return {}
+            raise RuntimeError(f"API request failed: {e}")
     
     # System Status
     def get_status(self) -> Dict[str, Any]:
         """Get system status."""
-        return self._get("/status")
+        try:
+            return self._get("/status")
+        except (ConnectionError, TimeoutError, RuntimeError):
+            # Return empty status when backend unavailable
+            return {}
     
     def execute_command(self, command: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -152,7 +168,10 @@ class APIClient:
     # Settings
     def get_all_settings(self) -> Dict[str, Any]:
         """Get all settings."""
-        return self._get("/settings")
+        try:
+            return self._get("/settings")
+        except (ConnectionError, TimeoutError, RuntimeError):
+            return {}
     
     def get_setting(self, key: str) -> Any:
         """
@@ -176,8 +195,15 @@ class APIClient:
     
     def get_setting_definitions(self) -> List[Dict[str, Any]]:
         """Get all setting definitions."""
-        result = self._get("/settings/definitions")
-        return result.get("definitions", [])
+        try:
+            result = self._get("/settings/definitions")
+            # REST API returns {"definitions": [...]}
+            if isinstance(result, dict) and "definitions" in result:
+                return result["definitions"]
+            # Fallback for direct list response
+            return result if isinstance(result, list) else []
+        except (ConnectionError, TimeoutError, RuntimeError):
+            return []
     
     # Opportunities & Signals (would need to be added to REST API)
     def get_opportunities(self, limit: int = 50) -> List[Dict[str, Any]]:

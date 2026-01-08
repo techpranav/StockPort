@@ -29,12 +29,28 @@ def render_settings_panel():
     api_client = get_api_client()
     
     try:
+        # Check if backend is available by trying to get status
+        try:
+            status = api_client.get_status()
+            if not status:
+                st.error("❌ Backend is unavailable. Please start the backend server.")
+                st.info("To start the backend: `python -m backend.api.rest_api`")
+                return
+        except Exception as e:
+            st.error(f"❌ Cannot connect to backend: {e}")
+            st.info("Please ensure the backend REST API is running on http://localhost:8001")
+            return
+        
         # Get all settings and definitions
         all_settings = api_client.get_all_settings()
         definitions = api_client.get_setting_definitions()
         
         if not definitions:
-            st.warning("⚠️ Could not load settings definitions. Backend may be unavailable.")
+            # Check if it's an empty list vs API error
+            if isinstance(definitions, list) and len(definitions) == 0:
+                st.warning("⚠️ No settings definitions found. Settings may not be initialized.")
+            else:
+                st.warning("⚠️ Could not load settings definitions. Backend may be unavailable.")
             return
         
         # Group definitions by category

@@ -45,6 +45,14 @@ class UIDataService:
                     "timestamp": datetime.now().isoformat()
                 }
             return status
+        except (ConnectionError, TimeoutError, RuntimeError) as e:
+            DebugUtils.warning(f"Backend unavailable: {e}")
+            return {
+                "is_running": False,
+                "mode": "manual",
+                "timestamp": datetime.now().isoformat(),
+                "error": "Backend unavailable"
+            }
         except Exception as e:
             DebugUtils.log_error(e, "Error getting system status")
             return {

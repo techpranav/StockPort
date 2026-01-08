@@ -56,15 +56,21 @@ def main():
             data_service = get_ui_data_service()
             status = data_service.get_system_status()
             
-            is_running = status.get("is_running", False)
-            mode = status.get("mode", "manual")
-            
-            if is_running:
-                st.sidebar.success(f"🟢 Running ({mode})")
+            # Check if backend is unavailable
+            if status.get("error") == "Backend unavailable":
+                st.sidebar.error("🔴 Backend Unavailable")
+                st.sidebar.caption("Start backend: `python -m backend.api.rest_api`")
             else:
-                st.sidebar.error("🔴 Stopped")
+                is_running = status.get("is_running", False)
+                mode = status.get("mode", "manual")
+                
+                if is_running:
+                    st.sidebar.success(f"🟢 Running ({mode})")
+                else:
+                    st.sidebar.warning("🟡 Stopped")
         except Exception as e:
-            st.sidebar.warning("⚠️ Backend unavailable")
+            st.sidebar.error("🔴 Backend Unavailable")
+            st.sidebar.caption(f"Error: {str(e)[:50]}")
             DebugUtils.debug(f"Backend connection error: {e}")
         
         # Main content area
