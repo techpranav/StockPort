@@ -9,6 +9,12 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 
+# YAML support for config files
+try:
+    import yaml
+except ImportError:
+    yaml = None  # Will use defaults if yaml not available
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
@@ -461,3 +467,126 @@ EXPORT_DIR = EXPORT_DIR
 LOG_DIR = LOG_DIR
 INPUT_DIR = INPUT_DIR
 OUTPUT_DIR = OUTPUT_DIR
+
+# ============================================================================
+# DATA PROVIDER CONFIGURATION
+# ============================================================================
+
+def get_data_provider_config() -> Dict[str, Any]:
+    """
+    Load data provider configuration from YAML file.
+    
+    Returns:
+        Dictionary with provider configuration
+    """
+    from utils.debug_utils import DebugUtils
+    
+    config_path = Path(BASE_DIR) / "config" / "data_providers.yaml"
+    
+    if not config_path.exists():
+        DebugUtils.warning(f"Data provider config not found at {config_path}, using defaults")
+        return _get_default_provider_config()
+    
+    if yaml is None:
+        DebugUtils.warning("PyYAML not installed, using default provider config")
+        return _get_default_provider_config()
+    
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        # Substitute environment variables
+        config = _substitute_env_vars(config)
+        
+        return config
+    except Exception as e:
+        DebugUtils.log_error(e, f"Error loading data provider config from {config_path}")
+        return _get_default_provider_config()
+
+
+def _substitute_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively substitute environment variables in config.
+    
+    Args:
+        config: Configuration dictionary
+        
+    Returns:
+        Configuration with environment variables substituted
+    """
+    if isinstance(config, dict):
+        return {k: _substitute_env_vars(v) for k, v in config.items()}
+    elif isinstance(config, list):
+        return [_substitute_env_vars(item) for item in config]
+    elif isinstance(config, str) and config.startswith("${") and config.endswith("}"):
+        # Extract environment variable name
+        env_var = config[2:-1]
+        return os.getenv(env_var, config)  # Return original if not found
+    else:
+        return config
+
+
+def _get_default_provider_config() -> Dict[str, Any]:
+    """
+    Get default provider configuration.
+    
+    Returns:
+        Default configuration dictionary
+    """
+    return {
+        "data_providers": {
+            "historical": {
+                "primary": "jugaad",
+                "fallback": "nsedownload",
+                "timeout_seconds": 10,
+                "retry_attempts": 3
+            },
+            "live": {
+                "primary": "angel",
+                "fallback": "nsepython",
+                "timeout_seconds": 5,
+                "retry_attempts": 2
+            },
+            "intraday": {
+                "primary": "angel",
+                "fallback": "nsepython",
+                "timeout_seconds": 5
+            },
+            "options": {
+                "primary": "angel",
+                "fallback": "nsepython",
+                "timeout_seconds": 10
+            },
+            "futures": {
+                "primary": "angel",
+                "fallback": "nsepython",
+                "timeout_seconds": 10
+            }
+        },
+        "trading": {
+            "primary": "angel",
+            "secondary": "zerodha",
+            "tertiary": "upstox"
+        },
+        "provider_settings": {
+            "jugaad": {
+                "enabled": True,
+                "rate_limit_per_minute": 10
+            },
+            "nsedownload": {
+                "enabled": True,
+                "rate_limit_per_minute": 5
+            },
+            "nsepython": {
+                "enabled": True,
+                "rate_limit_per_minute": 20
+            },
+            "angel": {
+                "enabled": True,
+                "api_key": os.getenv("ANGEL_API_KEY"),
+                "client_id": os.getenv("ANGEL_CLIENT_ID"),
+                "password": os.getenv("ANGEL_PASSWORD"),
+                "rate_limit_per_minute": 60
+            }
+        }
+    }

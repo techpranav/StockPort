@@ -34,3 +34,7 @@ fastapi>=0.104.0
 uvicorn>=0.24.0
 websockets>=12.0
 pyyaml>=6.0
+# Market data provider libraries
+jugaad-data>=0.0.1
+NSEDownload>=1.0.0
+smartapi>=1.2.0

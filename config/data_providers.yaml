@@ -1,0 +1,61 @@
+# Data Provider Configuration
+# This file configures market data providers and their fallback chains
+
+data_providers:
+  historical:
+    primary: jugaad
+    fallback: nsedownload
+    timeout_seconds: 10
+    retry_attempts: 3
+  
+  live:
+    primary: angel
+    fallback: nsepython
+    timeout_seconds: 5
+    retry_attempts: 2
+  
+  intraday:
+    primary: angel
+    fallback: nsepython
+    timeout_seconds: 5
+  
+  options:
+    primary: angel
+    fallback: nsepython
+    timeout_seconds: 10
+  
+  futures:
+    primary: angel
+    fallback: nsepython
+    timeout_seconds: 10
+
+# Trading broker configuration (separate from data providers)
+trading:
+  primary: angel
+  secondary: zerodha
+  tertiary: upstox
+
+# Provider-specific settings
+provider_settings:
+  jugaad:
+    enabled: true
+    rate_limit_per_minute: 10
+  
+  nsedownload:
+    enabled: true
+    rate_limit_per_minute: 5
+  
+  nsepython:
+    enabled: true
+    rate_limit_per_minute: 20
+  
+  angel:
+    enabled: true
+    # Credentials should be set via environment variables:
+    # ANGEL_API_KEY, ANGEL_CLIENT_ID, ANGEL_PASSWORD
+    # Or can be set here (not recommended for production)
+    api_key: ${ANGEL_API_KEY}
+    client_id: ${ANGEL_CLIENT_ID}
+    password: ${ANGEL_PASSWORD}
+    rate_limit_per_minute: 60
+

@@ -85,7 +85,42 @@ class SystemIntegrator:
         # Initialize data integrity layer
         health_monitor = HealthMonitor()
         price_reconciler = PriceReconciler()
-        self.truth_layer = TruthLayer(health_monitor, price_reconciler)
+        
+        # NEW: Initialize ProviderRouter
+        provider_router = None
+        try:
+            from backend.data.providers.router.provider_router import ProviderRouter
+            from config.app_config import get_data_provider_config
+            
+            provider_config = get_data_provider_config()
+            provider_router = ProviderRouter(provider_config, health_monitor)
+            
+            # Run provider validation
+            from backend.data.providers.validation.provider_test_suite import ProviderTestSuite
+            test_suite = ProviderTestSuite()
+            
+            DebugUtils.info("Running provider validation...")
+            for provider in provider_router.get_all_providers():
+                health = test_suite.validate_provider(provider)
+                provider_router.provider_health[provider.get_provider_name()] = health
+                
+                if health.status == "DISABLED":
+                    provider_router.disable_provider(provider.get_provider_name())
+                    DebugUtils.warning(f"Provider {provider.get_provider_name()} disabled after validation")
+                else:
+                    DebugUtils.info(f"Provider {provider.get_provider_name()} validated: {health.status}")
+            
+            DebugUtils.info("Provider validation completed")
+        except Exception as e:
+            DebugUtils.log_error(e, "Error initializing ProviderRouter, continuing without it")
+            provider_router = None
+        
+        self.truth_layer = TruthLayer(
+            health_monitor,
+            price_reconciler,
+            broker=None,  # Will be set later if needed
+            data_provider_router=provider_router
+        )
         
         # Initialize market state engine
         self.market_state_engine = MarketStateEngine()
