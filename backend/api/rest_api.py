@@ -68,6 +68,7 @@ class RESTAPI:
         self.app.get("/capital/overview")(self.get_capital_overview)
         self.app.get("/opportunities")(self.get_opportunities)
         self.app.get("/signals")(self.get_signals)
+        self.app.get("/decisions")(self.get_decisions)
         self.app.get("/strategies/performance")(self.get_strategy_performance)
         self.app.get("/market/state")(self.get_market_state)
         self.app.get("/data/health")(self.get_data_health)
@@ -217,11 +218,31 @@ class RESTAPI:
             Dictionary with opportunities list
         """
         try:
-            # Get from event bus or scanner
-            if self.system_integrator and hasattr(self.system_integrator, 'event_bus'):
-                # Would get from event bus history or scanner cache
-                # For now, return empty list
-                pass
+            # Get from audit logger
+            if self.system_integrator and hasattr(self.system_integrator, 'audit_logger'):
+                audit_logger = self.system_integrator.audit_logger
+                logs = audit_logger.get_logs(event_type="OPPORTUNITY_DISCOVERED", limit=limit)
+                
+                opportunities = []
+                for log in logs:
+                    # Extract opportunity data from event_data
+                    event_data = log.event_data
+                    if isinstance(event_data, dict):
+                        # Convert audit log to opportunity format
+                        opp = {
+                            "symbol": event_data.get("symbol", ""),
+                            "timestamp": log.timestamp.isoformat(),
+                            "price": event_data.get("price", 0.0),
+                            "volume": event_data.get("volume", 0),
+                            "score": event_data.get("pre_filter_score", event_data.get("score", 0)),
+                            "sector": event_data.get("sector", "Unknown"),
+                            "source": event_data.get("source", "market_scanner"),
+                            "indicators": event_data.get("indicators", {}),
+                            "market_cap": event_data.get("market_cap", 0)
+                        }
+                        opportunities.append(opp)
+                
+                return {"opportunities": opportunities}
         except Exception as e:
             DebugUtils.log_error(e, "Error getting opportunities")
         
@@ -238,15 +259,77 @@ class RESTAPI:
             Dictionary with signals list
         """
         try:
-            # Get from audit logger or event bus
+            # Get from audit logger
             if self.system_integrator and hasattr(self.system_integrator, 'audit_logger'):
-                # Would get from audit log
-                # For now, return empty list
-                pass
+                audit_logger = self.system_integrator.audit_logger
+                logs = audit_logger.get_logs(event_type="SIGNAL_GENERATED", limit=limit)
+                
+                signals = []
+                for log in logs:
+                    # Extract signal data from event_data
+                    event_data = log.event_data
+                    if isinstance(event_data, dict):
+                        # Convert audit log to signal format
+                        signal = {
+                            "signal_id": event_data.get("signal_id", log.decision_id or ""),
+                            "symbol": event_data.get("symbol", ""),
+                            "strategy_id": event_data.get("strategy_id", ""),
+                            "timestamp": log.timestamp.isoformat(),
+                            "score": event_data.get("score", 0),
+                            "confidence": event_data.get("confidence", 0.0),
+                            "entry_price": event_data.get("entry_price", 0.0),
+                            "stop_loss": event_data.get("stop_loss"),
+                            "take_profit": event_data.get("take_profit"),
+                            "decision": "APPROVE"  # Would get from trading_decision event
+                        }
+                        signals.append(signal)
+                
+                return {"signals": signals}
         except Exception as e:
             DebugUtils.log_error(e, "Error getting signals")
         
         return {"signals": []}
+    
+    def get_decisions(self, limit: int = Query(50)) -> Dict[str, Any]:
+        """
+        Get recent trading decisions.
+        
+        Args:
+            limit: Maximum number of decisions
+            
+        Returns:
+            Dictionary with decisions list
+        """
+        try:
+            # Get from audit logger
+            if self.system_integrator and hasattr(self.system_integrator, 'audit_logger'):
+                audit_logger = self.system_integrator.audit_logger
+                logs = audit_logger.get_logs(event_type="TRADING_DECISION", limit=limit)
+                
+                decisions = []
+                for log in logs:
+                    # Extract decision data from event_data
+                    event_data = log.event_data
+                    if isinstance(event_data, dict):
+                        decision = {
+                            "decision_id": log.decision_id or "",
+                            "symbol": event_data.get("symbol", ""),
+                            "decision": event_data.get("decision", "UNKNOWN"),
+                            "strategy_id": event_data.get("strategy_id", ""),
+                            "timestamp": log.timestamp.isoformat(),
+                            "risk_amount": event_data.get("risk_amount", 0.0),
+                            "risk_percent": event_data.get("risk_percent", 0.0),
+                            "risk_reward_ratio": event_data.get("risk_reward_ratio", 0.0),
+                            "position_size": event_data.get("position_size", {}),
+                            "explanation": log.explanation or ""
+                        }
+                        decisions.append(decision)
+                
+                return {"decisions": decisions}
+        except Exception as e:
+            DebugUtils.log_error(e, "Error getting decisions")
+        
+        return {"decisions": []}
     
     def get_strategy_performance(self, strategy_id: Optional[str] = Query(None)) -> Dict[str, Any]:
         """
