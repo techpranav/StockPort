@@ -112,7 +112,11 @@ class APIClient:
     def get_positions(self) -> List[Dict[str, Any]]:
         """Get all open positions."""
         result = self._get("/positions")
-        return result.get("positions", [])
+        # REST API returns {"positions": [...]}
+        if isinstance(result, dict) and "positions" in result:
+            return result["positions"]
+        # Fallback for direct list response
+        return result if isinstance(result, list) else []
     
     def get_orders(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -125,7 +129,25 @@ class APIClient:
         if status:
             params["status"] = status
         result = self._get("/orders", params=params)
-        return result.get("orders", [])
+        # REST API returns {"orders": [...]}
+        if isinstance(result, dict) and "orders" in result:
+            return result["orders"]
+        # Fallback for direct list response
+        return result if isinstance(result, list) else []
+    
+    # Capital
+    def get_capital_overview(self) -> Dict[str, Any]:
+        """Get capital overview."""
+        result = self._get("/capital/overview")
+        if result:
+            return result
+        # Fallback
+        return {
+            "total": 100000.0,
+            "available": 75000.0,
+            "allocated": 20000.0,
+            "reserved": 5000.0
+        }
     
     # Settings
     def get_all_settings(self) -> Dict[str, Any]:

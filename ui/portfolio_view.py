@@ -26,47 +26,52 @@ def render_portfolio_view():
     
     # Capital Breakdown Section
     st.header("💰 Capital Breakdown")
+    
+    from ui.services import get_ui_data_service
+    data_service = get_ui_data_service()
+    capital_overview = data_service.get_capital_overview()
+    
+    total = capital_overview.get("total", 0.0)
+    allocated = capital_overview.get("allocated", 0.0)
+    available = capital_overview.get("available", 0.0)
+    reserved = capital_overview.get("reserved", 0.0)
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Total Capital", "$100,000.00")
+        st.metric("Total Capital", f"${total:,.2f}")
     
     with col2:
-        st.metric("Allocated", "$20,000.00", delta="20%")
+        allocated_pct = (allocated / total * 100) if total > 0 else 0
+        st.metric("Allocated", f"${allocated:,.2f}", delta=f"{allocated_pct:.1f}%")
     
     with col3:
-        st.metric("Available", "$75,000.00", delta="75%")
+        available_pct = (available / total * 100) if total > 0 else 0
+        st.metric("Available", f"${available:,.2f}", delta=f"{available_pct:.1f}%")
     
     with col4:
-        st.metric("Reserved", "$5,000.00", delta="5%")
+        reserved_pct = (reserved / total * 100) if total > 0 else 0
+        st.metric("Reserved", f"${reserved:,.2f}", delta=f"{reserved_pct:.1f}%")
     
     # Position List Section
     st.header("📈 Open Positions")
     
-    positions = [
-        {
-            "symbol": "AAPL",
-            "quantity": 10,
-            "entry_price": 148.50,
-            "current_price": 150.25,
-            "value": 1502.50,
-            "pnl": 17.50,
-            "pnl_percent": 1.18,
-            "sector": "Technology",
-            "strategy": "trend_following_v1"
-        },
-        {
-            "symbol": "MSFT",
-            "quantity": 5,
-            "entry_price": 375.00,
-            "current_price": 380.50,
-            "value": 1902.50,
-            "pnl": 27.50,
-            "pnl_percent": 1.47,
-            "sector": "Technology",
-            "strategy": "momentum_v1"
-        }
-    ]
+    positions_data = data_service.get_positions()
+    
+    # Format positions for display
+    positions = []
+    for pos in positions_data:
+        positions.append({
+            "symbol": pos.get("symbol", ""),
+            "quantity": pos.get("quantity", 0),
+            "entry_price": pos.get("entry_price", 0.0),
+            "current_price": pos.get("current_price", 0.0),
+            "value": pos.get("value", 0.0),
+            "pnl": pos.get("pnl", 0.0),
+            "pnl_percent": pos.get("pnl_percent", 0.0),
+            "sector": "Unknown",  # Would need to get from opportunity/position data
+            "strategy": "Unknown"  # Would need to get from position data
+        })
     
     if positions:
         for pos in positions:

@@ -61,10 +61,7 @@ class UIDataService:
             Capital overview dictionary
         """
         try:
-            # This endpoint would need to be added to REST API
-            result = self.api_client._get("/capital/overview")
-            if result:
-                return result
+            return self.api_client.get_capital_overview()
         except Exception as e:
             DebugUtils.log_error(e, "Error getting capital overview")
         
@@ -113,7 +110,11 @@ class UIDataService:
             Data health dictionary
         """
         try:
-            return self.api_client.get_data_health()
+            health = self.api_client.get_data_health()
+            # API returns {"health": {...}}, extract it
+            if isinstance(health, dict) and "health" in health:
+                return health["health"]
+            return health
         except Exception as e:
             DebugUtils.log_error(e, "Error getting data health")
             return {
@@ -132,9 +133,11 @@ class UIDataService:
             Market state dictionary
         """
         try:
-            state = self.api_client.get_market_state()
-            if state:
-                return state
+            result = self.api_client.get_market_state()
+            # API returns {"state": {...}}, extract it
+            if isinstance(result, dict) and "state" in result:
+                return result["state"]
+            return result if result else {}
         except Exception as e:
             DebugUtils.log_error(e, "Error getting market state")
         

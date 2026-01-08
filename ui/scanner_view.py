@@ -75,54 +75,37 @@ def render_scanner_view():
     # Opportunity Stream Section
     st.header("📊 Opportunity Stream")
     
-    # Sample opportunities
-    opportunities = [
-        {
-            "symbol": "AAPL",
-            "timestamp": "10:30:15 AM",
-            "price": 150.25,
-            "volume": 1500000,
-            "score": 85,
-            "sector": "Technology",
-            "source": "market_scanner",
-            "indicators": {
-                "sma_20": 149.50,
-                "sma_50": 148.00,
-                "rsi": 65,
-                "macd": 0.5
-            }
-        },
-        {
-            "symbol": "MSFT",
-            "timestamp": "10:30:12 AM",
-            "price": 380.50,
-            "volume": 2000000,
-            "score": 78,
-            "sector": "Technology",
-            "source": "market_scanner",
-            "indicators": {
-                "sma_20": 378.00,
-                "sma_50": 375.00,
-                "rsi": 58,
-                "macd": 0.3
-            }
-        },
-        {
-            "symbol": "GOOGL",
-            "timestamp": "10:30:08 AM",
-            "price": 142.75,
-            "volume": 1200000,
-            "score": 72,
-            "sector": "Technology",
-            "source": "market_scanner",
-            "indicators": {
-                "sma_20": 141.50,
-                "sma_50": 140.00,
-                "rsi": 55,
-                "macd": 0.2
-            }
-        }
-    ]
+    # Get real opportunities from API
+    from ui.services import get_ui_data_service
+    data_service = get_ui_data_service()
+    opportunities = data_service.get_opportunities(limit=50)
+    
+    # Format opportunities for display
+    formatted_opportunities = []
+    for opp in opportunities:
+        timestamp = opp.get("timestamp", "")
+        if isinstance(timestamp, str):
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                time_str = dt.strftime("%I:%M:%S %p")
+            except:
+                time_str = timestamp
+        else:
+            time_str = str(timestamp)
+        
+        formatted_opportunities.append({
+            "symbol": opp.get("symbol", ""),
+            "timestamp": time_str,
+            "price": opp.get("price", 0.0),
+            "volume": opp.get("volume", 0),
+            "score": opp.get("score", 0),
+            "sector": opp.get("sector", "Unknown"),
+            "source": opp.get("source", "unknown"),
+            "indicators": opp.get("indicators", {})
+        })
+    
+    opportunities = formatted_opportunities
     
     # Filter opportunities
     filtered_opportunities = opportunities

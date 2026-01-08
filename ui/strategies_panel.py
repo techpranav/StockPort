@@ -26,41 +26,29 @@ def render_strategies_panel():
     # Strategy List Section
     st.header("Strategy List")
     
-    strategies = [
-        {
-            "id": "trend_following_v1",
-            "name": "Trend Following v1",
-            "type": "trend_following",
-            "status": "active",
-            "win_rate": 0.55,
-            "profit_factor": 1.8,
-            "sharpe": 1.2,
-            "total_return": 0.15,
-            "total_trades": 45
-        },
-        {
-            "id": "momentum_v1",
-            "name": "Momentum v1",
-            "type": "momentum",
-            "status": "active",
-            "win_rate": 0.48,
-            "profit_factor": 1.5,
-            "sharpe": 0.9,
-            "total_return": 0.12,
-            "total_trades": 38
-        },
-        {
-            "id": "mean_reversion_v1",
-            "name": "Mean Reversion v1",
-            "type": "mean_reversion",
-            "status": "paused",
-            "win_rate": 0.42,
-            "profit_factor": 1.1,
-            "sharpe": 0.5,
-            "total_return": 0.05,
-            "total_trades": 30
-        }
-    ]
+    # Get real strategy performance from API
+    from ui.services import get_ui_data_service
+    data_service = get_ui_data_service()
+    strategy_performance = data_service.get_strategy_performance()
+    
+    # Format strategies for display
+    strategies = []
+    for perf in strategy_performance:
+        strategies.append({
+            "id": perf.get("strategy_id", ""),
+            "name": perf.get("name", perf.get("strategy_id", "Unknown")),
+            "type": "unknown",  # Would need to get from strategy registry
+            "status": "active",  # Would need to get from strategy registry
+            "win_rate": perf.get("win_rate", 0.0),
+            "profit_factor": perf.get("profit_factor", 0.0),
+            "sharpe": perf.get("sharpe_ratio", 0.0),
+            "total_return": perf.get("total_return", 0.0),
+            "total_trades": perf.get("total_trades", 0)
+        })
+    
+    # If no strategies from API, show empty state
+    if not strategies:
+        st.info("No strategy performance data available. Strategies may not be active or have no trades yet.")
     
     # Display strategies
     for strategy in strategies:

@@ -26,18 +26,42 @@ def render_execution_view():
     # Pending Orders Section
     st.header("⏳ Pending Orders")
     
+    from ui.services import get_ui_data_service
+    data_service = get_ui_data_service()
+    all_orders = data_service.get_orders()
+    
+    # Filter pending orders
     pending_orders = [
-        {
-            "order_id": "ORD-001",
-            "symbol": "TSLA",
-            "side": "buy",
-            "quantity": 5,
-            "order_type": "market",
-            "status": "pending",
-            "created_at": "10:30:15 AM",
-            "strategy": "trend_following_v1"
-        }
+        order for order in all_orders
+        if order.get("status", "").lower() in ["pending", "submitted", "open"]
     ]
+    
+    # Format orders for display
+    formatted_pending = []
+    for order in pending_orders:
+        created_at = order.get("created_at", "")
+        if isinstance(created_at, str):
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                time_str = dt.strftime("%I:%M:%S %p")
+            except:
+                time_str = created_at
+        else:
+            time_str = str(created_at)
+        
+        formatted_pending.append({
+            "order_id": order.get("order_id", ""),
+            "symbol": order.get("symbol", ""),
+            "side": order.get("side", ""),
+            "quantity": order.get("quantity", 0),
+            "order_type": order.get("order_type", ""),
+            "status": order.get("status", ""),
+            "created_at": time_str,
+            "strategy": "Unknown"  # Would need to get from order data
+        })
+    
+    pending_orders = formatted_pending
     
     if pending_orders:
         for order in pending_orders:
@@ -59,28 +83,36 @@ def render_execution_view():
     # Order History Section
     st.header("📜 Order History")
     
-    order_history = [
-        {
-            "order_id": "ORD-002",
-            "symbol": "AAPL",
-            "side": "buy",
-            "quantity": 10,
-            "fill_price": 150.25,
-            "status": "filled",
-            "filled_at": "10:25:30 AM",
-            "slippage": 0.05
-        },
-        {
-            "order_id": "ORD-003",
-            "symbol": "MSFT",
-            "side": "buy",
-            "quantity": 5,
-            "fill_price": 380.50,
-            "status": "filled",
-            "filled_at": "10:20:15 AM",
-            "slippage": 0.03
-        }
+    # Get filled/cancelled orders
+    filled_orders = [
+        order for order in all_orders
+        if order.get("status", "").lower() in ["filled", "cancelled", "rejected", "closed"]
     ]
+    
+    # Format orders for display
+    order_history = []
+    for order in filled_orders[:20]:  # Last 20 orders
+        filled_at = order.get("created_at", "")  # Would use filled_at if available
+        if isinstance(filled_at, str):
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(filled_at.replace('Z', '+00:00'))
+                time_str = dt.strftime("%I:%M:%S %p")
+            except:
+                time_str = filled_at
+        else:
+            time_str = str(filled_at)
+        
+        order_history.append({
+            "order_id": order.get("order_id", ""),
+            "symbol": order.get("symbol", ""),
+            "side": order.get("side", ""),
+            "quantity": order.get("quantity", 0),
+            "fill_price": order.get("fill_price", 0.0),
+            "status": order.get("status", ""),
+            "filled_at": time_str,
+            "slippage": 0.0  # Would calculate from order data
+        })
     
     if order_history:
         st.dataframe(order_history, hide_index=True)

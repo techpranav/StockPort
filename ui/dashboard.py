@@ -52,19 +52,28 @@ def render_dashboard():
     
     # Capital Overview Section
     st.header("💰 Capital Overview")
+    
+    from ui.services import get_ui_data_service
+    data_service = get_ui_data_service()
+    capital_overview = data_service.get_capital_overview()
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Total Capital", "$100,000.00")
+        st.metric("Total Capital", f"${capital_overview.get('total', 0):,.2f}")
     
     with col2:
-        st.metric("Available", "$75,000.00")
+        st.metric("Available", f"${capital_overview.get('available', 0):,.2f}")
     
     with col3:
-        st.metric("Allocated", "$20,000.00")
+        st.metric("Allocated", f"${capital_overview.get('allocated', 0):,.2f}")
     
     with col4:
-        st.metric("Daily P&L", "$1,250.00", delta="+1.25%")
+        # Calculate daily P&L from positions
+        positions = data_service.get_positions()
+        daily_pnl = sum(pos.get('pnl', 0) for pos in positions)
+        daily_pnl_pct = (daily_pnl / capital_overview.get('total', 1)) * 100 if capital_overview.get('total', 0) > 0 else 0
+        st.metric("Daily P&L", f"${daily_pnl:,.2f}", delta=f"{daily_pnl_pct:+.2f}%")
     
     # Risk Metrics Section
     st.header("⚠️ Risk Metrics")
@@ -84,50 +93,91 @@ def render_dashboard():
     # Active Opportunities Section
     st.header("🎯 Active Opportunities")
     
-    opportunities_data = [
-        {"symbol": "AAPL", "score": 85, "strategy": "trend_following_v1", "price": 150.25},
-        {"symbol": "MSFT", "score": 78, "strategy": "momentum_v1", "price": 380.50},
-        {"symbol": "GOOGL", "score": 72, "strategy": "trend_following_v1", "price": 142.75}
-    ]
+    opportunities_data = data_service.get_opportunities(limit=5)
     
     if opportunities_data:
-        df = st.dataframe(
-            opportunities_data,
-            column_config={
-                "symbol": "Symbol",
-                "score": st.column_config.NumberColumn("Score", format="%d"),
-                "strategy": "Strategy",
-                "price": st.column_config.NumberColumn("Price", format="$%.2f")
-            },
-            hide_index=True
-        )
+        # Format opportunities for display
+        display_data = []
+        for opp in opportunities_data[:5]:  # Top 5
+            display_data.append({
+                "symbol": opp.get("symbol", ""),
+                "score": opp.get("score", 0),
+                "strategy": opp.get("strategy_id", "unknown"),
+                "price": opp.get("price", 0.0)
+            })
+        
+        if display_data:
+            df = st.dataframe(
+                display_data,
+                column_config={
+                    "symbol": "Symbol",
+                    "score": st.column_config.NumberColumn("Score", format="%d"),
+                    "strategy": "Strategy",
+                    "price": st.column_config.NumberColumn("Price", format="$%.2f")
+                },
+                hide_index=True
+            )
     else:
         st.info("No active opportunities at this time")
     
     # Recent Signals Section
     st.header("📡 Recent Signals")
     
-    signals_data = [
-        {"time": "10:30 AM", "symbol": "AAPL", "strategy": "trend_following_v1", "decision": "APPROVE"},
-        {"time": "10:25 AM", "symbol": "MSFT", "strategy": "momentum_v1", "decision": "APPROVE"},
-        {"time": "10:20 AM", "symbol": "TSLA", "strategy": "trend_following_v1", "decision": "REJECT"}
-    ]
+    signals_data = data_service.get_signals(limit=10)
     
     if signals_data:
-        st.dataframe(signals_data, hide_index=True)
+        # Format signals for display
+        display_signals = []
+        for signal in signals_data[:10]:  # Top 10
+            timestamp = signal.get("timestamp", "")
+            if isinstance(timestamp, str):
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    time_str = dt.strftime("%I:%M %p")
+                except:
+                    time_str = timestamp
+            else:
+                time_str = str(timestamp)
+            
+            display_signals.append({
+                "time": time_str,
+                "symbol": signal.get("symbol", ""),
+                "strategy": signal.get("strategy_id", "unknown"),
+                "decision": signal.get("decision", "UNKNOWN")
+            })
+        
+        if display_signals:
+            st.dataframe(display_signals, hide_index=True)
+        else:
+            st.info("No recent signals")
     else:
         st.info("No recent signals")
     
     # Open Positions Section
     st.header("📈 Open Positions")
     
-    positions_data = [
-        {"symbol": "AAPL", "quantity": 10, "entry": 148.50, "current": 150.25, "pnl": "$17.50", "pnl_pct": "+1.18%"},
-        {"symbol": "MSFT", "quantity": 5, "entry": 375.00, "current": 380.50, "pnl": "$27.50", "pnl_pct": "+1.47%"}
-    ]
+    positions_data = data_service.get_positions()
     
     if positions_data:
-        st.dataframe(positions_data, hide_index=True)
+        # Format positions for display
+        display_positions = []
+        for pos in positions_data:
+            pnl = pos.get("pnl", 0.0)
+            pnl_pct = pos.get("pnl_percent", 0.0)
+            display_positions.append({
+                "symbol": pos.get("symbol", ""),
+                "quantity": pos.get("quantity", 0),
+                "entry": pos.get("entry_price", 0.0),
+                "current": pos.get("current_price", 0.0),
+                "pnl": f"${pnl:.2f}",
+                "pnl_pct": f"{pnl_pct:+.2f}%"
+            })
+        
+        if display_positions:
+            st.dataframe(display_positions, hide_index=True)
+        else:
+            st.info("No open positions")
     else:
         st.info("No open positions")
     
@@ -159,9 +209,6 @@ def render_dashboard():
     # Market State Section
     st.header("🌐 Market State")
     
-    from ui.services import get_ui_data_service
-    
-    data_service = get_ui_data_service()
     market_state = data_service.get_market_state()
     
     col1, col2, col3, col4 = st.columns(4)
@@ -208,10 +255,6 @@ def render_dashboard():
     # Data Health Section
     st.header("🔍 Data Health")
     
-    from ui.services import get_ui_data_service
-    from backend.data.integrity.health_monitor import HealthStatus
-    
-    data_service = get_ui_data_service()
     health_data = data_service.get_data_health()
     overall_status = health_data.get("overall_status", "GREEN")
     
@@ -219,9 +262,9 @@ def render_dashboard():
     
     with col1:
         # Overall status badge
-        if overall_status == HealthStatus.GREEN:
+        if overall_status == "GREEN":
             st.success(f"✅ **{overall_status}** - All systems healthy")
-        elif overall_status == HealthStatus.YELLOW:
+        elif overall_status == "YELLOW":
             st.warning(f"⚠️ **{overall_status}** - Minor issues detected")
         else:
             st.error(f"❌ **{overall_status}** - Critical issues - trading halted")
