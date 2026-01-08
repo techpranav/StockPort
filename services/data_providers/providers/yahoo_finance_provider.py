@@ -11,13 +11,13 @@ from models.stock_data import (
     StockData, CompanyInfo, FinancialMetrics, TechnicalIndicators,
     TechnicalSignals, FinancialStatements, NewsItem
 )
-from services.stock_data_provider import StockDataProvider
+from services.data_providers.stock_data_provider import StockDataProvider
 from exceptions.stock_data_exceptions import (
     DataFetchException, InvalidSymbolException, RateLimitException
 )
 # Settings are now centralized in config; import specific flags if needed
 from utils.debug_utils import DebugUtils
-from services.fetcher.base_fetcher import BaseFetcher
+from services.data_providers.fetcher.base_fetcher import BaseFetcher
 
 class YahooFinanceProvider(StockDataProvider, BaseFetcher):
     """Yahoo Finance data provider implementation."""

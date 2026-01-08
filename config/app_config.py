@@ -97,6 +97,30 @@ REPORTS_DIR = BASE_DIR / "reports"
 CREDENTIALS_DIR = BASE_DIR / "config" / "credentials"
 
 # ============================================================================
+# REDIS CONFIGURATION
+# ============================================================================
+
+# Redis settings for event bus and caching
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")  # Optional password
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+
+# Database type: "sqlite" (default for personal use) or "postgresql"
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "sqlite").lower()
+
+# PostgreSQL settings (only used if DATABASE_TYPE="postgresql")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.getenv("POSTGRES_DB", "stockport")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")  # Default PostgreSQL user
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")  # Your password
+
+# ============================================================================
 # API CONFIGURATION
 # ============================================================================
 

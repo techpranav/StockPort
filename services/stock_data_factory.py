@@ -48,6 +48,14 @@ class StockDataFactory:
             DebugUtils.info("Registered BSE provider")
         except ImportError as e:
             DebugUtils.warning(f"Could not register BSE provider: {e}")
+        
+        try:
+            from services.data_providers.providers.nsepython_provider import NSEPythonProvider
+            cls._providers['nsepython'] = NSEPythonProvider
+            cls._providers['nse_python'] = NSEPythonProvider  # Alias
+            DebugUtils.info("Registered NSEPython provider")
+        except ImportError as e:
+            DebugUtils.warning(f"Could not register NSEPython provider: {e}")
     
     @classmethod
     def register_provider(cls, name: str, provider_class: type) -> None:

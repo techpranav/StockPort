@@ -1,0 +1,97 @@
+# Trend Following Strategy v1
+# Follows strong trends with momentum confirmation
+
+strategy:
+  name: "trend_following_v1"
+  type: "trend_following"
+  version: "1.0.0"
+  author: "system"
+  status: "active"  # active, paused, disabled
+  
+  description: "Follows strong trends with momentum confirmation"
+  
+  # Market Regime Applicability
+  market_regimes:
+    - "trending_up"
+    - "trending_down"
+  exclude_regimes:
+    - "choppy"
+    - "high_volatility"
+  
+  # Entry Rules
+  entry:
+    conditions:
+      - type: "indicator"
+        name: "sma_20"
+        operator: "above"
+        value: "sma_50"
+        weight: 0.3
+      
+      - type: "indicator"
+        name: "rsi"
+        operator: "between"
+        value: [40, 70]
+        weight: 0.2
+      
+      - type: "indicator"
+        name: "macd"
+        operator: "cross_above"
+        value: "signal_line"
+        weight: 0.3
+      
+      - type: "pattern"
+        name: "bullish_engulfing"
+        weight: 0.2
+    
+    min_confirmations: 3
+    min_score: 70
+    
+    # Entry Price Logic
+    entry_price:
+      type: "market"  # market, limit, stop
+      limit_offset: 0.001  # 0.1% for limit orders
+  
+  # Exit Rules
+  exit:
+    profit_target:
+      type: "atr_multiple"
+      multiplier: 3.0
+      min_risk_reward: 2.0
+    
+    stop_loss:
+      type: "atr_multiple"
+      multiplier: 2.0
+      max_loss_percent: 0.05  # 5% max
+    
+    trailing_stop:
+      enabled: true
+      type: "atr_multiple"
+      multiplier: 1.5
+    
+    time_based:
+      max_holding_days: 20
+      exit_on_friday: false
+  
+  # Position Sizing
+  position_sizing:
+    method: "risk_based"  # risk_based, fixed_amount, kelly
+    risk_per_trade: 0.02  # 2% of capital
+    max_position_size: 0.10  # 10% of capital max
+    min_position_size: 0.01  # 1% minimum
+  
+  # Risk Constraints
+  risk:
+    max_correlation: 0.7  # Don't take if correlation > 0.7
+    max_sector_exposure: 0.25  # 25% max per sector
+    max_daily_trades: 5
+    max_daily_loss: 0.05  # 5% daily loss limit
+  
+  # Performance Tracking
+  performance:
+    min_win_rate: 0.45
+    min_profit_factor: 1.2
+    min_sharpe: 0.5
+    lookback_days: 90
+    auto_disable_on_decay: true
+    decay_threshold: -0.15  # -15% performance drop
+

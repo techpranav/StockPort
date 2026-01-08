@@ -1,0 +1,91 @@
+# Momentum Strategy v1
+# Captures strong price movements with momentum confirmation
+
+strategy:
+  name: "momentum_v1"
+  type: "momentum"
+  version: "1.0.0"
+  author: "system"
+  status: "active"
+  
+  description: "Captures strong price movements with momentum confirmation"
+  
+  # Market Regime Applicability
+  market_regimes:
+    - "trending_up"
+    - "normal"
+  exclude_regimes:
+    - "choppy"
+    - "high_volatility"
+  
+  # Entry Rules
+  entry:
+    conditions:
+      - type: "indicator"
+        name: "roc"
+        operator: "above"
+        value: 0.05  # 5% momentum
+        weight: 0.4
+      
+      - type: "indicator"
+        name: "volume_ratio"
+        operator: "above"
+        value: 1.2  # 20% above average
+        weight: 0.3
+      
+      - type: "indicator"
+        name: "rsi"
+        operator: "between"
+        value: [50, 70]  # Momentum zone
+        weight: 0.3
+    
+    min_confirmations: 2
+    min_score: 60
+    
+    entry_price:
+      type: "market"
+  
+  # Exit Rules
+  exit:
+    profit_target:
+      type: "atr_multiple"
+      multiplier: 2.5
+      min_risk_reward: 1.5
+    
+    stop_loss:
+      type: "atr_multiple"
+      multiplier: 1.5
+      max_loss_percent: 0.05
+    
+    trailing_stop:
+      enabled: true
+      type: "atr_multiple"
+      multiplier: 1.0
+    
+    time_based:
+      max_holding_days: 10
+      exit_on_friday: false
+  
+  # Position Sizing
+  position_sizing:
+    method: "risk_based"
+    risk_per_trade: 0.02
+    max_position_size: 0.10
+    min_position_size: 0.01
+  
+  # Risk Constraints
+  risk:
+    max_correlation: 0.7
+    max_sector_exposure: 0.25
+    max_daily_trades: 5
+    max_daily_loss: 0.05
+  
+  # Performance Tracking
+  performance:
+    min_win_rate: 0.40
+    min_profit_factor: 1.2
+    min_sharpe: 0.5
+    lookback_days: 90
+    auto_disable_on_decay: true
+    decay_threshold: -0.15
+

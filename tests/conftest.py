@@ -1,138 +1,233 @@
 """
-Pytest configuration and fixtures for test suite.
+Pytest Configuration and Fixtures
+
+Shared fixtures and configuration for all tests.
 """
 
 import pytest
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, Any
-from unittest.mock import Mock, MagicMock, patch
 import sys
 from pathlib import Path
+from typing import Dict, Any, Optional
+from datetime import datetime
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from models.stock_data import StockData, CompanyInfo, FinancialMetrics, TechnicalIndicators
-from services.stock_service import StockService
-from services.analyzers.analysis.technical_analysis import TechnicalAnalyzer
+from backend.capital.capital_manager import CapitalManager
+from backend.capital.position_sizer import PositionSizer
+from backend.risk.risk_engine import RiskEngine
+from backend.portfolio.portfolio_manager import PortfolioManager
+from backend.market_state.state_engine import MarketStateEngine
+from backend.strategies.registry import StrategyRegistry
+from backend.execution.brokers.paper_broker import PaperBroker
+from backend.execution.order_manager import OrderManager
+from backend.learning.performance_tracker import PerformanceTracker
+from backend.data.integrity.truth_layer import TruthLayer
+from backend.data.integrity.health_monitor import HealthMonitor
+from backend.data.integrity.price_reconciler import PriceReconciler
+from backend.governance.audit_logger import AuditLogger
+from backend.scanners.market_scanner import MarketScanner
+from backend.strategies.evaluator import StrategyEvaluator
+from backend.core.decision_engine import DecisionEngine
+from backend.execution.execution_engine import ExecutionEngine
+
+
+@pytest.fixture(scope="session")
+def project_root_path():
+    """Return project root path."""
+    return Path(__file__).parent.parent
 
 
 @pytest.fixture
-def sample_price_data():
-    """Generate sample OHLCV price data for testing."""
-    dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
-    
-    # Generate realistic price data with trend
-    np.random.seed(42)
-    base_price = 100.0
-    prices = []
-    for i in range(100):
-        # Add trend and random walk
-        trend = i * 0.1
-        noise = np.random.normal(0, 2)
-        price = base_price + trend + noise
-        prices.append(price)
-    
-    df = pd.DataFrame({
-        'Open': prices,
-        'High': [p * 1.02 for p in prices],
-        'Low': [p * 0.98 for p in prices],
-        'Close': prices,
-        'Volume': np.random.randint(1000000, 5000000, 100),
-        'Adj Close': prices
-    }, index=dates)
-    
-    return df
+def capital_manager():
+    """Create capital manager instance."""
+    return CapitalManager(initial_capital=100000.0)
 
 
 @pytest.fixture
-def sample_stock_data(sample_price_data):
-    """Create a sample StockData object for testing."""
-    from models.stock_data import TechnicalSignals, FinancialStatements, NewsItem
+def position_sizer():
+    """Create position sizer instance."""
+    return PositionSizer()
+
+
+@pytest.fixture
+def risk_engine(capital_manager):
+    """Create risk engine instance."""
+    return RiskEngine(capital_manager)
+
+
+@pytest.fixture
+def portfolio_manager():
+    """Create portfolio manager instance."""
+    return PortfolioManager()
+
+
+@pytest.fixture
+def market_state_engine():
+    """Create market state engine instance."""
+    return MarketStateEngine()
+
+
+@pytest.fixture
+def strategy_registry():
+    """Create strategy registry instance."""
+    return StrategyRegistry()
+
+
+@pytest.fixture
+def paper_broker():
+    """Create paper broker instance."""
+    return PaperBroker(initial_capital=100000.0)
+
+
+@pytest.fixture
+def order_manager():
+    """Create order manager instance."""
+    return OrderManager()
+
+
+@pytest.fixture
+def performance_tracker():
+    """Create performance tracker instance."""
+    return PerformanceTracker()
+
+
+@pytest.fixture
+def health_monitor():
+    """Create health monitor instance."""
+    return HealthMonitor()
+
+
+@pytest.fixture
+def price_reconciler(paper_broker):
+    """Create price reconciler instance."""
+    return PriceReconciler(paper_broker)
+
+
+@pytest.fixture
+def truth_layer(health_monitor, price_reconciler):
+    """Create truth layer instance."""
+    return TruthLayer(health_monitor, price_reconciler)
+
+
+@pytest.fixture
+def audit_logger(tmp_path):
+    """Create audit logger instance with temporary database."""
+    return AuditLogger(db_path=tmp_path / "audit.db")
+
+
+@pytest.fixture
+def market_scanner(truth_layer, audit_logger):
+    """Create market scanner instance."""
+    return MarketScanner(truth_layer=truth_layer, audit_logger=audit_logger)
+
+
+@pytest.fixture
+def strategy_evaluator(strategy_registry, market_state_engine, audit_logger):
+    """Create strategy evaluator instance."""
+    return StrategyEvaluator(
+        strategy_registry=strategy_registry,
+        market_state_engine=market_state_engine,
+        audit_logger=audit_logger
+    )
+
+
+@pytest.fixture
+def decision_engine(
+    capital_manager,
+    position_sizer,
+    risk_engine,
+    portfolio_manager,
+    market_state_engine,
+    audit_logger
+):
+    """Create decision engine instance."""
+    return DecisionEngine(
+        capital_manager=capital_manager,
+        position_sizer=position_sizer,
+        risk_engine=risk_engine,
+        portfolio_manager=portfolio_manager,
+        market_state_engine=market_state_engine,
+        audit_logger=audit_logger
+    )
+
+
+@pytest.fixture
+def execution_engine(paper_broker, order_manager, performance_tracker, audit_logger):
+    """Create execution engine instance."""
+    return ExecutionEngine(
+        broker=paper_broker,
+        order_manager=order_manager,
+        performance_tracker=performance_tracker,
+        audit_logger=audit_logger
+    )
+
+
+@pytest.fixture
+def complete_system(
+    market_scanner,
+    strategy_evaluator,
+    decision_engine,
+    execution_engine,
+    capital_manager,
+    paper_broker,
+    performance_tracker
+):
+    """Create complete system with all components."""
+    return {
+        'scanner': market_scanner,
+        'evaluator': strategy_evaluator,
+        'decision_engine': decision_engine,
+        'execution_engine': execution_engine,
+        'capital_manager': capital_manager,
+        'broker': paper_broker,
+        'performance_tracker': performance_tracker
+    }
+
+
+@pytest.fixture
+def sample_opportunity():
+    """Create sample opportunity for testing."""
+    from models.opportunity import Opportunity
     
-    company_info = CompanyInfo(
-        symbol="TEST",
-        name="Test Company",
+    return Opportunity(
+        symbol="AAPL",
+        price=150.0,
+        volume=1000000,
+        timestamp=datetime.now(),
         sector="Technology",
-        industry="Software",
-        market_cap=1000000000.0
-    )
-    
-    financial_metrics = FinancialMetrics(
-        revenue=100000000.0,
-        net_income=10000000.0,
-        eps=2.5,
-        pe_ratio=25.0
-    )
-    
-    technical_indicators = TechnicalIndicators(
-        current_price=sample_price_data['Close'].iloc[-1],
-        sma_20=sample_price_data['Close'].rolling(20).mean().iloc[-1],
-        sma_50=sample_price_data['Close'].rolling(50).mean().iloc[-1]
-    )
-    
-    technical_signals = TechnicalSignals(
-        trend="bullish",
-        momentum="neutral",
-        volatility="normal",
-        volume="normal"
-    )
-    
-    financial_statements = FinancialStatements()
-    
-    stock_data = StockData(
-        symbol="TEST",
-        company_info=company_info,
-        info={},
-        metrics=financial_metrics,
-        technical_analysis=technical_indicators,
-        technical_signals=technical_signals,
-        financials=financial_statements,
-        news=[],
-        raw_data={'history': sample_price_data}
-    )
-    
-    return stock_data
-
-
-@pytest.fixture
-def mock_stock_service():
-    """Create a mock StockService for testing."""
-    service = Mock(spec=StockService)
-    return service
-
-
-@pytest.fixture
-def mock_webhook_payload():
-    """Sample webhook payload for testing."""
-    return {
-        'event': 'payment.captured',
-        'payload': {
-            'payment': {
-                'id': 'pay_test123',
-                'amount': 10000,
-                'currency': 'USD',
-                'status': 'captured'
-            }
+        market_cap=2500000000000.0,
+        indicators={
+            'sma_20': 148.0,
+            'sma_50': 145.0,
+            'rsi': 65.0,
+            'macd': 0.5
         }
-    }
+    )
 
 
 @pytest.fixture
-def sample_indicators_data():
-    """Sample technical indicators data for testing."""
-    dates = pd.date_range(start='2023-01-01', periods=50, freq='D')
-    prices = pd.Series([100 + i * 0.5 + np.random.normal(0, 1) for i in range(50)], index=dates)
+def sample_signal(sample_opportunity):
+    """Create sample strategy signal for testing."""
+    from models.strategy_signal import StrategySignal
     
-    return {
-        'close': prices,
-        'sma_20': prices.rolling(20).mean(),
-        'sma_50': prices.rolling(50).mean(),
-        'rsi': pd.Series([50 + np.random.normal(0, 10) for _ in range(50)], index=dates),
-        'macd': pd.Series([0.5 + np.random.normal(0, 0.1) for _ in range(50)], index=dates),
-        'macd_signal': pd.Series([0.4 + np.random.normal(0, 0.1) for _ in range(50)], index=dates)
-    }
+    return StrategySignal(
+        signal_id="test_signal_1",
+        strategy_id="trend_following_v1",
+        opportunity=sample_opportunity,
+        score=75.0,
+        entry_price=150.0,
+        stop_loss=145.0,
+        take_profit=160.0,
+        confidence=0.8,
+        timestamp=datetime.now()
+    )
 
+
+@pytest.fixture(autouse=True)
+def reset_state():
+    """Reset state before each test."""
+    # This runs before each test
+    yield
+    # Cleanup after each test (if needed)

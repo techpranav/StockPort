@@ -14,7 +14,7 @@ from models.stock_data import (
 )
 from services.data_providers.stock_data_provider import StockDataProvider
 from utils.debug_utils import DebugUtils
-from config.constants.StringConstants import DEFAULT_DAYS_BACK
+from config.constants.NumericConstants import DEFAULT_DAYS_BACK
 
 class AlphaVantageProvider(StockDataProvider):
     """Alpha Vantage data provider implementation (placeholder)."""

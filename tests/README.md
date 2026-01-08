@@ -1,192 +1,175 @@
-# Test Suite Documentation
+# Stockport v4 - Test Suite
 
 ## Overview
 
-This test suite provides comprehensive automated testing for the Stock Analysis Application, ensuring that all critical calculations, data processing, and backend endpoints work correctly.
+Comprehensive test suite for Stockport v4 trading system with unit tests, integration tests, and coverage reporting.
 
 ## Test Structure
 
 ```
 tests/
-├── conftest.py                    # Pytest configuration and shared fixtures
-├── unit/                          # Unit tests for individual components
-│   ├── test_technical_analysis.py    # Technical indicator calculations
-│   ├── test_stock_service.py         # Stock service functionality
-│   ├── test_indicators.py             # Individual indicator tests
-│   └── test_signal_generation.py      # Signal generation tests
-└── integration/                    # Integration tests
-    ├── test_webhook_endpoints.py      # Webhook endpoint tests
-    └── test_stock_analyzer.py         # End-to-end analyzer tests
+├── __init__.py
+├── conftest.py              # Shared fixtures
+├── test_runner.py           # Test runner script
+├── unit/                    # Unit tests
+│   ├── test_data_integrity.py
+│   ├── test_market_state.py
+│   ├── test_capital_manager.py
+│   ├── test_risk_engine.py
+│   └── test_position_sizer.py
+└── integration/             # Integration tests
+    ├── test_end_to_end_flow.py
+    ├── test_disaster_recovery.py
+    ├── test_duplicate_prevention.py
+    └── test_audit_logging.py
 ```
 
 ## Running Tests
 
-### Run All Tests
+### All Tests
 ```bash
-pytest tests/ -v
+pytest tests/
 ```
 
-### Run Specific Test Suite
+### Unit Tests Only
 ```bash
-# Unit tests only
-pytest tests/unit/ -v
-
-# Integration tests only
-pytest tests/integration/ -v
+pytest tests/unit/
 ```
 
-### Run with Coverage
+### Integration Tests Only
 ```bash
-pytest tests/ --cov=. --cov-report=html
+pytest tests/integration/
 ```
 
-### Run Specific Test File
+### With Coverage
 ```bash
-pytest tests/unit/test_technical_analysis.py -v
+pytest tests/ --cov=backend --cov=ui --cov=models --cov-report=html
 ```
 
-## Test Coverage
+### Using Makefile
+```bash
+make test              # Run all tests
+make test-unit         # Unit tests only
+make test-integration  # Integration tests only
+make test-coverage     # With coverage report
+make test-all          # Full coverage with threshold
+```
 
-### Unit Tests (32 tests)
+### Using Test Runner
+```bash
+python tests/test_runner.py                    # All tests
+python tests/test_runner.py --unit-only        # Unit tests
+python tests/test_runner.py --integration-only # Integration tests
+python tests/test_runner.py --no-coverage      # Skip coverage
+```
 
-#### Technical Analysis Tests (`test_technical_analysis.py`)
-- ✅ Indicator calculation with valid data
-- ✅ Empty DataFrame handling
-- ✅ Insufficient data handling
-- ✅ None data handling
-- ✅ SMA calculation accuracy
-- ✅ RSI calculation accuracy and range validation
-- ✅ RSI overbought/oversold detection
-- ✅ MACD calculation accuracy
-- ✅ Signal generation structure and format
-- ✅ Trend analysis (bullish, bearish, neutral)
+## Test Markers
 
-#### Stock Service Tests (`test_stock_service.py`)
-- ✅ Service initialization
-- ✅ Custom days_back configuration
-- ✅ Stock data fetching (success and failure)
-- ✅ Provider name retrieval
-- ✅ Days back setting/getting
+Tests are marked with pytest markers:
 
-#### Indicator Tests (`test_indicators.py`)
-- ✅ RSI basic calculation
-- ✅ ATR (Average True Range) calculation
-- ✅ Volume SMA calculation
-- ✅ OBV (On-Balance Volume) calculation
-- ✅ ROC (Rate of Change) calculation
-- ✅ Momentum calculation
+- `@pytest.mark.unit` - Unit tests
+- `@pytest.mark.integration` - Integration tests
+- `@pytest.mark.slow` - Slow running tests
+- `@pytest.mark.requires_redis` - Requires Redis
+- `@pytest.mark.requires_db` - Requires database
+- `@pytest.mark.requires_broker` - Requires broker connection
 
-#### Signal Generation Tests (`test_signal_generation.py`)
-- ✅ Signal structure validation
-- ✅ Buy signal on MA crossover
-- ✅ Sell signal on MA crossover
-- ✅ Signal format validation
-- ✅ Trend analysis integration
+### Run Tests by Marker
+```bash
+pytest -m unit              # Unit tests only
+pytest -m integration        # Integration tests only
+pytest -m "not slow"         # Skip slow tests
+```
 
-### Integration Tests (16 tests)
+## Coverage
 
-#### Webhook Endpoint Tests (`test_webhook_endpoints.py`)
-- ✅ Health check endpoint
-- ✅ Razorpay webhook (empty payload, valid payload, processing failure)
-- ✅ Stripe webhook (not configured, valid payload)
-- ✅ PayPal webhook (not configured, valid payload)
-- ✅ Error handling
+Coverage reports are generated in multiple formats:
 
-#### Stock Analyzer Tests (`test_stock_analyzer.py`)
-- ✅ Analyzer initialization
-- ✅ Stock processing (success and failure)
-- ✅ Stock symbols file operations
-- ✅ Completed/failed symbol tracking
+- **HTML**: `htmlcov/index.html` - Interactive HTML report
+- **Terminal**: Console output with missing lines
+- **XML**: `coverage.xml` - For CI/CD integration
 
-## Critical Calculations Verified
+### Coverage Threshold
 
-### Technical Indicators
-1. **SMA (Simple Moving Average)**: Verified against manual calculations
-2. **RSI (Relative Strength Index)**: 
-   - Values in valid range (0-100)
-   - Matches standard RSI formula
-   - Overbought (>70) and oversold (<30) detection
-3. **MACD (Moving Average Convergence Divergence)**:
-   - MACD line calculation
-   - Signal line calculation
-   - Histogram = MACD - Signal (verified)
+Minimum coverage threshold: **70%**
 
-### Signal Generation
-- Moving average crossover detection
-- Buy/sell signal format validation
-- Trend direction and strength analysis
+Tests will fail if coverage falls below this threshold.
 
-### Data Validation
-- Empty data handling
-- Insufficient data handling
-- Invalid input handling
-- Data type validation
+## Fixtures
 
-## Test Fixtures
+Shared fixtures are defined in `conftest.py`:
 
-### `sample_price_data`
-Generates realistic OHLCV price data with 100 days of history for testing.
+- `capital_manager` - Capital manager instance
+- `position_sizer` - Position sizer instance
+- `risk_engine` - Risk engine instance
+- `portfolio_manager` - Portfolio manager instance
+- `market_state_engine` - Market state engine instance
+- `strategy_registry` - Strategy registry instance
+- `paper_broker` - Paper broker instance
+- `order_manager` - Order manager instance
+- `performance_tracker` - Performance tracker instance
+- `health_monitor` - Health monitor instance
+- `truth_layer` - Truth layer instance
+- `audit_logger` - Audit logger instance
+- `market_scanner` - Market scanner instance
+- `strategy_evaluator` - Strategy evaluator instance
+- `decision_engine` - Decision engine instance
+- `execution_engine` - Execution engine instance
+- `complete_system` - Complete system with all components
+- `sample_opportunity` - Sample opportunity for testing
+- `sample_signal` - Sample strategy signal for testing
 
-### `sample_stock_data`
-Creates a complete StockData object with:
-- Company information
-- Financial metrics
-- Technical indicators
-- Historical price data
+## CI/CD
 
-### `mock_stock_service`
-Mock StockService for isolated testing.
+Tests run automatically on:
 
-### `mock_webhook_payload`
-Sample webhook payload for testing payment gateway integrations.
+- Push to main/develop branches
+- Pull requests
+- Daily schedule (2 AM UTC)
+
+See `.github/workflows/tests.yml` for CI configuration.
+
+## Writing Tests
+
+### Unit Test Example
+```python
+def test_capital_allocation(capital_manager):
+    """Test capital allocation."""
+    capital_manager.allocate_capital(5000.0, "order_1")
+    assert capital_manager.get_reserved_capital() == 5000.0
+```
+
+### Integration Test Example
+```python
+def test_complete_flow(complete_system):
+    """Test complete flow."""
+    scanner = complete_system['scanner']
+    opportunities = scanner.scan(symbols=["AAPL"])
+    # ... test flow
+```
 
 ## Best Practices
 
-1. **Isolation**: Each test is independent and doesn't rely on other tests
-2. **Mocking**: External dependencies (APIs, services) are mocked
-3. **Validation**: Critical calculations are verified against expected formulas
-4. **Error Handling**: Tests verify proper error handling for edge cases
-5. **Coverage**: Tests cover both success and failure scenarios
+1. **Use fixtures** - Leverage shared fixtures from `conftest.py`
+2. **Test isolation** - Each test should be independent
+3. **Clear names** - Test names should describe what they test
+4. **Assertions** - Use specific assertions, not just `assert True`
+5. **Coverage** - Aim for high coverage but focus on critical paths
+6. **Documentation** - Add docstrings to test functions
 
-## Continuous Integration
+## Troubleshooting
 
-These tests should be run:
-- Before committing code
-- In CI/CD pipeline
-- After major refactoring
-- When adding new features
+### Tests Failing
+- Check test output for specific errors
+- Verify fixtures are properly initialized
+- Ensure dependencies are installed
 
-## Adding New Tests
+### Coverage Low
+- Run `pytest --cov-report=term-missing` to see missing lines
+- Focus on critical business logic first
+- Add tests for edge cases
 
-When adding new functionality:
-
-1. **Unit Tests**: Add to appropriate `test_*.py` file in `tests/unit/`
-2. **Integration Tests**: Add to appropriate file in `tests/integration/`
-3. **Fixtures**: Add shared fixtures to `conftest.py`
-4. **Documentation**: Update this README with new test coverage
-
-### Test Naming Convention
-- Test files: `test_*.py`
-- Test classes: `Test*`
-- Test methods: `test_*`
-
-### Example Test
-```python
-def test_calculate_rsi_with_valid_data(sample_price_data):
-    """Test RSI calculation with valid price data."""
-    indicators = TechnicalAnalyzer.calculate_indicators(sample_price_data)
-    
-    assert 'rsi' in indicators
-    rsi = indicators['rsi'].dropna()
-    assert (rsi >= 0).all()
-    assert (rsi <= 100).all()
-```
-
-## Test Results Summary
-
-**Current Status**: ✅ All 48 tests passing
-
-- Unit Tests: 32 passing
-- Integration Tests: 16 passing
-- Coverage: Critical calculations and endpoints verified
-
+### Slow Tests
+- Mark slow tests with `@pytest.mark.slow`
+- Run with `pytest -m "not slow"` to skip
+- Consider parallel execution for large suites

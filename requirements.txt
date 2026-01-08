@@ -25,3 +25,12 @@ openai>=1.0.0
 pytest>=7.4.0
 pytest-cov>=4.1.0
 flask>=3.0.0
+nsepython>=2.97
+# Stockport v4 dependencies
+redis>=5.0.0
+psycopg2-binary>=2.9.0
+celery>=5.3.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+websockets>=12.0
+pyyaml>=6.0
