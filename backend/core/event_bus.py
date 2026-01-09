@@ -9,6 +9,7 @@ from datetime import datetime
 import redis
 from threading import Lock
 import json
+import os
 
 from utils.debug_utils import DebugUtils
 from config.app_config import REDIS_HOST, REDIS_PORT, REDIS_DB
@@ -38,19 +39,36 @@ class EventBus:
             redis_port: Redis port
             redis_db: Redis database number
         """
-        try:
-            self.redis_client = redis.Redis(
-                host=redis_host,
-                port=redis_port,
-                db=redis_db,
-                decode_responses=True
-            )
-            # Test connection
-            self.redis_client.ping()
-            DebugUtils.info(f"EventBus connected to Redis at {redis_host}:{redis_port}")
-        except Exception as e:
-            DebugUtils.error(f"Failed to connect to Redis: {e}")
-            self.redis_client = None
+        # Check if using fakeredis for development (when Redis server not available)
+        use_fakeredis = os.getenv("USE_FAKEREDIS", "false").lower() == "true"
+        
+        if use_fakeredis:
+            try:
+                import fakeredis
+                self.redis_client = fakeredis.FakeStrictRedis(decode_responses=True)
+                self.redis_client.ping()
+                DebugUtils.warning("Using fakeredis (in-memory mock) for development. NOT for production!")
+                DebugUtils.info("EventBus using fakeredis (mock Redis)")
+            except ImportError:
+                DebugUtils.error("fakeredis not installed. Install with: pip install fakeredis")
+                raise ImportError("fakeredis not installed. Install with: pip install fakeredis")
+        else:
+            try:
+                self.redis_client = redis.Redis(
+                    host=redis_host,
+                    port=redis_port,
+                    db=redis_db,
+                    decode_responses=True
+                )
+                # Test connection
+                self.redis_client.ping()
+                DebugUtils.info(f"EventBus connected to Redis at {redis_host}:{redis_port}")
+            except Exception as e:
+                # Redis is REQUIRED - raise error if not available
+                error_msg = f"Redis connection failed at {redis_host}:{redis_port}. Redis is required for EventBus. Error: {e}"
+                DebugUtils.error(error_msg)
+                DebugUtils.error("To use fakeredis for development, set USE_FAKEREDIS=true environment variable")
+                raise ConnectionError(error_msg) from e
         
         self.subscribers: Dict[str, List[Callable]] = {}
         self.lock = Lock()
@@ -64,8 +82,7 @@ class EventBus:
             event: Event data dictionary
         """
         if not self.redis_client:
-            DebugUtils.warning("Redis not available, event not published")
-            return
+            raise RuntimeError("Redis client not initialized. Cannot publish event.")
         
         try:
             event_data = {

@@ -144,21 +144,38 @@ class RESTAPI:
                     broker = self.system_integrator.execution_engine.broker
                 
                 if broker:
-                    positions = broker.get_all_positions()
-                    return {
-                        "positions": [
-                            {
-                                "symbol": pos.symbol,
-                                "quantity": pos.quantity,
-                                "entry_price": pos.avg_entry_price,
-                                "current_price": pos.current_price or pos.avg_entry_price,
-                                "pnl": pos.pnl or 0.0,
-                                "pnl_percent": pos.pnl_percent or 0.0,
-                                "value": (pos.current_price or pos.avg_entry_price) * pos.quantity
-                            }
-                            for pos in positions
-                        ]
-                    }
+                    # PaperBroker stores positions in self.positions dict
+                    # ShadowBroker has get_all_positions() method
+                    if hasattr(broker, 'get_all_positions'):
+                        positions = broker.get_all_positions()
+                        return {
+                            "positions": [
+                                {
+                                    "symbol": pos.get('symbol') if isinstance(pos, dict) else pos.symbol,
+                                    "quantity": pos.get('quantity') if isinstance(pos, dict) else pos.quantity,
+                                    "entry_price": pos.get('avg_entry_price') or pos.get('avg_price') if isinstance(pos, dict) else (pos.avg_entry_price if hasattr(pos, 'avg_entry_price') else 0.0),
+                                    "current_price": pos.get('current_price') or pos.get('avg_entry_price') or pos.get('avg_price') if isinstance(pos, dict) else (pos.current_price if hasattr(pos, 'current_price') else (pos.avg_entry_price if hasattr(pos, 'avg_entry_price') else 0.0)),
+                                    "pnl": pos.get('pnl', 0.0) if isinstance(pos, dict) else (pos.pnl if hasattr(pos, 'pnl') else 0.0),
+                                    "pnl_percent": pos.get('pnl_percent', 0.0) if isinstance(pos, dict) else (pos.pnl_percent if hasattr(pos, 'pnl_percent') else 0.0),
+                                    "value": (pos.get('current_price') or pos.get('avg_entry_price') or pos.get('avg_price', 0.0)) * pos.get('quantity', 0) if isinstance(pos, dict) else ((pos.current_price if hasattr(pos, 'current_price') else (pos.avg_entry_price if hasattr(pos, 'avg_entry_price') else 0.0)) * pos.quantity)
+                                }
+                                for pos in positions
+                            ]
+                        }
+                    elif hasattr(broker, 'positions'):
+                        # PaperBroker: positions is a dict {symbol: position_dict}
+                        positions_list = []
+                        for symbol, pos in broker.positions.items():
+                            positions_list.append({
+                                "symbol": symbol,
+                                "quantity": pos.get('quantity', 0),
+                                "entry_price": pos.get('avg_entry_price') or pos.get('avg_price', 0.0),
+                                "current_price": pos.get('current_price') or pos.get('avg_entry_price') or pos.get('avg_price', 0.0),
+                                "pnl": pos.get('pnl', 0.0),
+                                "pnl_percent": pos.get('pnl_percent', 0.0),
+                                "value": (pos.get('current_price') or pos.get('avg_entry_price') or pos.get('avg_price', 0.0)) * pos.get('quantity', 0)
+                            })
+                        return {"positions": positions_list}
         except Exception as e:
             DebugUtils.log_error(e, "Error getting positions")
         
@@ -178,7 +195,17 @@ class RESTAPI:
             if self.system_integrator and hasattr(self.system_integrator, 'execution_engine'):
                 order_manager = self.system_integrator.execution_engine.order_manager
                 if order_manager:
-                    orders = order_manager.get_orders(status=status)
+                    # OrderManager has get_order_history() and get_pending_orders()
+                    if status and status.lower() in ['pending', 'submitted']:
+                        orders = order_manager.get_pending_orders()
+                    else:
+                        # Get all orders from history (default limit 100)
+                        orders = order_manager.get_order_history(limit=100)
+                    
+                    # Filter by status if provided
+                    if status:
+                        orders = [o for o in orders if o.get('status', '').lower() == status.lower()]
+                    
                     return {"orders": [self._order_to_dict(order) for order in orders]}
         except Exception as e:
             DebugUtils.log_error(e, "Error getting orders")

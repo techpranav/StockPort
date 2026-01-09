@@ -14,6 +14,10 @@ from backend.scanners.base_scanner import BaseScanner
 from backend.data.integrity.truth_layer import TruthLayer
 from services.data_providers.stock_data_provider import StockDataProvider
 from services.stock_data_factory import StockDataFactory
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.governance.audit_logger import AuditLogger
 from backend.governance.audit_logger import AuditLogger
 
 
@@ -29,7 +33,7 @@ class MarketScanner(BaseScanner):
         truth_layer: Optional[TruthLayer] = None,
         data_provider: Optional[StockDataProvider] = None,
         max_workers: int = 10,
-        audit_logger: Optional[AuditLogger] = None
+        audit_logger: Optional['AuditLogger'] = None
     ):
         """
         Initialize market scanner.

@@ -14,6 +14,8 @@ from utils.debug_utils import DebugUtils
 from exceptions.stock_data_exceptions import DataProcessingException
 from .signal_scorer import SignalScorer
 from services.data_providers.adapters.adapter_factory import AdapterFactory
+from services.analyzers.indicators.support_resistance import SupportResistanceCalculator
+from services.analyzers.indicators.support_resistance_validator import SupportResistanceValidator
 from config.constants.DataConstants import DEFAULT_PROVIDER
 
 
@@ -48,9 +50,17 @@ class EntryDetector:
     BUY_THRESHOLD = 60
     WATCH_THRESHOLD = 40
     
-    def __init__(self):
-        """Initialize entry detector."""
+    def __init__(self, provider_name: str = DEFAULT_PROVIDER):
+        """
+        Initialize entry detector.
+        
+        Args:
+            provider_name: Data provider name for adapter
+        """
         self.signal_scorer = SignalScorer()
+        self.provider_name = provider_name
+        self.support_resistance_calc = SupportResistanceCalculator(provider_name)
+        self.support_resistance_validator = SupportResistanceValidator(provider_name)
     
     def detect_entry(
         self,
@@ -98,16 +108,37 @@ class EntryDetector:
             # Determine signal type
             signal_type = self._classify_signal(total_score, score_result)
             
-            # Calculate entry price
-            entry_price = self._calculate_entry_price(normalized_data, indicators, adapter)
+            # Calculate support/resistance levels
+            support_resistance = self.support_resistance_calc.get_current_support_resistance(
+                normalized_data,
+                include_pivot_points=True,
+                include_volume_profile=True,
+                include_dynamic=True
+            )
             
-            # Calculate risk metrics
+            # Validate support/resistance levels
+            validated_levels = self.support_resistance_validator.validate_levels(
+                support_resistance.get('support_levels', []),
+                support_resistance.get('resistance_levels', []),
+                normalized_data
+            )
+            
+            # Calculate entry price (optimize using support/resistance)
+            entry_price = self._calculate_entry_price(
+                normalized_data,
+                indicators,
+                adapter,
+                support_resistance=validated_levels
+            )
+            
+            # Calculate risk metrics (use support/resistance for stop-loss and take-profit)
             stop_loss, take_profit = self._calculate_risk_levels(
                 entry_price,
                 normalized_data,
                 indicators,
                 adapter,
-                risk_metrics
+                risk_metrics,
+                support_resistance=validated_levels
             )
             
             # Calculate confidence
@@ -168,10 +199,24 @@ class EntryDetector:
         self,
         data: pd.DataFrame,
         indicators: Dict[str, Any],
-        adapter
+        adapter,
+        support_resistance: Optional[Dict[str, Any]] = None
     ) -> float:
-        """Calculate optimal entry price."""
+        """
+        Calculate optimal entry price using support/resistance levels.
+        
+        Prefers entry near support for long positions.
+        """
         current_price = adapter.get_column(data, 'CLOSE').iloc[-1]
+        
+        # If near strong support, use support level as entry target
+        if support_resistance:
+            near_support = support_resistance.get('near_support')
+            if near_support and near_support.get('bounce_probability', 0) > 0.6:
+                support_level = near_support.get('level', current_price)
+                # Entry slightly above support (0.5% buffer)
+                entry_price = support_level * 1.005
+                return round(entry_price, 2)
         
         # Use VWAP if available
         if 'vwap' in indicators:
@@ -191,24 +236,78 @@ class EntryDetector:
         data: pd.DataFrame,
         indicators: Dict[str, Any],
         adapter,
-        risk_metrics: Optional[Dict[str, Any]] = None
+        risk_metrics: Optional[Dict[str, Any]] = None,
+        support_resistance: Optional[Dict[str, Any]] = None
     ) -> tuple[Optional[float], Optional[float]]:
-        """Calculate stop-loss and take-profit levels."""
-        # Use ATR for stop-loss
-        if 'atr' in indicators:
-            atr = indicators['atr']
-            if isinstance(atr, pd.Series):
-                atr = atr.iloc[-1] if not pd.isna(atr.iloc[-1]) else entry_price * 0.02
+        """
+        Calculate stop-loss and take-profit levels using support/resistance.
+        
+        Stop-loss: Below nearest support level
+        Take-profit: At nearest resistance level
+        """
+        # Use support/resistance levels if available
+        if support_resistance:
+            # Stop-loss: Below nearest support (with buffer)
+            near_support = support_resistance.get('near_support')
+            if near_support:
+                support_level = near_support.get('level', entry_price * 0.98)
+                # Stop-loss 1% below support
+                stop_loss = support_level * 0.99
+            else:
+                # Use strongest support level
+                valid_support = support_resistance.get('valid_support', [])
+                if valid_support:
+                    strongest_support = valid_support[0].get('level', entry_price * 0.98)
+                    stop_loss = strongest_support * 0.99
+                else:
+                    stop_loss = None
             
-            # Stop-loss: 2 ATR below entry (for long positions)
-            stop_loss = entry_price - (atr * 2)
+            # Take-profit: At nearest resistance
+            near_resistance = support_resistance.get('near_resistance')
+            if near_resistance:
+                resistance_level = near_resistance.get('level', entry_price * 1.03)
+                take_profit = resistance_level
+            else:
+                # Use strongest resistance level
+                valid_resistance = support_resistance.get('valid_resistance', [])
+                if valid_resistance:
+                    strongest_resistance = valid_resistance[0].get('level', entry_price * 1.03)
+                    take_profit = strongest_resistance
+                else:
+                    take_profit = None
             
-            # Take-profit: 3 ATR above entry (1.5:1 risk-reward)
-            take_profit = entry_price + (atr * 3)
+            # Fallback to ATR if no support/resistance available
+            if stop_loss is None or take_profit is None:
+                if 'atr' in indicators:
+                    atr = indicators['atr']
+                    if isinstance(atr, pd.Series):
+                        atr = atr.iloc[-1] if not pd.isna(atr.iloc[-1]) else entry_price * 0.02
+                    
+                    if stop_loss is None:
+                        stop_loss = entry_price - (atr * 2)
+                    if take_profit is None:
+                        take_profit = entry_price + (atr * 3)
+                else:
+                    if stop_loss is None:
+                        stop_loss = entry_price * 0.98
+                    if take_profit is None:
+                        take_profit = entry_price * 1.03
         else:
-            # Fallback: 2% stop-loss, 3% take-profit
-            stop_loss = entry_price * 0.98
-            take_profit = entry_price * 1.03
+            # Use ATR for stop-loss
+            if 'atr' in indicators:
+                atr = indicators['atr']
+                if isinstance(atr, pd.Series):
+                    atr = atr.iloc[-1] if not pd.isna(atr.iloc[-1]) else entry_price * 0.02
+                
+                # Stop-loss: 2 ATR below entry (for long positions)
+                stop_loss = entry_price - (atr * 2)
+                
+                # Take-profit: 3 ATR above entry (1.5:1 risk-reward)
+                take_profit = entry_price + (atr * 3)
+            else:
+                # Fallback: 2% stop-loss, 3% take-profit
+                stop_loss = entry_price * 0.98
+                take_profit = entry_price * 1.03
         
         return round(stop_loss, 2), round(take_profit, 2)
     

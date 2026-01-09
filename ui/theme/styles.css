@@ -1,0 +1,845 @@
+/* Stockport v5 Dark Theme Styles */
+
+/* ---------------------------------------------------------
+   Design tokens (dark)
+   --------------------------------------------------------- */
+:root {
+    --sp-bg: #0B1220;
+    --sp-bg-2: #0F172A;
+    --sp-panel: rgba(17, 24, 39, 0.55);     /* section background */
+    --sp-card: rgba(18, 26, 42, 0.85);      /* card background */
+    --sp-card-2: rgba(22, 27, 34, 0.85);    /* alt card */
+    --sp-border: rgba(148, 163, 184, 0.16);
+    --sp-divider: rgba(148, 163, 184, 0.10);
+    --sp-text: #F9FAFB;
+    --sp-text-2: #D1D5DB;
+    --sp-muted: rgba(209, 213, 219, 0.62);
+    --sp-accent: #3B82F6; /* actions only */
+    --sp-profit: #22C55E; /* outcomes */
+    --sp-loss: #EF4444;   /* outcomes */
+    --sp-warn: #F59E0B;
+    --sp-radius: 14px;
+    --sp-shadow-1: 0 10px 28px rgba(0, 0, 0, 0.35);
+    --sp-shadow-2: 0 18px 48px rgba(0, 0, 0, 0.45);
+    --sp-inset: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --sp-z1-height: 48px;
+    --sp-z2-height: 34px;
+}
+
+/* Base App Styling */
+.stApp {
+    background-color: var(--sp-bg);
+    color: var(--sp-text);
+}
+
+/* Main Container - Full Width */
+.main .block-container {
+    background-color: var(--sp-bg);
+    padding-top: 0.5rem;
+    padding-bottom: 0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Remove Streamlit's default max-width constraint */
+.stApp > div {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Full width for all containers */
+[data-testid="stAppViewContainer"] {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+[data-testid="stAppViewContainer"] > div {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--sp-text);
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 1.45rem; /* Reduced from 1.65rem */
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+}
+
+h2 {
+    font-size: 1.25rem; /* Reduced from 1.45rem */
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.01em;
+}
+
+h3 {
+    font-size: 0.95rem; /* Reduced from 1.0rem */
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.005em;
+}
+
+/* Text */
+p, span, div, label {
+    color: var(--sp-text-2);
+}
+
+/* Captions / meta */
+.stCaption, [data-testid="stCaptionContainer"] {
+    color: var(--sp-muted) !important;
+    font-size: 0.75rem !important; /* Reduced from 0.80rem */
+    line-height: 1.2;
+    margin-top: -0.1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Metrics */
+[data-testid="stMetricValue"] {
+    color: var(--sp-text);
+    font-size: 1.75rem; /* 28px */
+    font-weight: 700;
+}
+
+[data-testid="stMetricLabel"] {
+    color: var(--sp-muted);
+    font-size: 0.80rem; /* 12.8px */
+    letter-spacing: 0.01em;
+}
+
+[data-testid="stMetricDelta"] {
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------
+   IMPORTANT: Stop "boxing everything"
+   Streamlit wraps most elements in `.element-container`.
+   We keep it lightweight and apply surfaces explicitly (sp_surface).
+   --------------------------------------------------------- */
+.element-container {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0.35rem;
+    box-shadow: none;
+}
+
+/* 3-level hierarchy surfaces */
+.sp-surface {
+    background: var(--sp-panel);
+    border-radius: var(--sp-radius);
+    padding: 0.75rem 0.85rem;
+    box-shadow: var(--sp-shadow-1);
+    border: 1px solid rgba(148, 163, 184, 0.10);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin-bottom: 0.5rem;
+}
+
+.sp-hero {
+    padding: 0.85rem 0.95rem;
+    box-shadow: var(--sp-shadow-2);
+    border: 1px solid rgba(59, 130, 246, 0.10);
+    background:
+        radial-gradient(1200px 420px at 20% -10%, rgba(59, 130, 246, 0.14), transparent 55%),
+        radial-gradient(900px 380px at 100% 0%, rgba(34, 197, 94, 0.08), transparent 55%),
+        var(--sp-panel);
+    margin-bottom: 0.5rem;
+}
+
+.sp-l2 {
+    background: var(--sp-panel);
+}
+
+.sp-l3 {
+    background: rgba(17, 24, 39, 0.35);
+    box-shadow: none;
+    border: 1px solid var(--sp-divider);
+}
+
+.sp-rail {
+    background: rgba(15, 23, 42, 0.55);
+    box-shadow: none;
+    border: 1px solid var(--sp-divider);
+}
+
+.sp-section-title {
+    font-size: 1.25rem; /* Reduced from 1.45rem */
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--sp-text);
+    margin: 0 0 0.25rem 0;
+}
+
+.sp-subtitle {
+    color: var(--sp-muted);
+    font-size: 0.78rem;
+    margin-top: -0.15rem;
+    margin-bottom: 0.35rem;
+}
+
+/* Card typography primitives */
+.sp-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sp-symbol {
+    font-weight: 650;
+    color: var(--sp-text);
+    font-size: 1.0rem;
+    letter-spacing: -0.01em;
+}
+
+.sp-meta {
+    color: var(--sp-muted);
+    font-size: 0.80rem;
+    margin-top: 0.15rem;
+}
+
+.sp-pill {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--sp-divider);
+    background: rgba(2, 6, 23, 0.18);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.sp-kpi {
+    text-align: right;
+}
+
+.sp-kpi-label {
+    color: var(--sp-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+}
+
+.sp-kpi-value {
+    color: var(--sp-text);
+    font-size: 1.45rem; /* 23px */
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-top: 0.15rem;
+}
+
+.sp-divider {
+    height: 1px;
+    background: var(--sp-divider);
+    margin: 0.45rem 0 0.35rem 0;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: var(--sp-accent);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 12px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.stButton > button:hover {
+    background-color: #2563EB;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Input Fields */
+.stTextInput > div > div > input {
+    background-color: rgba(2, 6, 23, 0.35);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-divider);
+    border-radius: 12px;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Selectboxes */
+.stSelectbox > div > div > select {
+    background-color: #161B22;
+    color: #F9FAFB;
+    border: 1px solid #374151;
+    border-radius: 8px;
+}
+
+/* Sliders */
+.stSlider > div > div > div {
+    background-color: #374151;
+}
+
+.stSlider > div > div > div > div {
+    background-color: #3B82F6;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: transparent;
+    border-bottom: 1px solid var(--sp-divider);
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: var(--sp-muted);
+    padding: 0.55rem 1.0rem;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--sp-accent);
+    border-bottom: 2px solid var(--sp-accent);
+}
+
+/* Dataframes */
+.dataframe {
+    background-color: #161B22;
+    color: #D1D5DB;
+}
+
+.dataframe thead {
+    background-color: #121A2A;
+    color: #F9FAFB;
+}
+
+.dataframe tbody tr:hover {
+    background-color: #1F2937;
+}
+
+/* Expanders */
+.streamlit-expanderHeader {
+    background-color: rgba(15, 23, 42, 0.40);
+    color: var(--sp-text);
+    border: 1px solid var(--sp-divider);
+    border-radius: 12px;
+    padding: 0.65rem 0.85rem;
+    box-shadow: var(--sp-inset);
+}
+
+.streamlit-expanderContent {
+    background-color: rgba(2, 6, 23, 0.28);
+    border: 1px solid var(--sp-divider);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 0.85rem 0.85rem;
+}
+
+/* Progress Bars */
+.stProgress > div > div > div {
+    background-color: #374151;
+}
+
+.stProgress > div > div > div > div {
+    background-color: #3B82F6;
+}
+
+/* Alerts/Info Boxes */
+.stAlert {
+    border-radius: 12px;
+    border: 1px solid var(--sp-divider);
+}
+
+.stAlert[data-baseweb="notification"] {
+    background-color: rgba(15, 23, 42, 0.40);
+}
+
+/* Command Bar Styles */
+.command-bar {
+    background-color: #121A2A;
+    border-bottom: 1px solid #374151;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------------------------------------------------------
+   Terminal zones (Z1–Z5)
+   --------------------------------------------------------- */
+.sp-zone {
+    width: 100%;
+}
+
+.sp-z1 {
+    position: sticky;
+    top: 0;
+    z-index: 500;
+    height: var(--sp-z1-height);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(15, 23, 42, 0.92);
+    border-bottom: 1px solid var(--sp-divider);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sp-z2 {
+    position: sticky;
+    top: var(--sp-z1-height);
+    z-index: 450;
+    height: var(--sp-z2-height);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.2rem 0.75rem;
+    color: var(--sp-muted);
+    background: rgba(11, 18, 32, 0.74);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.sp-z3 {
+    background: rgba(2, 6, 23, 0.22);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    border-radius: var(--sp-radius);
+    padding: 0.65rem 0.75rem;
+    min-height: auto;
+}
+
+.sp-z4 {
+    background: rgba(2, 6, 23, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    border-radius: var(--sp-radius);
+    padding: 0.55rem 0.65rem;
+    max-height: calc(100vh - var(--sp-z1-height) - var(--sp-z2-height) - 2.5rem);
+    overflow-y: auto;
+}
+
+/* Z1 inline typography */
+.sp-sys-brand {
+    color: var(--sp-text);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 0.95rem;
+    margin-right: 0.25rem;
+}
+
+.sp-sys-meta {
+    color: var(--sp-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.sp-sys-kpi {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.sp-sys-kpi strong {
+    color: var(--sp-text);
+    font-weight: 750;
+    font-size: 0.9rem;
+}
+
+.sp-sys-actions .stButton > button {
+    background: rgba(59, 130, 246, 0.14);
+    color: var(--sp-text);
+    border: 1px solid rgba(59, 130, 246, 0.30);
+    border-radius: 10px;
+    padding: 0.35rem 0.65rem;
+    font-weight: 650;
+}
+
+.sp-sys-actions .stButton > button:hover {
+    background: rgba(59, 130, 246, 0.22);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Context badges */
+.sp-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(2, 6, 23, 0.16);
+    line-height: 1;
+}
+
+.sp-badge .sp-badge-label {
+    color: rgba(209, 213, 219, 0.55);
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+}
+
+.sp-badge .sp-badge-value {
+    color: var(--sp-text-2);
+    font-size: 0.80rem;
+    font-weight: 650;
+}
+
+
+/* Workspace Navigation */
+.workspace-nav {
+    background-color: #121A2A;
+    border-bottom: 1px solid #374151;
+    padding: 0.5rem 2rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.workspace-tab {
+    padding: 0.75rem 1.5rem;
+    background-color: transparent;
+    color: #9CA3AF;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.workspace-tab:hover {
+    color: #D1D5DB;
+}
+
+.workspace-tab.active {
+    color: #3B82F6;
+    border-bottom-color: #3B82F6;
+}
+
+/* Card used for interactive/clickable elements only */
+.sp-card {
+    background: var(--sp-card);
+    border: 1px solid var(--sp-divider);
+    border-radius: var(--sp-radius);
+    padding: 0.95rem 0.95rem;
+    box-shadow: var(--sp-shadow-1);
+}
+
+.sp-clickable {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.sp-clickable:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.40);
+    transform: translateY(-2px);
+}
+
+/* Intentional empty state */
+.sp-empty {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.95rem 1.0rem;
+    border-radius: var(--sp-radius);
+    border: 1px solid var(--sp-divider);
+    background: rgba(2, 6, 23, 0.18);
+}
+
+.sp-empty-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(209, 213, 219, 0.55);
+    background: rgba(148, 163, 184, 0.07);
+    border: 1px solid rgba(148, 163, 184, 0.10);
+    flex: 0 0 auto;
+    margin-top: 0.05rem;
+    font-size: 0.95rem;
+}
+
+.sp-empty-title {
+    font-weight: 600;
+    color: var(--sp-text);
+    font-size: 0.95rem;
+    line-height: 1.2;
+    margin-bottom: 0.15rem;
+}
+
+.sp-empty-desc {
+    color: var(--sp-muted);
+    font-size: 0.82rem;
+    line-height: 1.25;
+}
+
+.sp-empty-hint {
+    margin-top: 0.35rem;
+    color: rgba(209, 213, 219, 0.52);
+    font-size: 0.78rem;
+}
+
+/* Confidence Gauge */
+.confidence-gauge {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+/* Provider Health Tiles */
+.sp-provider-tile {
+    position: relative;
+    background: var(--sp-card-2);
+    border: 1px solid var(--sp-divider);
+    border-radius: var(--sp-radius);
+    padding: 0.85rem 0.9rem;
+    box-shadow: var(--sp-inset);
+    overflow: hidden;
+}
+
+.sp-provider-tile::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--sp-status, rgba(148, 163, 184, 0.25));
+    opacity: 0.95;
+}
+
+.sp-provider-tile[data-glow="true"] {
+    box-shadow:
+        0 16px 38px rgba(var(--sp-status-rgb, 0, 0, 0), 0.12),
+        var(--sp-inset);
+}
+
+.sp-provider-name {
+    color: var(--sp-text);
+    font-weight: 650;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.2rem 0;
+}
+
+.sp-provider-status {
+    color: var(--sp-status, var(--sp-muted));
+    font-weight: 650;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.55rem;
+    text-transform: uppercase;
+}
+
+.sp-provider-metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--sp-muted);
+    font-size: 0.80rem;
+    line-height: 1.2;
+    margin-top: 0.25rem;
+}
+
+.sp-provider-metric strong {
+    color: var(--sp-text-2);
+    font-weight: 600;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #121A2A;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4B5563;
+}
+
+/* Full Width Layout - Override Streamlit Defaults */
+section[data-testid="stAppViewContainer"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+div[data-testid="stAppViewContainer"] > div {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Remove Streamlit's default padding */
+.stApp > header {
+    visibility: hidden;
+    height: 0;
+}
+
+/* Full width for columns */
+.stColumn {
+    width: 100% !important;
+}
+
+/* Live indicators - trader-centric */
+.sp-live-dot {
+    position: relative;
+    display: inline-block;
+    width: var(--sp-dot-size, 8px);
+    height: var(--sp-dot-size, 8px);
+    margin-right: 0.35rem;
+}
+
+.sp-live-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--sp-dot-color, #22C55E);
+    animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.sp-live-pulse::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--sp-dot-color, #22C55E);
+    opacity: 0.6;
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.sp-live-dot-inline {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22C55E;
+    margin-right: 0.25rem;
+    animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    vertical-align: middle;
+}
+
+.sp-timestamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--sp-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+}
+
+.sp-timestamp-text {
+    font-family: 'Courier New', monospace;
+}
+
+.sp-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: var(--sp-badge-color, #22C55E);
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.sp-live-pulse-inline {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--sp-badge-color, #22C55E);
+    animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+    .command-bar {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .workspace-nav {
+        padding: 0.5rem 1rem;
+        overflow-x: auto;
+    }
+    
+    h1 {
+        font-size: 1.45rem;
+    }
+    
+    h2 {
+        font-size: 1.2rem;
+    }
+}
+

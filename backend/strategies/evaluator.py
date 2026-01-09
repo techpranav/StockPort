@@ -46,7 +46,8 @@ class StrategyEvaluator:
     def evaluate_opportunity(
         self,
         opportunity: Opportunity,
-        market_state: Optional[Dict[str, Any]] = None
+        market_state: Optional[Dict[str, Any]] = None,
+        historical_data: Optional[Any] = None  # pd.DataFrame if available
     ) -> List[StrategySignal]:
         """
         Evaluate opportunity against all active strategies.
@@ -54,6 +55,7 @@ class StrategyEvaluator:
         Args:
             opportunity: Opportunity to evaluate
             market_state: Current market state (optional)
+            historical_data: Historical price data (optional, for strategies that need it)
             
         Returns:
             List of strategy signals (one per matching strategy)
@@ -82,8 +84,14 @@ class StrategyEvaluator:
                     if not strategy.is_applicable(regime):
                         continue
                 
-                # Evaluate opportunity
-                signal = strategy.evaluate(opportunity, market_state)
+                # Evaluate opportunity (pass historical_data if strategy supports it)
+                # Check if strategy's evaluate method accepts historical_data parameter
+                import inspect
+                sig = inspect.signature(strategy.evaluate)
+                if 'historical_data' in sig.parameters:
+                    signal = strategy.evaluate(opportunity, market_state, historical_data)
+                else:
+                    signal = strategy.evaluate(opportunity, market_state)
                 
                 if signal:
                     signals.append(signal)

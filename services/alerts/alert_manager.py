@@ -255,6 +255,32 @@ class AlertManager:
                 volatility = risk_metrics.get('volatility', 0)
                 return volatility > 30.0  # High volatility threshold
             
+            elif alert.alert_type == AlertType.SUPPORT_BREAKOUT:
+                # Support broken (price went below support)
+                support_resistance = current_data.get('support_resistance', {})
+                near_support = support_resistance.get('near_support')
+                current_price = current_data.get('current_price') or current_data.get('price')
+                if near_support and current_price:
+                    support_level = near_support.get('level', 0)
+                    return current_price < support_level * 0.99  # 1% below support = broken
+            
+            elif alert.alert_type == AlertType.RESISTANCE_BREAKOUT:
+                # Resistance broken (price went above resistance)
+                support_resistance = current_data.get('support_resistance', {})
+                near_resistance = support_resistance.get('near_resistance')
+                current_price = current_data.get('current_price') or current_data.get('price')
+                if near_resistance and current_price:
+                    resistance_level = near_resistance.get('level', 0)
+                    return current_price > resistance_level * 1.01  # 1% above resistance = broken
+            
+            elif alert.alert_type == AlertType.SUPPORT_BOUNCE:
+                # Price bounced off support
+                support_resistance = current_data.get('support_resistance', {})
+                near_support = support_resistance.get('near_support')
+                if near_support:
+                    bounce_prob = near_support.get('bounce_probability', 0)
+                    return bounce_prob > 0.7  # High bounce probability
+            
             elif alert.alert_type == AlertType.CUSTOM:
                 # Evaluate custom condition (simplified - would need proper expression evaluator)
                 if alert.condition:

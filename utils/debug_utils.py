@@ -83,7 +83,8 @@ class DebugUtils:
             return
 
         # Create logger
-        DebugUtils._logger = logging.getLogger('StockAnalyzer')
+        # Use a more generic logger name to avoid confusion
+        DebugUtils._logger = logging.getLogger('Stockport')
 
         # Set log level from settings
         log_level = getattr(logging, LOG_LEVEL.upper(), logging.DEBUG)

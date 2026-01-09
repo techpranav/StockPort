@@ -92,10 +92,14 @@ class AlertEngine:
                         # Prepare current data for alert checking
                         current_data = {
                             'current_price': analysis.get('base_data', {}).get('current_price'),
+                            'price': analysis.get('base_data', {}).get('current_price'),
                             'signal_type': analysis.get('entry_signals', {}).get('signal_type') if analysis.get('entry_signals') else None,
+                            'entry_signal': analysis.get('entry_signals', {}),
                             'patterns': analysis.get('patterns', {}),
                             'volume_spike': analysis.get('indicators', {}).get('unusual_volume'),
-                            'risk_metrics': analysis.get('risk_metrics', {})
+                            'unusual_volume': analysis.get('indicators', {}).get('unusual_volume'),
+                            'risk_metrics': analysis.get('risk_metrics', {}),
+                            'support_resistance': analysis.get('support_resistance', {})  # Add support/resistance data
                         }
                         
                         # Check alerts

@@ -1,40 +1,71 @@
+# Core Framework
 streamlit>=1.28.0
 extra-streamlit-components>=0.1.60
 requests>=2.31.0
 python-dotenv>=1.0.0
+
+# Security & Authentication
 cryptography>=41.0.0
 itsdangerous>=2.1.0
-razorpay>=1.3.0
-stripe>=7.0.0
-google-auth-oauthlib>=1.0.0
-google-auth>=2.23.0
 bcrypt>=4.0.0
 msal>=1.20.0
-# Enhanced analysis dependencies
+google-auth-oauthlib>=1.0.0
+google-auth>=2.23.0
+
+# Payment Processing
+razorpay>=1.3.0
+stripe>=7.0.0
+
+# Data Analysis & Scientific Computing
 numpy>=1.24.0
 pandas>=2.0.0
 # pandas-ta>=0.3.14b  # Commented out - incompatible with Python 3.14, using ta-lib alternative or manual calculations
 scipy>=1.10.0
+
+# HTTP & Async
 aiohttp>=3.8.0
+
+# Visualization
 plotly>=5.14.0
+
+# Market Data Providers
 yfinance>=0.2.28
+jugaad-data>=0.0.1
+# NSEDownload - requires cloning from GitHub (see INSTALLATION.md)
+# git clone https://github.com/rajatdiptabiswas/NSEDownload.git NSEDownload
+# cd NSEDownload && pip install -e .
+nsepython>=2.97
+# smartapi>=1.1.0  # Optional - requires C++ build tools (PyCrypto dependency)
+# Note: smartapi installation may fail on Windows without Visual C++ Build Tools
+# If needed, install: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+# Report Generation
 python-docx>=1.0.0
 openpyxl>=3.1.0
 markdown>=3.4.0
+
+# AI Integration (Optional)
 openai>=1.0.0
+
+# Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0
+
+# Web Framework
 flask>=3.0.0
-nsepython>=2.97
-# Stockport v4 dependencies
+
+# Stockport v4 Backend Dependencies
 redis>=5.0.0
+fakeredis>=2.18.0  # In-memory Redis mock for development (set USE_FAKEREDIS=true)
 psycopg2-binary>=2.9.0
 celery>=5.3.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 websockets>=12.0
 pyyaml>=6.0
-# Market data provider libraries
-jugaad-data>=0.0.1
-NSEDownload>=1.0.0
-smartapi>=1.2.0
+pydantic>=2.0.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+pymdown-extensions>=10.0.0

@@ -2,6 +2,10 @@
 Stockport v4 Main Application
 
 Multi-page Streamlit application for Stockport v4 trading platform.
+
+⚠️ DEPRECATED: This version is maintained for backward compatibility.
+New development should use ui.app_v5 (Trading OS workspace model).
+Set ENABLE_V5_UI=false to use this version.
 """
 
 import streamlit as st

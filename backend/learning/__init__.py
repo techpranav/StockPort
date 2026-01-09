@@ -1,17 +1,11 @@
 """
-Learning Module
+Learning Package
 
-Provides performance tracking, decay detection, and strategy optimization:
-- Performance tracking with comprehensive metrics
-- Decay detection for strategy monitoring
-- Performance analysis and reporting
+Strategy performance tracking and optimization.
 """
 
-from backend.learning.performance_tracker import PerformanceTracker, StrategyPerformance
-from backend.learning.decay_detector import DecayDetector
+from backend.learning.strategy_performance_tracker import StrategyPerformanceTracker
 
 __all__ = [
-    'PerformanceTracker',
-    'StrategyPerformance',
-    'DecayDetector'
+    'StrategyPerformanceTracker'
 ]

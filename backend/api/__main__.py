@@ -1,7 +1,7 @@
 """
 REST API Entry Point
 
-Run with: python -m backend.api.rest_api
+Run with: python -m backend.api
 """
 
 import os

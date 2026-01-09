@@ -1,0 +1,141 @@
+site_name: Stockport Documentation
+site_url: http://localhost:8000/docs/
+site_description: Developer documentation for Stockport - trading backend + Streamlit Trading OS UI
+
+# Documentation directory (MkDocs defaults to "docs", keep explicit)
+docs_dir: docs
+
+# Repository
+repo_name: stockport
+repo_url: https://github.com/your-org/stockport
+edit_uri: edit/main/docs/
+
+# Theme
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  icon:
+    repo: fontawesome/brands/github
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"`/]+'
+
+# Markdown extensions
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+# Navigation
+nav:
+  - Start Here: index.md
+  - Getting Started: GETTING_STARTED.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - System Design: architecture/system-design.md
+      - Data Flow: architecture/data-flow.md
+      - Components: architecture/components.md
+  - Setup:
+      - Prerequisites: setup/prerequisites.md
+      - Installation: setup/installation.md
+      - Configuration: setup/configuration.md
+      - Environment Variables: setup/environment-variables.md
+      - Backend Startup: setup/backend-startup.md
+      - Troubleshooting: setup/troubleshooting.md
+  - Backend:
+      - Overview: backend/overview.md
+      - Core: backend/core-components.md
+      - Data Providers: backend/data-providers.md
+      - Market State: backend/market-state.md
+      - Strategy System: backend/strategy-system.md
+      - Capital & Risk: backend/capital-risk.md
+      - Execution: backend/execution.md
+      - Scanners: backend/scanners.md
+  - API:
+      - REST API: api/rest-api.md
+      - WebSocket API: api/websocket-api.md
+      - Endpoints Index: api/endpoints.md
+  - Frontend (Streamlit):
+      - Overview: frontend/overview.md
+      - Trading OS Model (v5): frontend/trading-os.md
+      - Components: frontend/ui-components.md
+      - Data Service Layer: frontend/data-service.md
+      - Theming & Layout: frontend/theming.md
+  - Testing:
+      - Overview: testing/overview.md
+      - Unit Tests: testing/unit-tests.md
+      - Integration Tests: testing/integration-tests.md
+  - Operations:
+      - Deployment: operations/deployment.md
+      - Monitoring: operations/monitoring.md
+      - Troubleshooting: operations/troubleshooting.md
+  - Reference:
+      - Current API Notes: api.md
+      - Current Architecture Notes: architecture.md
+      - Models Notes: models.md
+      - Services Notes: services.md
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-org/stockport
+  version:
+    provider: mike
+
+# Copyright
+copyright: Copyright &copy; 2024 Stockport v4
+

@@ -19,6 +19,9 @@ class AlertType(Enum):
     PATTERN_DETECTED = "pattern_detected"
     VOLUME_SPIKE = "volume_spike"
     RISK_HIGH = "risk_high"
+    SUPPORT_BREAKOUT = "support_breakout"
+    RESISTANCE_BREAKOUT = "resistance_breakout"
+    SUPPORT_BOUNCE = "support_bounce"
     CUSTOM = "custom"
 
 

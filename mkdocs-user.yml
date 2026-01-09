@@ -1,0 +1,119 @@
+site_name: Stockport User Guide
+site_url: http://127.0.0.1:8002/
+site_description: End-user documentation for Stockport - understand workspaces, components, and daily workflow
+
+# Documentation directory
+docs_dir: docs/user
+
+# Site directory (separate from developer docs)
+site_dir: site-user
+
+# Repository
+repo_name: stockport
+repo_url: https://github.com/your-org/stockport
+edit_uri: edit/main/docs/user/
+
+# Theme
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+  icon:
+    repo: fontawesome/brands/github
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-,:!=\[\]()"`/]+'
+
+# Markdown extensions
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+# Navigation
+nav:
+  - Welcome: index.md
+  - Getting Started: getting-started.md
+  - Workspaces:
+      - Overview: workspaces/overview.md
+      - Insight: workspaces/insight.md
+      - Discover: workspaces/discover.md
+      - Decide: workspaces/decide.md
+      - Execute: workspaces/execute.md
+      - Review: workspaces/review.md
+  - Concepts:
+      - Signals & Opportunities: concepts/signals-and-opportunities.md
+      - Confidence & Regime: concepts/confidence-and-regime.md
+      - Capital, Risk, Execution: concepts/capital-risk-execution.md
+  - UI Components:
+      - Command Bar: components/command-bar.md
+      - Opportunity Radar: components/opportunity-radar.md
+      - Signal Cards: components/signal-cards.md
+      - Provider Health: components/provider-health.md
+      - Charts: components/charts.md
+  - Guides:
+      - Daily Workflow: guides/daily-workflow.md
+      - Troubleshooting: guides/troubleshooting.md
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-org/stockport
+  version:
+    provider: mike
+
+# Copyright
+copyright: Copyright &copy; 2024 Stockport v4
+

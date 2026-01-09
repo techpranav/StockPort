@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from models.signals import EntrySignal
 
 from utils.debug_utils import DebugUtils
+from services.analyzers.indicators.support_resistance import SupportResistanceCalculator
 
 
 class SignalTranslator:
@@ -24,16 +25,19 @@ class SignalTranslator:
     def __init__(self):
         """Initialize signal translator."""
         DebugUtils.info("Initialized SignalTranslator")
+        self.support_resistance_calc = SupportResistanceCalculator()
     
     def translate_signal(
         self,
-        entry_signal: Dict[str, Any]
+        entry_signal: Dict[str, Any],
+        support_resistance: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
         """
-        Translate entry signal to simple language.
+        Translate entry signal to simple language with support/resistance context.
         
         Args:
             entry_signal: Entry signal dictionary
+            support_resistance: Support/resistance levels (optional)
             
         Returns:
             Dictionary with simple language translations
@@ -45,21 +49,26 @@ class SignalTranslator:
         # Simple recommendation
         recommendation = self._get_recommendation(signal_type, score)
         
-        # Simple explanation
-        explanation = self._get_explanation(signal_type, score, confidence)
+        # Simple explanation with support/resistance context
+        explanation = self._get_explanation(signal_type, score, confidence, support_resistance)
         
-        # Actionable advice
-        advice = self._get_advice(signal_type, entry_signal)
+        # Actionable advice with support/resistance context
+        advice = self._get_advice(signal_type, entry_signal, support_resistance)
         
         # Risk level in simple terms
         risk_level = self._get_risk_level(entry_signal.get('risk_metrics', {}))
+        
+        # Educational content
+        educational = self._get_educational_content(signal_type, support_resistance)
         
         return {
             'recommendation': recommendation,
             'explanation': explanation,
             'advice': advice,
             'risk_level': risk_level,
-            'confidence_text': self._get_confidence_text(confidence)
+            'confidence_text': self._get_confidence_text(confidence),
+            'educational': educational,
+            'support_resistance_context': self._get_sr_context(support_resistance)
         }
     
     def _get_recommendation(self, signal_type: str, score: float) -> str:
@@ -79,9 +88,10 @@ class SignalTranslator:
         self,
         signal_type: str,
         score: float,
-        confidence: float
+        confidence: float,
+        support_resistance: Optional[Dict[str, Any]] = None
     ) -> str:
-        """Get simple explanation."""
+        """Get simple explanation with support/resistance context."""
         base_explanation = ""
         
         if signal_type == 'STRONG_BUY':
@@ -95,6 +105,21 @@ class SignalTranslator:
         else:
             base_explanation = "The signals for this stock are unclear. More analysis may be needed."
         
+        # Add support/resistance context
+        if support_resistance:
+            near_support = support_resistance.get('near_support')
+            near_resistance = support_resistance.get('near_resistance')
+            
+            if near_support:
+                support_level = near_support.get('level', 0)
+                bounce_prob = near_support.get('bounce_probability', 0)
+                if bounce_prob > 0.6:
+                    base_explanation += f" The stock is near a strong support level at ₹{support_level:.2f}, which increases the chance of a price bounce."
+            
+            if near_resistance:
+                resistance_level = near_resistance.get('level', 0)
+                base_explanation += f" There's a resistance level at ₹{resistance_level:.2f} that the stock may need to break through."
+        
         # Add confidence context
         if confidence > 0.8:
             base_explanation += " The analysis is highly confident in this recommendation."
@@ -105,8 +130,13 @@ class SignalTranslator:
         
         return base_explanation
     
-    def _get_advice(self, signal_type: str, entry_signal: Dict[str, Any]) -> str:
-        """Get actionable advice."""
+    def _get_advice(
+        self,
+        signal_type: str,
+        entry_signal: Dict[str, Any],
+        support_resistance: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Get actionable advice with support/resistance context."""
         entry_price = entry_signal.get('entry_price', 0)
         stop_loss = entry_signal.get('stop_loss')
         take_profit = entry_signal.get('take_profit')
@@ -116,16 +146,36 @@ class SignalTranslator:
         if signal_type in ['STRONG_BUY', 'BUY']:
             advice_parts.append(f"Consider buying around ₹{entry_price:.2f}")
             
+            # Add support/resistance context
+            if support_resistance:
+                near_support = support_resistance.get('near_support')
+                if near_support:
+                    support_level = near_support.get('level', 0)
+                    advice_parts.append(f"The stock is near support at ₹{support_level:.2f}, which is a good entry point")
+            
             if stop_loss:
                 advice_parts.append(f"Set a stop-loss at ₹{stop_loss:.2f} to limit potential losses")
             
             if take_profit:
                 advice_parts.append(f"Consider taking profits around ₹{take_profit:.2f}")
             
+            if support_resistance:
+                near_resistance = support_resistance.get('near_resistance')
+                if near_resistance:
+                    resistance_level = near_resistance.get('level', 0)
+                    advice_parts.append(f"Watch for resistance at ₹{resistance_level:.2f} - price may struggle to break above this level")
+            
             advice_parts.append("Monitor the stock closely and adjust your position based on market conditions")
         
         elif signal_type == 'WATCH':
             advice_parts.append("Don't buy yet - wait for stronger signals")
+            
+            if support_resistance:
+                near_support = support_resistance.get('near_support')
+                if near_support:
+                    support_level = near_support.get('level', 0)
+                    advice_parts.append(f"Watch for a bounce off support at ₹{support_level:.2f} - that could be a good entry point")
+            
             advice_parts.append("Add this stock to your watchlist and check back regularly")
             advice_parts.append("Look for price movements that confirm a buying opportunity")
         
