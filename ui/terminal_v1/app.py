@@ -39,11 +39,26 @@ from ui.terminal_v1.workspaces.backtest import (
     render_backtest_context_strip,
     render_backtest_canvas
 )
+from ui.terminal_v1.workspaces.health import (
+    render_health_context_strip,
+    render_health_canvas
+)
+from ui.terminal_v1.workspaces.export import (
+    render_export_context_strip,
+    render_export_canvas
+)
 from ui.terminal_v1.layout.canvas import render_canvas
 
 
 def main() -> None:
     """Main application entry point."""
+    # Check URL parameters for workspace
+    query_params = st.query_params
+    if 'active_workspace' in query_params:
+        workspace_from_url = query_params['active_workspace']
+        if workspace_from_url in ['discover', 'insight', 'decide', 'execute', 'review', 'backtest', 'health', 'export']:
+            st.session_state.active_workspace = workspace_from_url
+    
     # Initialize session state
     if 'active_workspace' not in st.session_state:
         st.session_state.active_workspace = 'discover'
@@ -53,6 +68,8 @@ def main() -> None:
 
     # Handle workspace changes
     def on_workspace_change(new_workspace: str) -> None:
+        """Handle workspace change and update session state."""
+        # Update session state immediately
         st.session_state.active_workspace = new_workspace
 
     # Apply theme via CSS class injection
@@ -125,12 +142,25 @@ def main() -> None:
             render_z3=render_backtest_context_strip,
             render_z4=lambda: render_canvas(render_backtest_canvas)
         )
-    else:
-        # Fallback
+    elif active_workspace == 'health':
         render_shell(
             active_workspace=active_workspace,
             on_workspace_change=on_workspace_change,
-            render_z4=lambda: st.info(f"Workspace '{active_workspace}' not found.")
+            render_z3=render_health_context_strip,
+            render_z4=lambda: render_canvas(render_health_canvas)
+        )
+    elif active_workspace == 'export':
+        render_shell(
+            active_workspace=active_workspace,
+            on_workspace_change=on_workspace_change,
+            render_z3=render_export_context_strip,
+            render_z4=lambda: render_canvas(render_export_canvas)
+        )
+    else:
+        render_shell(
+            active_workspace=active_workspace,
+            on_workspace_change=on_workspace_change,
+            render_z4=lambda: st.error(f"Workspace '{active_workspace}' not found.")
         )
 
 

@@ -54,12 +54,26 @@ def render_insight_canvas() -> None:
         readiness = data_service.get_market_readiness()
         bias = data_service.get_todays_bias()
         next_action = data_service.get_next_action_eta()
-        
-        # Confidence display
-        col1, col2, col3, col4 = st.columns([1.5, 1, 1, 1])
-        
-        with col1:
-            # Simple confidence display (gauge would go here)
+    except RuntimeError as e:
+        st.error(f"❌ Backend Error: {str(e)}")
+        st.error("Please ensure the backend service is running and accessible.")
+        confidence = None
+        readiness = None
+        bias = "ERROR"
+        next_action = None
+    except Exception as e:
+        st.error(f"❌ Unexpected Error: {str(e)}")
+        confidence = None
+        readiness = None
+        bias = "ERROR"
+        next_action = None
+    
+    # Confidence display
+    col1, col2, col3, col4 = st.columns([1.5, 1, 1, 1])
+    
+    with col1:
+        # Simple confidence display (gauge would go here)
+        if confidence is not None:
             st.markdown(
                 f'''
                 <div style="text-align: center; padding: var(--spacing-lg);">
@@ -73,24 +87,20 @@ def render_insight_canvas() -> None:
                 ''',
                 unsafe_allow_html=True
             )
+        else:
+            st.error("Algo confidence not available")
         
         with col2:
-            st.metric("Readiness", f"{readiness:.0f}")
+            if readiness is not None:
+                st.metric("Readiness", f"{readiness:.0f}")
+            else:
+                st.metric("Readiness", "N/A")
         
         with col3:
             st.metric("Bias", bias or "—")
         
         with col4:
             st.metric("Next", next_action or "—")
-            
-    except Exception as e:
-        render_operational_status(
-            status="NOT READY",
-            opportunities=0,
-            last_scan=datetime.now().strftime("%H:%M:%S"),
-            show_live=True,
-            reason="Waiting for market + strategy inputs to compute state."
-        )
     
     st.markdown('</div>', unsafe_allow_html=True)
     

@@ -5,6 +5,17 @@ from typing import Dict, Any, List
 import pandas as pd
 from datetime import datetime
 
+
+def ensure_directory_exists(directory_path: str) -> None:
+    """
+    Ensure that a directory exists, creating it if necessary.
+    
+    Args:
+        directory_path: Path to the directory to create
+    """
+    Path(directory_path).mkdir(parents=True, exist_ok=True)
+
+
 class FileUtils:
     def __init__(self, input_dir: str, output_dir: str):
         self.input_dir = Path(input_dir)

@@ -1,38 +1,27 @@
-# Stockport v4 Developer Documentation
+# Stockport User Guide
 
-Welcome to the Stockport v4 developer documentation!
+Welcome to the Stockport User Guide.
 
-## What is Stockport v4?
+## Getting Started
 
-Stockport v4 is a fully automated, always-on stock analysis and trading system designed for personal use. It functions as a "trading brain" that continuously scans the market, evaluates opportunities, manages capital and risk, and can execute trades automatically.
+Start here: [Getting Started](getting-started.md)
 
-## Quick Links
+## The Trading OS model
 
-- [Getting Started](GETTING_STARTED.md) - Set up your development environment
-- [Architecture Overview](architecture/overview.md) - Understand the system design
-- [API Documentation](api/rest-api.md) - REST API reference
-- [Frontend Components](frontend/ui-components.md) - UI component guide
+Stockport organizes the UI into five workspaces:
 
-## Key Features
+- **Insight** → market + system state
+- **Discover** → opportunity radar + signal stream
+- **Decide** → one signal at a time, risk–reward first
+- **Execute** → order timeline + execution quality
+- **Review** → performance + replay and learning
 
-- **Always-on Backend**: System runs continuously, independent of UI
-- **Event-driven Architecture**: Components communicate via Redis pub/sub
-- **Capital-aware Decisions**: Every decision considers available capital and risk limits
-- **Multi-strategy Evaluation**: Opportunities evaluated across multiple strategies
-- **Learning System**: Tracks performance and improves strategy selection over time
-- **Safety First**: Multiple layers of risk management and kill-switch mechanisms
+Start with **[Workspaces Overview](workspaces/overview.md)**.
 
-## Documentation Structure
+## What this guide covers
 
-- **Architecture**: System design and component details
-- **Setup**: Installation and configuration guides
-- **Backend**: Backend component documentation
-- **API**: REST API and WebSocket documentation
-- **Frontend**: UI components and navigation
-- **Testing**: Testing guides and best practices
-- **Operations**: Deployment and monitoring
-
-## For AI Assistants
-
-See [CHATGPT_COMPREHENSIVE_GUIDE.md](CHATGPT_COMPREHENSIVE_GUIDE.md) for a complete overview of the system for AI assistants.
+- **Features**: scanner, signals, provider health, alerts, settings, execution (`features/`)
+- **Strategies**: how each strategy works and when to use it (`strategies/`)
+- **Decision making**: how signals become approved/rejected decisions (`decision-making/`)
+- **FAQ**: common issues and fixes (`faq/`)
 

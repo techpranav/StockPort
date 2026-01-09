@@ -8,6 +8,7 @@ import streamlit as st
 from typing import List, Dict, Any
 
 from ui.terminal_v1.services.ui_data_service import get_ui_data_service
+from ui.terminal_v1.components.primitives.operational_status import render_operational_status
 from ui.terminal_v1.components.charts.radar import render_radar
 from ui.terminal_v1.components.stream.stream_row import render_stream_row
 from ui.terminal_v1.components.stream.stream_list import render_stream_list
@@ -74,9 +75,22 @@ def render_discover_canvas() -> None:
     
     data_service = get_ui_data_service()
     
-    # Get data
-    opportunities = data_service.get_opportunities(limit=100)
-    signals = data_service.get_signals(limit=50)
+    # Get data with error handling
+    try:
+        opportunities = data_service.get_opportunities(limit=100)
+        signals = data_service.get_signals(limit=50)
+    except RuntimeError as e:
+        st.error(f"❌ Backend Error: {str(e)}")
+        st.error("Please ensure the backend service is running and accessible.")
+        opportunities = []
+        signals = []
+    except Exception as e:
+        st.error(f"❌ Unexpected Error: {str(e)}")
+        import traceback
+        with st.expander("Error Details"):
+            st.code(traceback.format_exc())
+        opportunities = []
+        signals = []
     
     # Filter signals by min score
     min_score = st.session_state.get('discover_min_score', 60)

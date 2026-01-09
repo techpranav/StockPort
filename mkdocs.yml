@@ -2,13 +2,14 @@ site_name: Stockport Documentation
 site_url: http://localhost:8000/docs/
 site_description: Developer documentation for Stockport - trading backend + Streamlit Trading OS UI
 
-# Documentation directory (MkDocs defaults to "docs", keep explicit)
-docs_dir: docs
+# Documentation directory
+# Dev docs live under docs/dev (user docs are a separate site via mkdocs-user.yml)
+docs_dir: docs/dev
 
 # Repository
 repo_name: stockport
 repo_url: https://github.com/your-org/stockport
-edit_uri: edit/main/docs/
+edit_uri: edit/main/docs/dev/
 
 # Theme
 theme:
@@ -81,13 +82,18 @@ markdown_extensions:
 
 # Navigation
 nav:
-  - Start Here: index.md
-  - Getting Started: GETTING_STARTED.md
-  - Architecture:
-      - Overview: architecture/overview.md
-      - System Design: architecture/system-design.md
-      - Data Flow: architecture/data-flow.md
-      - Components: architecture/components.md
+  - Overview:
+      - Start Here: index.md
+      - Getting Started: GETTING_STARTED.md
+      - Switch to User guide: switch-to-user.md
+      - Tech Stack: tech-stack.md
+      - Directory Structure: directory-structure.md
+      - Architecture:
+          - Overview: architecture/overview.md
+          - System Design: architecture/system-design.md
+          - Data Flow: architecture/data-flow.md
+          - Components: architecture/components.md
+      - Development principles: tooling.md
   - Setup:
       - Prerequisites: setup/prerequisites.md
       - Installation: setup/installation.md
@@ -101,9 +107,28 @@ nav:
       - Data Providers: backend/data-providers.md
       - Market State: backend/market-state.md
       - Strategy System: backend/strategy-system.md
+      - Decision Engine: backend/decision-engine.md
       - Capital & Risk: backend/capital-risk.md
       - Execution: backend/execution.md
       - Scanners: backend/scanners.md
+  - Strategy System (Deep Dive):
+      - Overview: strategy-system/overview.md
+      - Base Strategy: strategy-system/base-strategy.md
+      - Evaluator: strategy-system/evaluator.md
+      - Registry & Loader: strategy-system/registry-and-loader.md
+      - Strategies:
+          - Breakout: strategy-system/strategies/breakout.md
+          - Mean Reversion: strategy-system/strategies/mean-reversion.md
+          - Momentum: strategy-system/strategies/momentum.md
+          - Support/Resistance Bounce: strategy-system/strategies/support-resistance-bounce.md
+          - Swing Trading: strategy-system/strategies/swing-trading.md
+          - Trend Following: strategy-system/strategies/trend-following.md
+  - Data Providers (Extending):
+      - Overview: data-providers/overview.md
+      - Adding a new provider: data-providers/adding-new-provider.md
+  - Brokers:
+      - Configuring brokers: brokers/configuring-brokers.md
+      - SmartAPI Integration: SMARTAPI_INTEGRATION.md
   - API:
       - REST API: api/rest-api.md
       - WebSocket API: api/websocket-api.md
@@ -114,14 +139,25 @@ nav:
       - Components: frontend/ui-components.md
       - Data Service Layer: frontend/data-service.md
       - Theming & Layout: frontend/theming.md
+  - Flows:
+      - End-to-end flow: flows/end-to-end-flow.md
+  - Extension Guides:
+      - Adding a new strategy: extension-guides/adding-new-strategy.md
   - Testing:
       - Overview: testing/overview.md
       - Unit Tests: testing/unit-tests.md
       - Integration Tests: testing/integration-tests.md
+      - Tests README: testing/tests-readme.md
   - Operations:
       - Deployment: operations/deployment.md
       - Monitoring: operations/monitoring.md
       - Troubleshooting: operations/troubleshooting.md
+      - Port management: operations/port-management.md
+      - Docs publishing: operations/docs-publishing.md
+  - AI:
+      - ChatGPT overview: ai/chatgpt-overview.md
+  - FAQ:
+      - Common issues: faq/common-issues.md
   - Reference:
       - Current API Notes: api.md
       - Current Architecture Notes: architecture.md

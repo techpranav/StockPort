@@ -9,6 +9,7 @@ import streamlit as st
 from typing import Callable, Optional
 
 from ui.terminal_v1.services.ui_data_service import get_ui_data_service
+from ui.terminal_v1.services.health_service import get_health_service
 
 
 def render_system_bar() -> None:
@@ -47,13 +48,25 @@ def render_system_bar() -> None:
     
     # Left: Brand + Health
     with col_left:
+        # Check backend health
+        health_service = get_health_service()
+        backend_down = health_service.is_backend_down()
+        
+        health_class = 'green' if health == 'GREEN' else 'yellow' if health == 'YELLOW' else 'red' if health == 'RED' else 'neutral'
+        if backend_down:
+            health_class = 'red'
+            health = 'DOWN'
+        
+        # Add blinking class if backend is down
+        blink_class = 'sp-health-blink' if backend_down else ''
+        
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; gap: var(--spacing-md);">
                 <div style="font-weight: var(--font-weight-bold); color: var(--color-text);">
                     STOCKPORT
                 </div>
-                <span class="sp-status-pill {'green' if health == 'GREEN' else 'yellow' if health == 'YELLOW' else 'red' if health == 'RED' else 'neutral'}">
+                <span class="sp-status-pill {health_class} {blink_class}">
                     {health}
                 </span>
             </div>
@@ -108,11 +121,17 @@ def render_system_bar() -> None:
         
         with mid_col2:
             # Algo Confidence
-            conf_color = "#22C55E" if algo_confidence >= 80 else "#CBD5E1" if algo_confidence >= 60 else "#F59E0B" if algo_confidence >= 40 else "#EF4444"
-            st.markdown(
-                f'<div style="text-align: center;"><span style="color: var(--color-muted); font-size: var(--font-size-xs);">Algo</span><br><strong style="color: {conf_color};">{int(algo_confidence)}</strong></div>',
-                unsafe_allow_html=True
-            )
+            if algo_confidence is not None:
+                conf_color = "#22C55E" if algo_confidence >= 80 else "#CBD5E1" if algo_confidence >= 60 else "#F59E0B" if algo_confidence >= 40 else "#EF4444"
+                st.markdown(
+                    f'<div style="text-align: center;"><span style="color: var(--color-muted); font-size: var(--font-size-xs);">Algo</span><br><strong style="color: {conf_color};">{int(algo_confidence)}</strong></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    '<div style="text-align: center;"><span style="color: var(--color-muted); font-size: var(--font-size-xs);">Algo</span><br><strong style="color: var(--color-red);">--</strong></div>',
+                    unsafe_allow_html=True
+                )
         
         with mid_col3:
             # Bias
@@ -177,7 +196,7 @@ def render_system_bar() -> None:
 
 def render_workspace_tabs(active_workspace: str, on_workspace_change: Callable[[str], None]) -> None:
     """Render Z2: Workspace Tabs (horizontal only, subtle mode indicators)."""
-    workspaces = ['discover', 'insight', 'decide', 'execute', 'review', 'backtest']
+    workspaces = ['discover', 'insight', 'decide', 'execute', 'review', 'backtest', 'health', 'export']
     
     # Use Streamlit columns with styled buttons
     cols = st.columns(len(workspaces), gap="small")
@@ -185,8 +204,14 @@ def render_workspace_tabs(active_workspace: str, on_workspace_change: Callable[[
     for idx, ws in enumerate(workspaces):
         with cols[idx]:
             is_active = ws == active_workspace
-            if st.button(ws.upper(), key=f"tab_{ws}", use_container_width=True):
+            # Use consistent key for each workspace
+            button_key = f"tab_{ws}"
+            clicked = st.button(ws.upper(), key=button_key, use_container_width=True)
+            if clicked:
+                # Update state immediately before callback
+                st.session_state.active_workspace = ws
                 on_workspace_change(ws)
+                # Force rerun to reflect changes
                 st.rerun()
     
     # Style tabs to be subtle and mode-like

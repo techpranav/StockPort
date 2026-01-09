@@ -1,5 +1,15 @@
 /* Component Styles - Primitives Only */
 
+/* Health Blinking Animation */
+@keyframes healthBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.sp-health-blink {
+    animation: healthBlink 1s ease-in-out infinite;
+}
+
 /* Status Pill */
 .sp-status-pill {
     display: inline-flex;

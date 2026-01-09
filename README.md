@@ -47,11 +47,12 @@ For detailed setup instructions, see [Authentication Setup Guide](docs/AUTHENTIC
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher (tested on Python 3.10+ and 3.14)
 - Internet connection for stock data fetching
 - Google account (optional, for Google Drive integration)
 - OAuth providers (optional, for social login)
 - Stripe account (optional, for payment processing)
+- Angel One account (optional, for SmartAPI live data - see [SmartAPI Integration Guide](docs/dev/SMARTAPI_INTEGRATION.md))
 
 ## Installation
 
@@ -70,7 +71,12 @@ Or download and extract the ZIP file to a folder named `Stockport`.
 pip install -r requirements.txt
 ```
 
-**Note**: If you encounter issues with `pydrive2`, try:
+**Important Notes**:
+- **SmartAPI Installation**: SmartApi is installed with `--no-deps` to avoid PyCrypto dependency issues. We use `pycryptodome` as a drop-in replacement. See [SmartAPI Integration Guide](docs/dev/SMARTAPI_INTEGRATION.md) for details.
+- **PyCrypto**: Do NOT install PyCrypto. We use `pycryptodome` instead.
+- **Import SmartConnect**: Always import from `broker.angelone`, never directly from SmartApi.
+
+**If you encounter issues with `pydrive2`, try:**
 ```bash
 pip uninstall pydrive2 pydrive
 pip install pydrive2==1.21.3

@@ -3,7 +3,11 @@ site_url: http://127.0.0.1:8002/
 site_description: End-user documentation for Stockport - understand workspaces, components, and daily workflow
 
 # Documentation directory
-docs_dir: docs/user
+docs_dir: docs
+
+# Do not publish developer documentation into the user site
+exclude_docs: |
+  dev/**
 
 # Site directory (separate from developer docs)
 site_dir: site-user
@@ -11,7 +15,7 @@ site_dir: site-user
 # Repository
 repo_name: stockport
 repo_url: https://github.com/your-org/stockport
-edit_uri: edit/main/docs/user/
+edit_uri: edit/main/docs/
 
 # Theme
 theme:
@@ -83,8 +87,10 @@ markdown_extensions:
 
 # Navigation
 nav:
-  - Welcome: index.md
-  - Getting Started: getting-started.md
+  - Overview:
+      - Welcome: index.md
+      - Getting Started: getting-started.md
+      - Switch to Developer docs: switch-to-dev.md
   - Workspaces:
       - Overview: workspaces/overview.md
       - Insight: workspaces/insight.md
@@ -102,9 +108,33 @@ nav:
       - Signal Cards: components/signal-cards.md
       - Provider Health: components/provider-health.md
       - Charts: components/charts.md
+  - Features:
+      - Scanner: features/scanner.md
+      - Signals: features/signals.md
+      - Provider Health: features/provider-health.md
+      - Alerts: features/alerts.md
+      - Settings: features/settings.md
+      - Execution: features/execution.md
+  - Strategies:
+      - Overview: strategies/overview.md
+      - Breakout: strategies/breakout.md
+      - Mean Reversion: strategies/mean-reversion.md
+      - Momentum: strategies/momentum.md
+      - Support/Resistance Bounce: strategies/support-resistance-bounce.md
+      - Swing Trading: strategies/swing-trading.md
+      - Trend Following: strategies/trend-following.md
+  - Decision Making:
+      - How decisions are taken: decision-making/how-decisions-are-taken.md
+      - How strategies are scored: decision-making/how-strategies-are-scored.md
+      - Risk & position sizing: decision-making/risk-and-position-sizing.md
   - Guides:
       - Daily Workflow: guides/daily-workflow.md
       - Troubleshooting: guides/troubleshooting.md
+  - FAQ:
+      - General: faq/general.md
+      - Strategies: faq/strategies.md
+      - Data Providers: faq/data-providers.md
+      - Execution: faq/execution.md
 
 # Extra
 extra:

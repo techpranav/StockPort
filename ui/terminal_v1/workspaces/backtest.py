@@ -191,15 +191,18 @@ def render_backtest_canvas() -> None:
                         st.rerun()
                         
                     except ImportError as e:
-                        st.warning(f"Backtest engine not available: {e}. Using simulation mode.")
-                        # Fallback: simulate success
-                        st.success("✅ Backtest simulation completed!")
-                        st.session_state['last_backtest_id'] = f"backtest_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        st.rerun()
-                        
+                        st.error(f"❌ Backtest engine not available: {e}")
+                        st.error("Please ensure all required services are properly installed and configured.")
+                        DebugUtils.log_error(e, "Backtest engine import error")
+                        return
+                
                 except Exception as e:
                     st.error(f"❌ Backtest failed: {str(e)}")
+                    st.error("Check logs for detailed error information.")
                     DebugUtils.log_error(e, "Backtest execution error")
+                    import traceback
+                    with st.expander("Error Details"):
+                        st.code(traceback.format_exc())
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -209,30 +212,96 @@ def render_backtest_canvas() -> None:
         # Get last backtest if available
         if 'last_backtest_id' in st.session_state:
             backtest_id = st.session_state['last_backtest_id']
-            st.info(f"Showing results for: {backtest_id}")
             
-            # Mock results display
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Total Return", "₹12,500.00")
-                st.metric("Return %", "12.5%")
-            
-            with col2:
-                st.metric("Win Rate", "65.0%")
-                st.metric("Total Trades", "20")
-            
-            with col3:
-                st.metric("Avg Profit", "₹1,250.00")
-                st.metric("Avg Loss", "₹-500.00")
-            
-            with col4:
-                st.metric("Profit Factor", "2.50")
-                st.metric("Max Drawdown", "5.2%")
-            
-            # Trades table placeholder
-            st.subheader("Trades")
-            st.info("Trade details will appear here after backtest completes.")
+            try:
+                # Load actual backtest result from storage
+                from services.storage.backtest_storage import BacktestStorage
+                from models.backtest_result import BacktestResult, BacktestTrade, TradeStatus, TradeType
+                from datetime import datetime as dt
+                
+                backtest_storage = BacktestStorage()
+                result_data = backtest_storage.load_backtest(backtest_id)
+                
+                if result_data:
+                    st.info(f"Showing results for: {backtest_id}")
+                    
+                    # Display actual metrics from result data
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        total_return = result_data.get('total_return', 0.0)
+                        return_pct = result_data.get('total_return_pct', 0.0)
+                        st.metric("Total Return", f"₹{total_return:,.2f}")
+                        st.metric("Return %", f"{return_pct:.2f}%")
+                    
+                    with col2:
+                        win_rate = result_data.get('win_rate', 0.0)
+                        total_trades = result_data.get('total_trades', 0)
+                        st.metric("Win Rate", f"{win_rate:.1f}%")
+                        st.metric("Total Trades", str(total_trades))
+                    
+                    with col3:
+                        avg_profit = result_data.get('avg_profit', 0.0)
+                        avg_loss = result_data.get('avg_loss', 0.0)
+                        st.metric("Avg Profit", f"₹{avg_profit:,.2f}")
+                        st.metric("Avg Loss", f"₹{avg_loss:,.2f}")
+                    
+                    with col4:
+                        profit_factor = result_data.get('profit_factor', 0.0)
+                        max_drawdown_pct = result_data.get('max_drawdown_pct', 0.0)
+                        st.metric("Profit Factor", f"{profit_factor:.2f}")
+                        st.metric("Max Drawdown", f"{max_drawdown_pct:.2f}%")
+                    
+                    # Display actual trades
+                    trades_list = result_data.get('trades', [])
+                    if trades_list:
+                        st.subheader("Trades")
+                        trades_data = []
+                        for trade_data in trades_list:
+                            # Parse entry/exit dates
+                            entry_date_str = trade_data.get('entry_date', '')
+                            exit_date_str = trade_data.get('exit_date', '')
+                            
+                            try:
+                                entry_date = dt.fromisoformat(entry_date_str.replace('Z', '+00:00')) if entry_date_str else None
+                            except:
+                                entry_date = None
+                            
+                            try:
+                                exit_date = dt.fromisoformat(exit_date_str.replace('Z', '+00:00')) if exit_date_str else None
+                            except:
+                                exit_date = None
+                            
+                            trades_data.append({
+                                'Symbol': trade_data.get('symbol', 'N/A'),
+                                'Entry Date': entry_date.strftime('%Y-%m-%d %H:%M') if entry_date else 'N/A',
+                                'Exit Date': exit_date.strftime('%Y-%m-%d %H:%M') if exit_date else 'N/A',
+                                'Entry Price': f"₹{trade_data.get('entry_price', 0):.2f}",
+                                'Exit Price': f"₹{trade_data.get('exit_price', 0):.2f}" if trade_data.get('exit_price') else 'N/A',
+                                'Quantity': trade_data.get('quantity', 0),
+                                'P&L': f"₹{trade_data.get('profit_loss', 0):,.2f}",
+                                'Status': trade_data.get('status', 'N/A')
+                            })
+                        trades_df = pd.DataFrame(trades_data)
+                        st.dataframe(trades_df, use_container_width=True)
+                    else:
+                        st.info("No trades executed in this backtest.")
+                else:
+                    st.error(f"❌ Backtest result not found: {backtest_id}")
+                    st.error("The backtest may have failed or was not saved properly.")
+                    render_operational_status(
+                        status="NO RESULTS",
+                        opportunities=0,
+                        show_live=False,
+                        reason=f"Backtest {backtest_id} not found in storage."
+                    )
+                    
+            except Exception as e:
+                st.error(f"❌ Error loading backtest results: {str(e)}")
+                DebugUtils.log_error(e, "Error loading backtest results")
+                import traceback
+                with st.expander("Error Details"):
+                    st.code(traceback.format_exc())
         else:
             render_operational_status(
                 status="NO RESULTS",
@@ -244,22 +313,109 @@ def render_backtest_canvas() -> None:
     with tab3:
         render_section_header("Backtest History")
         
-        # Mock history
-        st.info("Backtest history will appear here. Run backtests to build history.")
-        
-        # Placeholder for history table
-        history_data = {
-            'Strategy': ['Default Strategy', 'Momentum Strategy'],
-            'Symbols': ['AAPL, GOOG', 'MSFT, TSLA'],
-            'Period': ['2023-01-01 to 2024-01-01', '2023-06-01 to 2024-01-01'],
-            'Return %': ['12.5%', '8.3%'],
-            'Win Rate': ['65.0%', '58.0%'],
-            'Created': ['2024-01-01', '2024-01-05']
-        }
-        
-        if history_data['Strategy']:
-            history_df = pd.DataFrame(history_data)
-            st.dataframe(history_df, use_container_width=True)
+        try:
+            # Load actual backtest history from storage
+            from services.storage.backtest_storage import BacktestStorage
+            from datetime import datetime as dt
+            
+            backtest_storage = BacktestStorage()
+            history = backtest_storage.list_backtests()
+            
+            if history:
+                # Build history table from actual results
+                history_data = {
+                    'ID': [],
+                    'Strategy': [],
+                    'Symbols': [],
+                    'Period': [],
+                    'Return %': [],
+                    'Win Rate': [],
+                    'Total Trades': [],
+                    'Created': []
+                }
+                
+                for backtest in history:
+                    history_data['ID'].append(backtest.get('id', 'N/A'))
+                    history_data['Strategy'].append(backtest.get('strategy_name', 'N/A'))
+                    
+                    symbols = backtest.get('symbols', [])
+                    history_data['Symbols'].append(', '.join(symbols) if symbols else 'N/A')
+                    
+                    # Parse dates
+                    start_date_str = backtest.get('start_date', '')
+                    end_date_str = backtest.get('end_date', '')
+                    
+                    try:
+                        if start_date_str:
+                            start_dt = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                            start_str = start_dt.strftime('%Y-%m-%d')
+                        else:
+                            start_str = 'N/A'
+                    except:
+                        start_str = 'N/A'
+                    
+                    try:
+                        if end_date_str:
+                            end_dt = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                            end_str = end_dt.strftime('%Y-%m-%d')
+                        else:
+                            end_str = 'N/A'
+                    except:
+                        end_str = 'N/A'
+                    
+                    history_data['Period'].append(f"{start_str} to {end_str}")
+                    
+                    return_pct = backtest.get('total_return_pct', 0.0)
+                    history_data['Return %'].append(f"{return_pct:.2f}%")
+                    
+                    win_rate = backtest.get('win_rate', 0.0)
+                    history_data['Win Rate'].append(f"{win_rate:.1f}%")
+                    
+                    # Get full backtest to get total_trades
+                    backtest_id = backtest.get('id')
+                    if backtest_id:
+                        full_result = backtest_storage.load_backtest(backtest_id)
+                        total_trades = full_result.get('total_trades', 0) if full_result else 0
+                    else:
+                        total_trades = 0
+                    history_data['Total Trades'].append(str(total_trades))
+                    
+                    created_str = backtest.get('created_at', '')
+                    try:
+                        if created_str:
+                            created_dt = dt.fromisoformat(created_str.replace('Z', '+00:00'))
+                            created_str = created_dt.strftime('%Y-%m-%d %H:%M')
+                    except:
+                        pass
+                    history_data['Created'].append(created_str if created_str else 'N/A')
+                
+                history_df = pd.DataFrame(history_data)
+                st.dataframe(history_df, use_container_width=True)
+                
+                # Allow selecting a backtest to view
+                if len(history) > 0:
+                    selected_id = st.selectbox(
+                        "Select backtest to view details:",
+                        options=[bt.get('id') for bt in history if bt.get('id')],
+                        key="backtest_history_select"
+                    )
+                    if selected_id:
+                        st.session_state['last_backtest_id'] = selected_id
+                        st.info("Switch to 'Results' tab to view details.")
+            else:
+                render_operational_status(
+                    status="NO HISTORY",
+                    opportunities=0,
+                    show_live=False,
+                    reason="No backtests have been run yet. Run a backtest to see history here."
+                )
+                
+        except Exception as e:
+            st.error(f"❌ Error loading backtest history: {str(e)}")
+            DebugUtils.log_error(e, "Error loading backtest history")
+            import traceback
+            with st.expander("Error Details"):
+                st.code(traceback.format_exc())
 
 
 # Note: render_backtest_context_strip and render_backtest_canvas are used directly from app.py

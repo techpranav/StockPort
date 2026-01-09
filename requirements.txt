@@ -35,9 +35,11 @@ jugaad-data>=0.0.1
 # git clone https://github.com/rajatdiptabiswas/NSEDownload.git NSEDownload
 # cd NSEDownload && pip install -e .
 nsepython>=2.97
-# smartapi>=1.1.0  # Optional - requires C++ build tools (PyCrypto dependency)
-# Note: smartapi installation may fail on Windows without Visual C++ Build Tools
-# If needed, install: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+SmartApi>=1.1.0  # Angel Broking SmartAPI SDK
+# Note: Install SmartApi with --no-deps to avoid PyCrypto dependency issues:
+# pip install SmartApi --no-deps
+# Then install pycryptodome separately (already listed below)
+pycryptodome>=3.23.0  # Drop-in replacement for PyCrypto (required by SmartApi)
 
 # Report Generation
 python-docx>=1.0.0
