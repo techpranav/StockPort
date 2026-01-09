@@ -1,0 +1,20 @@
+/* Density Modes - Compact / Normal */
+
+.sp-density-compact {
+    --spacing-xs: 0.2rem;
+    --spacing-sm: 0.4rem;
+    --spacing-md: 0.6rem;
+    --spacing-lg: 0.8rem;
+    --spacing-xl: 1.2rem;
+    
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.8rem;
+    --font-size-base: 0.9rem;
+    --font-size-lg: 1rem;
+    --font-size-xl: 1.1rem;
+}
+
+.sp-density-normal {
+    /* Uses default tokens */
+}
+

@@ -1,0 +1,86 @@
+/* Main Stylesheet - Imports All */
+
+@import url('./tokens.css');
+@import url('./layout.css');
+@import url('./components.css');
+@import url('./density.css');
+@import url('./animations.css');
+
+/* Base Reset */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* Streamlit Overrides - Force Full Width */
+.main .block-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 5 !important;
+    width: 100% !important;
+}
+
+/* Override Streamlit's default centered container */
+.st-emotion-cache-1w723zb,
+[class*="st-emotion-cache"][class*="block-container"] {
+    width: 100% !important;
+    max-width: 95% !important;
+    padding: 0 !important;
+    margin: 10px 25px  !important;
+}
+
+/* Ensure all Streamlit containers are full width */
+section[data-testid="stAppViewContainer"] > div {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Reduce vertical spacing for density */
+.element-container {
+    margin-bottom: var(--spacing-sm) !important;
+}
+
+/* Left-align all content */
+.stColumn {
+    text-align: left;
+}
+
+.stApp {
+    background: var(--color-bg) !important;
+}
+
+/* Hide Streamlit default UI */
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
+#MainMenu {
+    visibility: hidden !important;
+}
+
+footer {
+    visibility: hidden !important;
+}
+
+/* Ensure HTML is rendered, not escaped */
+.stMarkdown {
+    color: inherit;
+}
+
+/* Fix any HTML display issues */
+.stMarkdown p {
+    margin: 0;
+}
+
+/* Ensure proper rendering of custom HTML */
+[data-testid="stMarkdownContainer"] {
+    color: inherit;
+}
+

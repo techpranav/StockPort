@@ -1,0 +1,210 @@
+/* Animations - Make System Feel Alive */
+
+/* Live Dot Pulse Animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+.sp-live-dot {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sp-radar-container {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Slide In Animation */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.sp-stream-row {
+    animation: slideIn 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+.sp-stream-row:nth-child(1) { animation-delay: 0.05s; }
+.sp-stream-row:nth-child(2) { animation-delay: 0.1s; }
+.sp-stream-row:nth-child(3) { animation-delay: 0.15s; }
+.sp-stream-row:nth-child(4) { animation-delay: 0.2s; }
+.sp-stream-row:nth-child(5) { animation-delay: 0.25s; }
+
+/* Hover Glow Effect */
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+    }
+}
+
+.sp-stream-row:hover {
+    animation: glow 1.5s ease-in-out infinite;
+    transform: translateX(4px);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+/* Status Pill Shimmer */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.sp-status-pill.green {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(34, 197, 94, 0.1) 100%);
+    background-size: 2000px 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+.sp-status-pill.yellow {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.2) 50%, rgba(245, 158, 11, 0.1) 100%);
+    background-size: 2000px 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+/* Scanning Indicator Animation */
+@keyframes scan {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.sp-scanning-indicator::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+    animation: scan 2s linear infinite;
+}
+
+/* Value Update Animation */
+@keyframes valueUpdate {
+    0% {
+        transform: scale(1);
+        color: var(--color-text);
+    }
+    50% {
+        transform: scale(1.1);
+        color: var(--color-accent);
+    }
+    100% {
+        transform: scale(1);
+        color: var(--color-text);
+    }
+}
+
+.sp-metric-inline-value {
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.sp-metric-inline-value.updated {
+    animation: valueUpdate 0.6s ease;
+}
+
+/* Section Header Fade In */
+.sp-section-header {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Operational Status Pulse */
+@keyframes statusPulse {
+    0%, 100% {
+        border-color: var(--color-border);
+    }
+    50% {
+        border-color: var(--color-accent);
+    }
+}
+
+.sp-operational-status {
+    animation: statusPulse 3s ease-in-out infinite;
+    transition: border-color 0.3s ease;
+}
+
+/* Smooth Transitions */
+* {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Tab Active Indicator Animation */
+@keyframes tabActive {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+.sp-z2-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--color-accent);
+    animation: tabActive 0.3s ease-out;
+}
+
+/* Radar Container Glow */
+.sp-radar-container:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    transition: box-shadow 0.3s ease;
+}
+
+/* System Bar Gradient Animation */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.sp-z1 {
+    background: linear-gradient(90deg, var(--color-bg-2) 0%, var(--color-bg) 50%, var(--color-bg-2) 100%);
+    background-size: 200% 100%;
+    animation: gradientShift 10s ease infinite;
+}
+
