@@ -188,7 +188,13 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
         """Fetch historical price data."""
         try:
             ticker = self.fetch_with_retry(symbol, yf.Ticker, symbol)
-            return self._historical_fetcher.fetch_historical_data(ticker, symbol, period, interval)
+            # Convert period to days_back for the fetcher
+            period_days = {
+                "1d": 1, "5d": 5, "1mo": 30, "3mo": 90, "6mo": 180,
+                "1y": 365, "2y": 730, "5y": 1825, "10y": 3650, "ytd": 365, "max": 3650
+            }
+            days_back = period_days.get(period, self.days_back)
+            return self._historical_data_fetcher.fetch_historical_data(ticker, symbol, days_back=days_back, interval=interval)
         except Exception as e:
             DebugUtils.log_error(e, f"Error fetching historical data for {symbol}")
             return pd.DataFrame()
@@ -197,7 +203,7 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
         """Fetch financial statements."""
         try:
             ticker = self.fetch_with_retry(symbol, yf.Ticker, symbol)
-            return self._financial_fetcher.fetch_financial_data(ticker, symbol)
+            return self._financial_data_fetcher.fetch_financial_data(ticker, symbol)
         except Exception as e:
             DebugUtils.log_error(e, f"Error fetching financials for {symbol}")
             return {}
@@ -207,10 +213,38 @@ class YahooFinanceService(StockDataProvider, BaseFetcher):
         try:
             ticker = self.fetch_with_retry(symbol, yf.Ticker, symbol)
             info_dict = self._company_info_fetcher.fetch_company_info(ticker, symbol)
-            return CompanyInfo(**info_dict)
+            
+            if not info_dict:
+                return CompanyInfo(symbol=symbol, name=symbol)
+            
+            # Map Yahoo Finance info dict to CompanyInfo fields
+            # Filter out invalid keys and map address1 to address
+            company_info_dict = {
+                "symbol": symbol,
+                "name": info_dict.get("longName") or info_dict.get("shortName") or symbol,
+                "sector": info_dict.get("sector"),
+                "industry": info_dict.get("industry"),
+                "website": info_dict.get("website"),
+                "description": info_dict.get("longBusinessSummary"),
+                "country": info_dict.get("country"),
+                "currency": info_dict.get("currency"),
+                "exchange": info_dict.get("exchange"),
+                "market_cap": info_dict.get("marketCap"),
+                "employees": info_dict.get("fullTimeEmployees"),
+                "phone": info_dict.get("phone"),
+                "address": info_dict.get("address1") or info_dict.get("address"),  # Map address1 to address
+                "city": info_dict.get("city"),
+                "state": info_dict.get("state"),
+                "zip_code": info_dict.get("zip")
+            }
+            
+            # Remove None values
+            company_info_dict = {k: v for k, v in company_info_dict.items() if v is not None}
+            
+            return CompanyInfo(**company_info_dict)
         except Exception as e:
             DebugUtils.log_error(e, f"Error fetching company info for {symbol}")
-            return CompanyInfo()
+            return CompanyInfo(symbol=symbol, name=symbol)
     
     def fetch_news(self, symbol: str, limit: int = 5) -> List[NewsItem]:
         """Fetch company news."""

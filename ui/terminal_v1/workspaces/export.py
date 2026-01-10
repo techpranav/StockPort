@@ -50,12 +50,27 @@ def render_export_canvas() -> None:
     
     render_section_header("Data Export")
     
-    # Export type selection
-    export_type = st.selectbox(
-        "Export Type",
-        options=["Equity", "Future & Options", "Fundamentals", "Historical Data"],
-        key="export_type"
-    )
+    # Provider selection
+    try:
+        from services.stock_data_factory import StockDataFactory
+        available_providers = StockDataFactory.list_providers()
+    except:
+        available_providers = ["yahoo_finance"]
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        export_type = st.selectbox(
+            "Export Type",
+            options=["Equity", "Future & Options", "Fundamentals", "Historical Data"],
+            key="export_type"
+        )
+    with col2:
+        provider_name = st.selectbox(
+            "Data Provider",
+            options=available_providers,
+            index=0 if "yahoo_finance" in available_providers else 0,
+            key="export_provider"
+        )
     
     st.markdown('<div class="sp-radar-container">', unsafe_allow_html=True)
     
@@ -140,52 +155,85 @@ def render_export_canvas() -> None:
                 # Fetch data based on export type
                 data = None
                 
-                if export_type == "Equity":
-                    # Fetch equity data
+                if export_type == "Equity" or export_type == "Historical Data":
+                    # Fetch historical/equity data using provider
                     try:
-                        from services.data_providers.adapters.adapter_factory import AdapterFactory
-                        adapter = AdapterFactory.get_adapter("yahoo_finance")
+                        from services.stock_data_factory import StockDataFactory
+                        provider = StockDataFactory.get_provider(provider_name)
                         
-                        # Convert timeframe to period
+                        # Convert timeframe to period and interval
                         period_map = {
-                            "1min": "1d",
-                            "5min": "5d",
-                            "15min": "15d",
-                            "30min": "1mo",
-                            "1hour": "3mo",
-                            "1day": "1y",
-                            "1week": "2y",
-                            "1month": "5y"
+                            "1min": ("5d", "1m"),
+                            "5min": ("5d", "5m"),
+                            "15min": ("5d", "15m"),
+                            "30min": ("1mo", "30m"),
+                            "1hour": ("3mo", "1h"),
+                            "1day": ("1y", "1d"),
+                            "1week": ("2y", "1wk"),
+                            "1month": ("5y", "1mo")
                         }
-                        period = period_map.get(timeframe, "1y")
+                        period, interval = period_map.get(timeframe, ("1y", "1d"))
                         
-                        data = adapter.get_historical_data(
-                            symbol=symbol,
-                            start_date=start_date,
-                            end_date=end_date,
-                            interval=timeframe
-                        )
+                        # Fetch historical data
+                        data = provider.fetch_historical_data(symbol, period=period, interval=interval)
+                        
+                        # Filter by date range if data has DatetimeIndex
+                        if not data.empty and isinstance(data.index, pd.DatetimeIndex):
+                            data = data[(data.index.date >= start_date) & (data.index.date <= end_date)]
+                        
                     except Exception as e:
-                        st.error(f"Error fetching equity data: {str(e)}")
-                        DebugUtils.log_error(e, f"Error exporting equity data for {symbol}")
+                        st.error(f"Error fetching {export_type.lower()} data: {str(e)}")
+                        DebugUtils.log_error(e, f"Error exporting {export_type} data for {symbol}")
                         st.markdown('</div>', unsafe_allow_html=True)
                         return
                 
-                elif export_type == "Historical Data":
-                    # Similar to equity but with more options
+                elif export_type == "Fundamentals":
+                    # Fetch fundamentals data using provider
                     try:
-                        from services.data_providers.adapters.adapter_factory import AdapterFactory
-                        adapter = AdapterFactory.get_adapter("yahoo_finance")
+                        from services.stock_data_factory import StockDataFactory
+                        # Try to use selected provider, fallback to yahoo_finance (best fundamentals support)
+                        try:
+                            provider = StockDataFactory.get_provider(provider_name)
+                        except Exception as e:
+                            DebugUtils.warning(f"Provider {provider_name} failed, using yahoo_finance: {e}")
+                            provider = StockDataFactory.get_provider("yahoo_finance")
                         
-                        data = adapter.get_historical_data(
-                            symbol=symbol,
-                            start_date=start_date,
-                            end_date=end_date,
-                            interval=timeframe
-                        )
+                        # Fetch financials
+                        financials = provider.fetch_financials(symbol)
+                        
+                        if not financials:
+                            st.error("No fundamentals data available for the selected symbol.")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                            return
+                        
+                        # Convert financials to DataFrame format for export
+                        # Combine all financial statements into a structured format
+                        export_data = {}
+                        
+                        # Yearly financials
+                        yearly = financials.get("yearly", {})
+                        if yearly:
+                            for statement_type, statement_df in yearly.items():
+                                if isinstance(statement_df, pd.DataFrame) and not statement_df.empty:
+                                    export_data[f"yearly_{statement_type}"] = statement_df
+                        
+                        # Quarterly financials
+                        quarterly = financials.get("quarterly", {})
+                        if quarterly:
+                            for statement_type, statement_df in quarterly.items():
+                                if isinstance(statement_df, pd.DataFrame) and not statement_df.empty:
+                                    export_data[f"quarterly_{statement_type}"] = statement_df
+                        
+                        # If only one statement, use it directly
+                        if len(export_data) == 1:
+                            data = list(export_data.values())[0]
+                        else:
+                            # Combine multiple statements (for Excel multi-sheet export)
+                            data = export_data
+                        
                     except Exception as e:
-                        st.error(f"Error fetching historical data: {str(e)}")
-                        DebugUtils.log_error(e, f"Error exporting historical data for {symbol}")
+                        st.error(f"Error fetching fundamentals data: {str(e)}")
+                        DebugUtils.log_error(e, f"Error exporting fundamentals data for {symbol}")
                         st.markdown('</div>', unsafe_allow_html=True)
                         return
                 
@@ -194,66 +242,108 @@ def render_export_canvas() -> None:
                     st.markdown('</div>', unsafe_allow_html=True)
                     return
                 
-                elif export_type == "Fundamentals":
-                    st.warning("Fundamentals data export not yet implemented. Please use Equity or Historical Data.")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    return
-                
-                if data is None or data.empty:
-                    st.error("No data available for the selected symbol and date range.")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    return
-                
-                # Convert to requested format
-                if export_format == "CSV":
-                    csv = data.to_csv(index=True)
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=csv,
-                        file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.csv",
-                        mime="text/csv",
-                        key="download_csv"
-                    )
-                
-                elif export_format == "Excel":
-                    buffer = io.BytesIO()
-                    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                        data.to_excel(writer, sheet_name='Data', index=True)
-                    buffer.seek(0)
-                    st.download_button(
-                        label="📥 Download Excel",
-                        data=buffer,
-                        file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        key="download_excel"
-                    )
-                
-                elif export_format == "JSON":
-                    json_str = data.to_json(orient='index', date_format='iso')
-                    st.download_button(
-                        label="📥 Download JSON",
-                        data=json_str,
-                        file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.json",
-                        mime="application/json",
-                        key="download_json"
-                    )
-                
-                elif export_format == "Parquet":
-                    buffer = io.BytesIO()
-                    data.to_parquet(buffer, index=True)
-                    buffer.seek(0)
-                    st.download_button(
-                        label="📥 Download Parquet",
-                        data=buffer,
-                        file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.parquet",
-                        mime="application/octet-stream",
-                        key="download_parquet"
-                    )
-                
-                # Show preview
-                st.success(f"✅ Data exported successfully! ({len(data)} rows)")
-                st.subheader("Data Preview")
-                st.dataframe(data.head(100), use_container_width=True)
+                # Handle fundamentals data (dict of DataFrames) vs single DataFrame
+                if export_type == "Fundamentals" and isinstance(data, dict):
+                    # Multiple DataFrames - export as Excel with multiple sheets or JSON
+                    if export_format == "Excel":
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                            for sheet_name, df in data.items():
+                                if isinstance(df, pd.DataFrame) and not df.empty:
+                                    df.to_excel(writer, sheet_name=sheet_name[:31], index=True)  # Excel sheet name limit
+                        buffer.seek(0)
+                        st.download_button(
+                            label="📥 Download Excel",
+                            data=buffer,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="download_excel"
+                        )
+                        st.success(f"✅ Fundamentals exported successfully! ({len(data)} statements)")
+                        # Show preview of first statement
+                        first_df = next(iter(data.values()))
+                        if isinstance(first_df, pd.DataFrame):
+                            st.subheader("Data Preview (First Statement)")
+                            st.dataframe(first_df.head(50), use_container_width=True)
+                    elif export_format == "JSON":
+                        # Convert all DataFrames to dict format
+                        json_data = {}
+                        for key, df in data.items():
+                            if isinstance(df, pd.DataFrame):
+                                json_data[key] = df.to_dict(orient='index')
+                        json_str = json.dumps(json_data, indent=2, default=str)
+                        st.download_button(
+                            label="📥 Download JSON",
+                            data=json_str,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.json",
+                            mime="application/json",
+                            key="download_json"
+                        )
+                        st.success(f"✅ Fundamentals exported successfully! ({len(data)} statements)")
+                    else:
+                        st.warning("Fundamentals export supports Excel (multi-sheet) and JSON formats. Please select one of these.")
+                else:
+                    # Single DataFrame export
+                    if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+                        st.error("No data available for the selected symbol and date range.")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        return
+                    
+                    if not isinstance(data, pd.DataFrame):
+                        st.error(f"Unexpected data type: {type(data)}")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                        return
+                    
+                    # Convert to requested format
+                    if export_format == "CSV":
+                        csv = data.to_csv(index=True)
+                        st.download_button(
+                            label="📥 Download CSV",
+                            data=csv,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.csv",
+                            mime="text/csv",
+                            key="download_csv"
+                        )
+                    
+                    elif export_format == "Excel":
+                        buffer = io.BytesIO()
+                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                            data.to_excel(writer, sheet_name='Data', index=True)
+                        buffer.seek(0)
+                        st.download_button(
+                            label="📥 Download Excel",
+                            data=buffer,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="download_excel"
+                        )
+                    
+                    elif export_format == "JSON":
+                        json_str = data.to_json(orient='index', date_format='iso')
+                        st.download_button(
+                            label="📥 Download JSON",
+                            data=json_str,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.json",
+                            mime="application/json",
+                            key="download_json"
+                        )
+                    
+                    elif export_format == "Parquet":
+                        buffer = io.BytesIO()
+                        data.to_parquet(buffer, index=True)
+                        buffer.seek(0)
+                        st.download_button(
+                            label="📥 Download Parquet",
+                            data=buffer,
+                            file_name=f"{symbol}_{export_type}_{start_date}_{end_date}.parquet",
+                            mime="application/octet-stream",
+                            key="download_parquet"
+                        )
+                    
+                    # Show preview
+                    st.success(f"✅ Data exported successfully! ({len(data)} rows)")
+                    st.subheader("Data Preview")
+                    st.dataframe(data.head(100), use_container_width=True)
                 
             except Exception as e:
                 st.error(f"❌ Export failed: {str(e)}")
