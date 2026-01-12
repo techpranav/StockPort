@@ -1,6 +1,6 @@
 import requests as requests
 
-from services.yahoo_finance import *
+from services.data_providers.yahoo_finance.yahoo_finance_service import YahooFinanceService
 from ai.chatgpt_api import get_stock_summary, getShortSummary, getOverallShortSummary
 from reports.generate_word import generate_word_report
 from reports.generate_excel import generate_excel_report
@@ -11,9 +11,9 @@ import time
 from bs4 import BeautifulSoup
 
 import os
-from constants.Constants import *
-from util.Utils import *
-from util.googledrive import *
+from config.constants.StringConstants import input_dir, output_dir
+from utils.path_utils import getSymbolOutputDirectory, getOutputDirectory
+from utils.google_drive_utils import authenticate_drive, create_drive_folder, upload_file_to_drive
 import traceback
 import openpyxl
 import shutil
@@ -258,7 +258,7 @@ def update_stock_data_in_excel(original_file, updated_file):
 
             try:
                 # Fetch stock data
-                stock_data = fetch_stock_data(stock_symbol)
+                stock_data = YahooFinanceService().fetch_stock_data(stock_symbol)
                 summary_data = getSummarizedData(stock_data)  # Get summarized financials
                 # Update respective columns with the fetched data
                 for key, value in summary_data.items():

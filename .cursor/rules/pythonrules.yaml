@@ -1,0 +1,108 @@
+rules:
+  - id: constants-in-correct-file
+    pattern: ".*"
+    message: "All constants must be declared in constants/ (FinancialConstants.py, Messages.py, NumericConstants.py, StringConstants.py)."
+    severity: error
+    autofix: |
+      If you introduce a constant, place it in the correct file inside constants/:
+        - Numbers → NumericConstants.py
+        - Strings → StringConstants.py
+        - Messages → Messages.py
+        - Financial values → FinancialConstants.py
+      Then import it where needed.
+
+  - id: config-centralized
+    pattern: ".*"
+    message: "Configuration must be centralized in config/settings.py or loaded from environment variables."
+    severity: error
+    autofix: |
+      Do not hardcode configs. Add new config keys in config/settings.py 
+      and load them via os.environ or a config loader.
+
+  - id: imports-absolute
+    pattern: ".*"
+    message: "Avoid relative imports. Use absolute imports."
+    severity: warning
+    autofix: |
+      Convert relative imports to absolute, e.g.:
+      from ..services.user import UserService
+      → from core.services.user import UserService
+
+  - id: type-hints
+    pattern: "def "
+    message: "Functions and methods must include type hints."
+    severity: warning
+    autofix: |
+      Add Python type hints to all parameters and return values.
+
+  - id: docstrings
+    pattern: "def "
+    message: "Public functions/classes must have PEP 257 docstrings."
+    severity: warning
+    autofix: |
+      Add a docstring explaining purpose, arguments, and return type.
+      Use Google-style or reST-style docstrings.
+
+  - id: logging
+    pattern: "print\\("
+    message: "Use logging instead of print()."
+    severity: error
+    autofix: |
+      Replace `print()` with the logging module.
+      Example:
+        import logging
+        logging.info("Message")
+
+  - id: magic-numbers
+    pattern: "[0-9]{2,}"
+    message: "Avoid magic numbers; replace with constants."
+    severity: warning
+    autofix: |
+      Move numeric values into constants/NumericConstants.py 
+      and reference them instead of hardcoding.
+
+  - id: tests-required
+    pattern: ".*"
+    message: "Each new module must have unit tests under tests/."
+    severity: info
+    autofix: |
+      Add or update a test file in tests/ that matches the module name.
+
+  - id: folder-structure-config
+    pattern: ".*"
+    message: "All configuration must be inside config/."
+    severity: error
+    autofix: |
+      If you add a config, put it under config/ (e.g., config/settings.py).
+
+  - id: folder-structure-constants
+    pattern: ".*"
+    message: "All constants must be inside constants/."
+    severity: error
+    autofix: |
+      Place constants inside the appropriate file:
+        - FinancialConstants.py
+        - Messages.py
+        - NumericConstants.py
+        - StringConstants.py
+
+  - id: folder-structure-utils
+    pattern: ".*"
+    message: "Utility functions should be in utils/."
+    severity: warning
+    autofix: |
+      Move reusable helper functions into utils/ package.
+
+  - id: folder-structure-core
+    pattern: ".*"
+    message: "Business/domain logic must reside in core/."
+    severity: warning
+    autofix: |
+      Place business logic classes/functions in core/ package.
+
+  - id: folder-structure-tests
+    pattern: ".*"
+    message: "All tests must be inside tests/."
+    severity: error
+    autofix: |
+      Add or move tests into tests/ package, mirroring the structure of the module they cover.

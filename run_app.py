@@ -1,5 +1,5 @@
 import streamlit as st
-from app.main import main
+from ui.pages.main_page import main
 import os
 import socket
 import sys

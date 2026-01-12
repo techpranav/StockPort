@@ -4,7 +4,8 @@ import random
 import ollama
 import re
 from util.Utils import *
-from constants.Constants import *
+from \
+    constants.Constants import *
 
 CHATGPT_MODE = "CHATGPT"
 OLLAMA_MODE = "OLLAMA"

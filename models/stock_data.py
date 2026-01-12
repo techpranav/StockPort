@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import pandas as pd
+import json
 
 @dataclass
 class CompanyInfo:
@@ -86,11 +87,54 @@ class NewsItem:
     published_date: Optional[datetime] = None
     source: Optional[str] = None
 
+def _safe_dataframe_to_dict(df: pd.DataFrame) -> Dict[str, Any]:
+    """Safely convert DataFrame to dictionary with JSON-serializable keys."""
+    if df is None or df.empty:
+        return {}
+    
+    try:
+        # Convert DataFrame to dict with string keys
+        result = {}
+        df_dict = df.to_dict()
+        
+        for col_key, col_data in df_dict.items():
+            # Convert column key to string
+            str_col_key = str(col_key)
+            result[str_col_key] = {}
+            
+            for row_key, value in col_data.items():
+                # Convert row key to string (handles Timestamp objects)
+                str_row_key = str(row_key)
+                # Convert value to JSON-serializable format
+                if pd.isna(value):
+                    result[str_col_key][str_row_key] = None
+                elif isinstance(value, (pd.Timestamp, datetime)):
+                    result[str_col_key][str_row_key] = str(value)
+                else:
+                    result[str_col_key][str_row_key] = value
+                    
+        return result
+    except Exception:
+        # If conversion fails, return empty dict
+        return {}
+
+def _safe_convert_value(value: Any) -> Any:
+    """Safely convert values to JSON-serializable format."""
+    if pd.isna(value):
+        return None
+    elif isinstance(value, (pd.Timestamp, datetime)):
+        return str(value)
+    elif isinstance(value, pd.DataFrame):
+        return _safe_dataframe_to_dict(value)
+    else:
+        return value
+
 @dataclass
 class StockData:
     """Standardized stock data structure."""
     symbol: str
     company_info: CompanyInfo
+    info: Dict[str, Any]  # Store original raw info dictionary
     metrics: FinancialMetrics
     technical_analysis: TechnicalIndicators
     technical_signals: TechnicalSignals
@@ -99,21 +143,23 @@ class StockData:
     raw_data: Dict[str, Any]  # Store original provider data for reference
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert the stock data to a dictionary format."""
+        """Convert the stock data to a dictionary format, keeping DataFrames as DataFrames."""
         return {
             'symbol': self.symbol,
-            'info': self.company_info.__dict__,
+            'info': self.info,  # Original raw info dictionary
+            'company_info': self.company_info.__dict__,  # Normalized company info
             'metrics': self.metrics.__dict__,
             'technical_analysis': self.technical_analysis.__dict__,
             'technical_signals': self.technical_signals.__dict__,
             'financials': {
-                'yearly_income_statement': self.financials.yearly_income_statement.to_dict() if self.financials.yearly_income_statement is not None else None,
-                'quarterly_income_statement': self.financials.quarterly_income_statement.to_dict() if self.financials.quarterly_income_statement is not None else None,
-                'yearly_balance_sheet': self.financials.yearly_balance_sheet.to_dict() if self.financials.yearly_balance_sheet is not None else None,
-                'quarterly_balance_sheet': self.financials.quarterly_balance_sheet.to_dict() if self.financials.quarterly_balance_sheet is not None else None,
-                'yearly_cash_flow': self.financials.yearly_cash_flow.to_dict() if self.financials.yearly_cash_flow is not None else None,
-                'quarterly_cash_flow': self.financials.quarterly_cash_flow.to_dict() if self.financials.quarterly_cash_flow is not None else None,
+                'yearly_balance_sheet': self.financials.yearly_balance_sheet,
+                'quarterly_balance_sheet': self.financials.quarterly_balance_sheet,
+                'yearly_income_statement': self.financials.yearly_income_statement,
+                'quarterly_income_statement': self.financials.quarterly_income_statement,
+                'yearly_cash_flow': self.financials.yearly_cash_flow,
+                'quarterly_cash_flow': self.financials.quarterly_cash_flow,
             },
             'news': [news.__dict__ for news in self.news],
-            'raw_data': self.raw_data
+            'raw_data': self.raw_data,
+            'history': self.raw_data.get('history', pd.DataFrame())  # Include history for easy access
         } 
