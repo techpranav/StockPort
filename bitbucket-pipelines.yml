@@ -1,15 +1,36 @@
+image: atlassian/default-image:3
+
 pipelines:
   branches:
-    "release/develop":
+    "**":
       - step:
-          name: Mirror release/develop branch to GitHub
-          image: atlassian/default-image:3
+          name: Mirror to GitHub
           script:
-            - apt-get update && apt-get install -y git
-            - git config --global user.name "$GITHUB_USERNAME"
-            - git config --global user.email "$GITHUB_USERNAME@users.noreply.github.com"
-            # Add GitHub remote with authentication
-            - git remote add mirror https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/StockPort.git
-            # Push this branch and tags to GitHub
-            - git push mirror release/develop --force
-            - git push mirror --tags --force
+            - set -e
+
+            - git config --global user.email "mirror@bot.com"
+            - git config --global user.name "Mirror Bot"
+
+            # Remove existing remote (avoid duplicate error)
+            - git remote remove github || true
+
+            # Add GitHub remote dynamically
+            - git remote add github https://x-token-auth:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/$BITBUCKET_REPO_SLUG.git
+
+            # Ensure full history
+            - git fetch --unshallow || true
+
+            # Retry mirror push (3 attempts)
+            - |
+              for i in 1 2 3; do
+                echo "Attempt $i: Mirroring to GitHub..."
+                if git push github --mirror; then
+                  echo "✅ Mirror successful"
+                  exit 0
+                fi
+                echo "Retrying in 5 seconds..."
+                sleep 5
+              done
+
+              echo "❌ Mirror failed after 3 attempts"
+              exit 1
