@@ -4,23 +4,23 @@ pipelines:
   branches:
     "**":
       - step:
-          name: Mirror to GitHub
+          name: Full Mirror to GitHub
           script:
             - set -e
 
+            # Git config
             - git config --global user.email "mirror@bot.com"
             - git config --global user.name "Mirror Bot"
 
-            # Remove existing remote (avoid duplicate error)
-            - git remote remove github || true
+            # 🔐 Authenticated mirror clone using API token
+            - git clone --mirror https://$BITBUCKET_USERNAME:$BITBUCKET_API_TOKEN@bitbucket.org/$BITBUCKET_REPO_FULL_NAME.git repo.git
 
-            # Add GitHub remote dynamically
+            - cd repo.git
+
+            # Add GitHub remote
             - git remote add github https://x-token-auth:$GITHUB_TOKEN@github.com/$GITHUB_USERNAME/$BITBUCKET_REPO_SLUG.git
 
-            # Ensure full history
-            - git fetch --unshallow || true
-
-            # Retry mirror push (3 attempts)
+            # 🔁 Retry mirror push
             - |
               for i in 1 2 3; do
                 echo "Attempt $i: Mirroring to GitHub..."
